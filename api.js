@@ -248,13 +248,15 @@ async function hydrateAttachments(rows) {
 async function hasAccess(userId, email) {
   if (String(process.env.PROTOTYPE_ALLOW_ALL_AUTHENTICATED).toLowerCase() === "true") return true;
 
-  const rows = await sbRest(
-    `entitlements?user_id=eq.${encodeURIComponent(userId)}&select=active,renewal_or_expiry&limit=1`
-  );
-  const direct = Array.isArray(rows) ? rows[0] : null;
+  const now = new Date();
 
-  if (direct?.active) {
-    if (!direct.renewal_or_expiry || new Date(direct.renewal_or_expiry) >= new Date()) {
+  const directRows = await sbRest(
+    `entitlements?user_id=eq.${encodeURIComponent(userId)}&select=active,renewal_or_expiry,source`
+  );
+
+  for (const item of Array.isArray(directRows) ? directRows : []) {
+    if (!item?.active) continue;
+    if (!item.renewal_or_expiry || new Date(item.renewal_or_expiry) >= now) {
       return true;
     }
   }
@@ -263,16 +265,17 @@ async function hasAccess(userId, email) {
   if (!normalizedEmail) return false;
 
   const emailRows = await sbRest(
-    `entitlement_email_state?email=eq.${encodeURIComponent(normalizedEmail)}&select=active,renewal_or_expiry&limit=1`
+    `entitlement_email_state?email=eq.${encodeURIComponent(normalizedEmail)}&select=active,renewal_or_expiry,source`
   );
-  const state = Array.isArray(emailRows) ? emailRows[0] : null;
 
-  if (!state?.active) return false;
-  if (state.renewal_or_expiry && new Date(state.renewal_or_expiry) < new Date()) {
-    return false;
+  for (const item of Array.isArray(emailRows) ? emailRows : []) {
+    if (!item?.active) continue;
+    if (!item.renewal_or_expiry || new Date(item.renewal_or_expiry) >= now) {
+      return true;
+    }
   }
 
-  return true;
+  return false;
 }
 
 async function createConversation(userId, title) {
@@ -614,7 +617,7 @@ ${routed.context}${memoryText}${attachmentContext}`;
 
 function normalizeEntitlementSource(value) {
   const s = String(value || "").trim().toLowerCase();
-  if (["monthly","annual","bmod","admin","prototype"].includes(s)) return s;
+  if (["monthly","annual","direct","bmod","admin","prototype"].includes(s)) return s;
   return null;
 }
 
@@ -652,7 +655,7 @@ async function handleGhlEntitlementWebhook(req, res) {
   const sourceEvent = body.event_type ? String(body.event_type).slice(0,200) : "entitlement_update";
 
   if (!email) return json(res, 400, { error: "email required" });
-  if (!source) return json(res, 400, { error: "source must be monthly, annual, bmod, admin, or prototype" });
+  if (!source) return json(res, 400, { error: "source must be monthly, annual, direct, bmod, admin, or prototype" });
 
   const safePayload = { ...body };
   delete safePayload.secret;
@@ -673,7 +676,7 @@ async function handleGhlEntitlementWebhook(req, res) {
       }])
     });
 
-    await sbRest("entitlement_email_state?on_conflict=email", {
+    await sbRest("entitlement_email_state?on_conflict=email,source", {
       method:"POST",
       headers:{ Prefer:"resolution=merge-duplicates,return=minimal" },
       body:JSON.stringify([{
@@ -695,7 +698,7 @@ async function handleGhlEntitlementWebhook(req, res) {
     const profile = Array.isArray(profiles) ? profiles[0] : null;
 
     if (profile?.id) {
-      await sbRest("entitlements?on_conflict=user_id", {
+      await sbRest("entitlements?on_conflict=user_id,source", {
         method:"POST",
         headers:{ Prefer:"resolution=merge-duplicates,return=minimal" },
         body:JSON.stringify([{
@@ -774,7 +777,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.4.0-ghl-entitlements",
+        build: "2.4.1-multisource-entitlements",
         benchmarkEnabled: true,
       });
     }

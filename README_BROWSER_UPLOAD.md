@@ -1,4 +1,4 @@
-# Marina On Demand 2.4.0 — GHL Entitlement Receiver
+# Marina On Demand 2.4.1 — Multi-Source GHL Entitlements
 
 Flat browser-upload build. No folders.
 
@@ -10,43 +10,48 @@ Upload these four files to the ROOT of the existing GitHub repository and replac
 - README_BROWSER_UPLOAD.md
 
 Build marker:
-2.4.0-ghl-entitlements
+2.4.1-multisource-entitlements
 
-New:
-- Secure POST /api/ghl-entitlement webhook endpoint
-- Accepts entitlement events before or after a customer has ever logged into Marina
-- Normalizes access source to:
-  - monthly
-  - annual
-  - bmod
-  - admin
-- Stores email-level access state
-- Syncs to the Supabase user entitlement automatically once that email has an account
-- Records GHL events for audit/debugging
-- Supports cancellation/termination by sending active=false
+Important fix:
+Access is now multi-source.
 
-Webhook payload contract:
-{
-  "event_id": "unique-event-id",
-  "event_type": "subscription_started",
-  "email": "customer@example.com",
-  "active": true,
-  "source": "monthly",
-  "plan_name": "Marina On Demand Monthly",
-  "ghl_contact_id": "optional-contact-id",
-  "renewal_or_expiry": "optional ISO timestamp",
-  "secret": "same value as GHL_WEBHOOK_SECRET"
-}
+A customer can simultaneously have:
+- direct MOD access
+- BMOD-included access
+- monthly or annual direct access
+- admin access
 
-Security:
-Set GHL_WEBHOOK_SECRET in Vercel. The endpoint accepts the secret in:
-- x-marina-webhook-secret header
-- Bearer Authorization header
-- JSON body field "secret"
+An inactive event for one source will NOT revoke another still-active source.
 
-IMPORTANT:
-Leave PROTOTYPE_ALLOW_ALL_AUTHENTICATED=true while testing.
-Do not switch live access enforcement on until all current customer paths have been mapped and tested.
+Supported source values:
+- monthly
+- annual
+- direct
+- bmod
+- admin
+- prototype
 
-Next:
-Connect exact GHL purchase/cancellation/BMOD workflows to this endpoint once the workflow signals are confirmed.
+Recommended mapping for the current four BMOD workflows:
+
+1. BMOD Sale and Active Subscription
+   active=true
+   source=bmod
+
+2. BMOD Inactive Subscription
+   active=false
+   source=bmod
+
+3. MOD Tag, Onboarding +AC v2
+   active=true
+   source=direct
+
+4. MOD Inactive Revoke Access
+   active=false
+   source=direct
+
+If the direct MOD workflow is later split cleanly into monthly vs annual, change source from direct to monthly or annual without changing the app architecture.
+
+Keep:
+PROTOTYPE_ALLOW_ALL_AUTHENTICATED=true
+
+Do not enforce production access until active/inactive webhook tests pass.
