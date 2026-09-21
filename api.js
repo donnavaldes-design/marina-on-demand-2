@@ -45,7 +45,13 @@ CURRENT FACTS
 Dynamic prices, links, event dates, registration status, and offer availability must come from verified current data supplied to you. If current data is missing, do not guess.
 
 FORMATTING
-Text first. Emojis only when the user asks or they are unusually natural. No em dashes.
+Use clean Markdown formatting when it improves readability.
+Use bold sparingly for emphasis.
+Use clear headings when the answer has multiple sections.
+Use bullets, numbered steps, tables, and blockquotes when useful.
+Emojis are allowed occasionally when they naturally fit Marina's voice or add energy, but do not sprinkle them through every answer.
+Keep the tone human and visually easy to scan.
+No em dashes.
 `.trim();
 
 const CANONICAL_MARINA_BIO = `Marina Simone is The Branding Queen, a brand strategist and business mentor known for creating iconic, scroll-stopping personal brands that convert. She helps women, especially moms, network marketers, and digital entrepreneurs, turn their story, personality, and expertise into clear positioning, high-converting content, and offers that make money. Her work blends identity and emotional resonance with operator-level execution, content-to-cash systems, conversation-based selling, and brand clarity that people remember. She's known for making messy stories marketable, simplifying what works, and pushing women to lead without apology, with strategy that drives conversions, not just attention.`;
@@ -348,7 +354,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.1.0-attachments",
+        build: "2.1.1-rich-formatting",
       });
     }
 

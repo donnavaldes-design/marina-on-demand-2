@@ -1,4 +1,4 @@
-# Marina On Demand 2.1 — Attachments Build
+# Marina On Demand 2.1.1 — Rich Formatting
 
 Flat browser-upload build. No folders.
 
@@ -10,24 +10,24 @@ Upload these four files to the ROOT of the existing GitHub repository and replac
 - README_BROWSER_UPLOAD.md
 
 Build marker:
-2.1.0-attachments
+2.1.1-rich-formatting
 
-New capability:
-- Paperclip/plus attachment button
-- Images and screenshots
-- PDFs
-- TXT/Markdown/JSON/CSV
-- DOC/DOCX
-- XLS/XLSX
-- PPT/PPTX
-- Up to 5 files per message
-- 20 MB max per file
-- Private Supabase Storage
-- Attachments persist with conversation messages
-- Short-lived signed URLs are supplied to OpenAI only when analysis is required
+Includes everything from 2.1.0 attachments, plus:
+- Proper Markdown rendering
+- Bold emphasis
+- Headings
+- Bullets and numbered lists
+- Tables
+- Blockquotes
+- Code formatting
+- Clickable links
+- Occasional natural emojis allowed in Marina's output
+- Sanitized assistant HTML with DOMPurify
+
+User messages remain plain/safe text.
+Assistant Markdown is sanitized before rendering.
 
 After Vercel says Ready, verify the top-right label shows:
-2.1.0-attachments
+2.1.1-rich-formatting
 
-Recommended first test:
-Upload a screenshot and ask, "Audit this like Marina. What is working, what is weak, and what would you change first?"
+Then open an existing conversation with Markdown. It should render correctly without needing to rerun the prompt.

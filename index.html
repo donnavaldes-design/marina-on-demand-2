@@ -17,6 +17,21 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .messages{flex:1;overflow:auto;padding:34px max(22px,calc((100vw - 1180px)/2));}.welcome{max-width:780px;margin:7vh auto 0}.welcome h2{font-size:46px;margin-bottom:12px}.welcome p{font-size:18px;color:var(--muted);line-height:1.65}.quick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}.quick button{padding:15px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;cursor:pointer}
 .msg{max-width:840px;margin:0 auto 22px;display:grid;grid-template-columns:40px 1fr;gap:12px}.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--dark);color:#fff;font-size:11px;font-weight:800}.msg.user .avatar{background:#c8b5a3;color:var(--dark)}.bubble{white-space:pre-wrap;line-height:1.65;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px}.msg.user .bubble{background:#f0e7dd}
 .composerWrap{border-top:1px solid var(--line);padding:18px 24px;background:var(--panel)}.composer{max-width:860px;margin:auto;display:flex;gap:10px;border:1px solid var(--line);border-radius:18px;padding:10px;background:#fff}.composer textarea{flex:1;border:0;outline:0;resize:none;min-height:54px;padding:7px}.send{width:44px;height:44px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:22px;cursor:pointer}.attach{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--dark);font-size:21px;cursor:pointer;display:grid;place-items:center}.status{max-width:860px;margin:8px auto 0;font-size:12px;color:var(--muted)}.pending{max-width:860px;margin:0 auto 9px;display:flex;gap:8px;flex-wrap:wrap}.filechip{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:7px 9px;font-size:12px}.filechip img{width:44px;height:44px;border-radius:8px;object-fit:cover}.filechip button{border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:16px}.attachmentList{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.attachmentCard{border:1px solid var(--line);background:#faf7f2;border-radius:11px;padding:8px;font-size:12px;max-width:220px}.attachmentCard img{display:block;width:180px;max-height:150px;object-fit:cover;border-radius:8px;margin-bottom:7px}
+.markdown{line-height:1.7}
+.markdown>*:first-child{margin-top:0}.markdown>*:last-child{margin-bottom:0}
+.markdown h1,.markdown h2,.markdown h3,.markdown h4{font-family:Georgia,serif;line-height:1.2;margin:1.25em 0 .55em}
+.markdown h1{font-size:1.65rem}.markdown h2{font-size:1.4rem}.markdown h3{font-size:1.18rem}
+.markdown p{margin:.72em 0}.markdown ul,.markdown ol{padding-left:1.45rem;margin:.7em 0}
+.markdown li{margin:.28em 0}.markdown strong{font-weight:750;color:#201b17}
+.markdown blockquote{margin:1em 0;padding:.8em 1em;border-left:4px solid var(--accent);background:#fbf6f1;border-radius:0 10px 10px 0;color:#4b433d}
+.markdown hr{border:0;border-top:1px solid var(--line);margin:1.3em 0}
+.markdown table{width:100%;border-collapse:collapse;margin:1em 0;font-size:.95rem}
+.markdown th,.markdown td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+.markdown th{background:#f6efe7}
+.markdown code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f4eee7;padding:.15em .35em;border-radius:5px;font-size:.92em}
+.markdown pre{overflow:auto;background:#2a241f;color:#fff;padding:14px;border-radius:12px}
+.markdown pre code{background:transparent;color:inherit;padding:0}
+.markdown a{color:#8f3150;text-decoration:underline;text-underline-offset:2px}
 @media(max-width:760px){.app{grid-template-columns:1fr}.sidebar{display:none}.messages{padding:24px 14px}.welcome h2{font-size:38px}.quick{grid-template-columns:1fr}.top{padding:0 16px}}
 </style>
 </head>
@@ -59,6 +74,8 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 
 <script type="module">
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { marked } from "https://esm.sh/marked@15";
+import DOMPurify from "https://esm.sh/dompurify@3";
 
 const qs = s => document.querySelector(s);
 const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], loading:false, pendingFiles:[] };
@@ -70,6 +87,13 @@ state.supabase = createClient(config.supabaseUrl, config.supabasePublishableKey,
 });
 
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function renderMarkdown(s){
+  const raw = marked.parse(String(s||""), {gfm:true, breaks:true});
+  return DOMPurify.sanitize(raw, {
+    USE_PROFILES:{html:true},
+    ADD_ATTR:["target","rel"]
+  });
+}
 function authHeader(){return {Authorization:`Bearer ${state.session.access_token}`,"content-type":"application/json"}}
 
 async function refreshSession(){
@@ -203,9 +227,12 @@ function renderMessages(){
         : esc(a.file_name);
       return `<div class="attachmentCard">${img}${link}<br><small>${readableSize(a.size_bytes||0)}</small></div>`;
     }).join("");
+    const body = m.role==="assistant"
+      ? `<div class="markdown">${renderMarkdown(m.content)}</div>`
+      : `<div>${esc(m.content)}</div>`;
     return `<div class="msg ${m.role}">
       <div class="avatar">${m.role==="assistant"?"M":"YOU"}</div>
-      <div class="bubble">${esc(m.content)}${atts?`<div class="attachmentList">${atts}</div>`:""}</div>
+      <div class="bubble">${body}${atts?`<div class="attachmentList">${atts}</div>`:""}</div>
     </div>`;
   }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Thinking...</div></div>`:"");
   qs("#messages").scrollTop=qs("#messages").scrollHeight;
