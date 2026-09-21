@@ -536,6 +536,122 @@ function sanitizeManualMemoryPatch(body) {
   return patch;
 }
 
+
+function controlRoomEmails() {
+  return [
+    ...String(process.env.CONTROL_ROOM_ADMIN_EMAILS || "").split(","),
+    ...String(process.env.ALLOWED_TEST_EMAILS || "").split(","),
+  ].map(x => x.trim().toLowerCase()).filter(Boolean);
+}
+
+function isControlRoomAdmin(email) {
+  const allowed = controlRoomEmails();
+  return allowed.length > 0 && allowed.includes(String(email || "").toLowerCase());
+}
+
+async function getActiveKnowledge(sourceKey) {
+  const rows = await sbRest(
+    `knowledge_content?source_key=eq.${encodeURIComponent(sourceKey)}&active=eq.true&select=id,source_key,content,version,source_revision_id,updated_at&order=updated_at.desc&limit=1`
+  );
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getRuntimeSettings() {
+  const rows = await sbRest(`runtime_settings?select=key,value,category,description,updated_at&order=key.asc`);
+  const map = {};
+  for (const row of Array.isArray(rows) ? rows : []) map[row.key] = row.value || {};
+  return map;
+}
+
+async function getBusinessData() {
+  const rows = await sbRest(
+    `business_data?select=id,entity_type,name,status,price,currency,billing_interval,included_with_bmod,start_date,end_date,official_url,verified_at,notes,updated_at&order=name.asc`
+  );
+  return Array.isArray(rows) ? rows : [];
+}
+
+function compactBusinessData(rows) {
+  return (rows || []).map(row => ({
+    entity_type: row.entity_type,
+    name: row.name,
+    status: row.status,
+    price: row.price,
+    currency: row.currency,
+    billing_interval: row.billing_interval,
+    included_with_bmod: row.included_with_bmod,
+    start_date: row.start_date,
+    end_date: row.end_date,
+    official_url: row.official_url,
+    verified_at: row.verified_at,
+    notes: row.notes,
+  }));
+}
+
+async function getLiveBrainContext(route) {
+  const [core, settings, business] = await Promise.all([
+    getActiveKnowledge("CORE-01"),
+    getRuntimeSettings(),
+    getBusinessData(),
+  ]);
+
+  let routeKey = null;
+  if (route === "framework") routeKey = "METHOD-01";
+  else if (route === "product" || route === "current") routeKey = "PRODUCT-01";
+  else if (route === "operator") routeKey = "INTENT-01";
+
+  const routeSource = routeKey ? await getActiveKnowledge(routeKey) : null;
+  const voice = settings.voice_overrides || {};
+  const globalNotes = settings.global_notes || {};
+
+  return {
+    core: core?.content || null,
+    routeSource: routeSource?.content || null,
+    routeSourceKey: routeKey,
+    settings,
+    business,
+    liveOverrideText: `\nLIVE OVERRIDES. These are newer than imported source documents and win on conflict:\n${JSON.stringify({
+      voice_overrides: voice,
+      global_notes: globalNotes,
+    })}`,
+  };
+}
+
+function safeBusinessPatch(body) {
+  const out = {};
+  const textFields = ["entity_type","name","status","currency","billing_interval","start_date","end_date","official_url","verified_at","notes"];
+  for (const field of textFields) {
+    if (!(field in body)) continue;
+    const raw = body[field];
+    out[field] = raw === null || String(raw).trim() === "" ? null : String(raw).trim().slice(0, 2000);
+  }
+  if ("price" in body) {
+    const raw = body.price;
+    out.price = raw === null || raw === "" ? null : Number(raw);
+    if (out.price !== null && !Number.isFinite(out.price)) delete out.price;
+  }
+  if ("included_with_bmod" in body) out.included_with_bmod = body.included_with_bmod === null ? null : Boolean(body.included_with_bmod);
+  out.updated_at = new Date().toISOString();
+  return out;
+}
+
+async function logControlRoomChange(email, changeType, targetKey, previousValue, newValue) {
+  try {
+    await sbRest("control_room_changes", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify([{
+        actor_email: String(email || "").toLowerCase(),
+        change_type: changeType,
+        target_key: targetKey,
+        previous_value: previousValue || null,
+        new_value: newValue || null,
+      }]),
+    });
+  } catch (e) {
+    console.error("Control room audit log skipped:", e);
+  }
+}
+
 function parseOpenAIText(data) {
   if (typeof data.output_text === "string" && data.output_text.trim()) return data.output_text.trim();
   const parts = [];
@@ -549,6 +665,7 @@ function parseOpenAIText(data) {
 
 async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach") {
   const routed = routeMessage(message);
+  const liveBrain = await getLiveBrainContext(routed.route);
   const memoryText = memory
     ? `
 CUSTOMER BUSINESS MEMORY (use only when relevant; current user message wins):
@@ -575,7 +692,21 @@ Prioritize producing finished usable assets over explaining theory. Ask at most 
 EXPERIENCE MODE: COACH ME
 Diagnose clearly, give the next move, and keep the response proportional to the question.`;
 
-  const instructions = `${MARINA_CORE}
+  const liveCore = liveBrain.core || MARINA_CORE;
+  const liveRouteSource = liveBrain.routeSource
+    ? `
+
+LIVE CANONICAL SOURCE ${liveBrain.routeSourceKey}:
+${liveBrain.routeSource}`
+    : "";
+  const liveBusiness = (routed.route === "product" || routed.route === "current")
+    ? `
+
+LIVE BUSINESS DATA. Use these structured records for current product/offer facts. Null means unknown, not zero:
+${JSON.stringify(compactBusinessData(liveBrain.business))}`
+    : "";
+
+  const instructions = `${liveCore}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}
 
 ROUTED CANONICAL CONTEXT:
 ${routed.context}${memoryText}${attachmentContext}${modeContext}`;
@@ -792,7 +923,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.5.1-brand-polish-mobile",
+        build: "2.6.0-control-room",
         benchmarkEnabled: true,
       });
     }
@@ -802,6 +933,74 @@ module.exports = async function handler(req, res) {
     }
 
     const { user, email } = await verifyUser(req);
+
+    if (req.method === "GET" && path === "/api/admin-status") {
+      return json(res, 200, { admin: isControlRoomAdmin(email) });
+    }
+
+    if (req.method === "GET" && path === "/api/control-room") {
+      if (!isControlRoomAdmin(email)) return json(res, 403, { error: "Control Room access denied" });
+      const [sources, content, business, settings, recentChanges] = await Promise.all([
+        sbRest(`knowledge_sources?select=source_key,title,category,authority,active,version,updated_at&order=source_key.asc`),
+        sbRest(`knowledge_content?active=eq.true&select=source_key,version,source_revision_id,updated_at&order=source_key.asc`),
+        getBusinessData(),
+        sbRest(`runtime_settings?select=key,value,category,description,updated_at&order=key.asc`),
+        sbRest(`control_room_changes?select=actor_email,change_type,target_key,created_at&order=created_at.desc&limit=12`),
+      ]);
+      const versions = {};
+      for (const row of Array.isArray(content) ? content : []) versions[row.source_key] = row;
+      return json(res, 200, {
+        admin: true,
+        knowledge: (Array.isArray(sources) ? sources : []).map(s => ({...s, live: versions[s.source_key] || null})),
+        business,
+        settings: Array.isArray(settings) ? settings : [],
+        recentChanges: Array.isArray(recentChanges) ? recentChanges : [],
+      });
+    }
+
+    if (req.method === "PATCH" && path === "/api/control-room/business") {
+      if (!isControlRoomAdmin(email)) return json(res, 403, { error: "Control Room access denied" });
+      const body = await readBody(req);
+      const id = String(body.id || "");
+      if (!id) return json(res, 400, { error: "Business record id required" });
+      const existingRows = await sbRest(`business_data?id=eq.${encodeURIComponent(id)}&select=*&limit=1`);
+      const existing = Array.isArray(existingRows) ? existingRows[0] : null;
+      if (!existing) return json(res, 404, { error: "Business record not found" });
+      const patch = safeBusinessPatch(body);
+      await sbRest(`business_data?id=eq.${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify(patch),
+      });
+      await logControlRoomChange(email, "business_update", existing.name || id, existing, {...existing, ...patch});
+      return json(res, 200, { ok: true });
+    }
+
+    if (req.method === "PATCH" && path === "/api/control-room/setting") {
+      if (!isControlRoomAdmin(email)) return json(res, 403, { error: "Control Room access denied" });
+      const body = await readBody(req);
+      const key = String(body.key || "");
+      const allowedKeys = ["voice_overrides","product_updates","current_events","global_notes"];
+      if (!allowedKeys.includes(key)) return json(res, 400, { error: "Invalid setting key" });
+      const value = body.value && typeof body.value === "object" && !Array.isArray(body.value) ? body.value : {};
+      const existingRows = await sbRest(`runtime_settings?key=eq.${encodeURIComponent(key)}&select=*&limit=1`);
+      const existing = Array.isArray(existingRows) ? existingRows[0] : null;
+      const row = {
+        key,
+        value,
+        category: existing?.category || (key === "voice_overrides" ? "voice" : "general"),
+        description: existing?.description || null,
+        updated_by: email,
+        updated_at: new Date().toISOString(),
+      };
+      await sbRest("runtime_settings?on_conflict=key", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify([row]),
+      });
+      await logControlRoomChange(email, "setting_update", key, existing?.value || null, value);
+      return json(res, 200, { ok: true, value });
+    }
 
     if (req.method === "GET" && path === "/api/conversations") {
       const rows = await sbRest(
