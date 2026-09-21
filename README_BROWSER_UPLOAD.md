@@ -1,4 +1,4 @@
-# Marina On Demand 2.3.0 — Customer Memory
+# Marina On Demand 2.4.0 — GHL Entitlement Receiver
 
 Flat browser-upload build. No folders.
 
@@ -10,42 +10,43 @@ Upload these four files to the ROOT of the existing GitHub repository and replac
 - README_BROWSER_UPLOAD.md
 
 Build marker:
-2.3.0-customer-memory
+2.4.0-ghl-entitlements
 
 New:
-- Durable business memory across separate conversations
-- Automatic extraction of stable, non-sensitive business context
-- Memory fields:
-  - business type
-  - company / vehicle
-  - primary offer
-  - target audience
-  - primary goal
-  - current constraint
-  - current framework
-  - preferred platform
-  - last assignment
-  - assignment status
-  - brand positioning
-  - other useful business context
-- Sidebar button: What Marina remembers
-- Users can view, edit, or clear their business memory
-- Conversation history and business memory are separate
-- Memory changes are audit-logged
-- Sensitive personal information is excluded by the extraction policy
+- Secure POST /api/ghl-entitlement webhook endpoint
+- Accepts entitlement events before or after a customer has ever logged into Marina
+- Normalizes access source to:
+  - monthly
+  - annual
+  - bmod
+  - admin
+- Stores email-level access state
+- Syncs to the Supabase user entitlement automatically once that email has an account
+- Records GHL events for audit/debugging
+- Supports cancellation/termination by sending active=false
 
-Benchmark refinements included:
-- Shorter default answers unless depth is requested
-- Brief narrowing/assumption before bulk-content generation
-- Less therapy-adjacent language in emotional-support responses
+Webhook payload contract:
+{
+  "event_id": "unique-event-id",
+  "event_type": "subscription_started",
+  "email": "customer@example.com",
+  "active": true,
+  "source": "monthly",
+  "plan_name": "Marina On Demand Monthly",
+  "ghl_contact_id": "optional-contact-id",
+  "renewal_or_expiry": "optional ISO timestamp",
+  "secret": "same value as GHL_WEBHOOK_SECRET"
+}
 
-After deployment:
-1. Confirm top-right says 2.3.0-customer-memory
-2. Start a new conversation and tell Marina a few stable business facts, e.g.:
-   "I sell a $97 content workshop to women in network marketing. Instagram is my main platform and my goal is 10 workshop sales this month."
-3. Let Marina answer.
-4. Click What Marina remembers.
-5. Confirm the relevant business facts were saved.
-6. Start another new conversation and ask:
-   "What should I focus on today?"
-7. Marina should naturally use relevant remembered context without making you repeat everything.
+Security:
+Set GHL_WEBHOOK_SECRET in Vercel. The endpoint accepts the secret in:
+- x-marina-webhook-secret header
+- Bearer Authorization header
+- JSON body field "secret"
+
+IMPORTANT:
+Leave PROTOTYPE_ALLOW_ALL_AUTHENTICATED=true while testing.
+Do not switch live access enforcement on until all current customer paths have been mapped and tested.
+
+Next:
+Connect exact GHL purchase/cancellation/BMOD workflows to this endpoint once the workflow signals are confirmed.

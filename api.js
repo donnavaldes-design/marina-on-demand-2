@@ -245,12 +245,33 @@ async function hydrateAttachments(rows) {
   return hydrated;
 }
 
-async function hasAccess(userId) {
+async function hasAccess(userId, email) {
   if (String(process.env.PROTOTYPE_ALLOW_ALL_AUTHENTICATED).toLowerCase() === "true") return true;
-  const rows = await sbRest(`entitlements?user_id=eq.${encodeURIComponent(userId)}&select=active,renewal_or_expiry&limit=1`);
-  const item = Array.isArray(rows) ? rows[0] : null;
-  if (!item || !item.active) return false;
-  if (item.renewal_or_expiry && new Date(item.renewal_or_expiry) < new Date()) return false;
+
+  const rows = await sbRest(
+    `entitlements?user_id=eq.${encodeURIComponent(userId)}&select=active,renewal_or_expiry&limit=1`
+  );
+  const direct = Array.isArray(rows) ? rows[0] : null;
+
+  if (direct?.active) {
+    if (!direct.renewal_or_expiry || new Date(direct.renewal_or_expiry) >= new Date()) {
+      return true;
+    }
+  }
+
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) return false;
+
+  const emailRows = await sbRest(
+    `entitlement_email_state?email=eq.${encodeURIComponent(normalizedEmail)}&select=active,renewal_or_expiry&limit=1`
+  );
+  const state = Array.isArray(emailRows) ? emailRows[0] : null;
+
+  if (!state?.active) return false;
+  if (state.renewal_or_expiry && new Date(state.renewal_or_expiry) < new Date()) {
+    return false;
+  }
+
   return true;
 }
 
@@ -590,6 +611,147 @@ ${routed.context}${memoryText}${attachmentContext}`;
   };
 }
 
+
+function normalizeEntitlementSource(value) {
+  const s = String(value || "").trim().toLowerCase();
+  if (["monthly","annual","bmod","admin","prototype"].includes(s)) return s;
+  return null;
+}
+
+function parseOptionalDate(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function webhookSecretMatches(req, body) {
+  const expected = String(process.env.GHL_WEBHOOK_SECRET || "");
+  if (!expected) return false;
+
+  const header = String(req.headers["x-marina-webhook-secret"] || "");
+  const bearer = String(req.headers.authorization || "").replace(/^Bearer\s+/i,"");
+  const inBody = String(body?.secret || "");
+
+  return [header,bearer,inBody].some(v => v && v === expected);
+}
+
+async function handleGhlEntitlementWebhook(req, res) {
+  const body = await readBody(req);
+
+  if (!webhookSecretMatches(req, body)) {
+    return json(res, 401, { error: "Invalid webhook secret" });
+  }
+
+  const eventId = String(body.event_id || body.eventId || crypto.randomUUID());
+  const email = String(body.email || "").trim().toLowerCase();
+  const source = normalizeEntitlementSource(body.source);
+  const active = body.active === true || String(body.active).toLowerCase() === "true";
+  const planName = body.plan_name ? String(body.plan_name).slice(0,200) : null;
+  const ghlContactId = body.ghl_contact_id ? String(body.ghl_contact_id).slice(0,200) : null;
+  const renewalOrExpiry = parseOptionalDate(body.renewal_or_expiry);
+  const sourceEvent = body.event_type ? String(body.event_type).slice(0,200) : "entitlement_update";
+
+  if (!email) return json(res, 400, { error: "email required" });
+  if (!source) return json(res, 400, { error: "source must be monthly, annual, bmod, admin, or prototype" });
+
+  const safePayload = { ...body };
+  delete safePayload.secret;
+
+  try {
+    await sbRest("ghl_events?on_conflict=event_id", {
+      method:"POST",
+      headers:{ Prefer:"resolution=merge-duplicates,return=minimal" },
+      body:JSON.stringify([{
+        event_id:eventId,
+        event_type:sourceEvent,
+        ghl_contact_id:ghlContactId,
+        email,
+        payload:safePayload,
+        source,
+        status:"received",
+        processed:false
+      }])
+    });
+
+    await sbRest("entitlement_email_state?on_conflict=email", {
+      method:"POST",
+      headers:{ Prefer:"resolution=merge-duplicates,return=minimal" },
+      body:JSON.stringify([{
+        email,
+        active,
+        source,
+        plan_name:planName,
+        ghl_contact_id:ghlContactId,
+        renewal_or_expiry:renewalOrExpiry,
+        source_event:sourceEvent,
+        metadata:{ event_id:eventId },
+        updated_at:new Date().toISOString()
+      }])
+    });
+
+    const profiles = await sbRest(
+      `profiles?email=ilike.${encodeURIComponent(email)}&select=id,email&limit=1`
+    );
+    const profile = Array.isArray(profiles) ? profiles[0] : null;
+
+    if (profile?.id) {
+      await sbRest("entitlements?on_conflict=user_id", {
+        method:"POST",
+        headers:{ Prefer:"resolution=merge-duplicates,return=minimal" },
+        body:JSON.stringify([{
+          user_id:profile.id,
+          email,
+          active,
+          source,
+          plan_name:planName,
+          ghl_contact_id:ghlContactId,
+          renewal_or_expiry:renewalOrExpiry,
+          source_event:sourceEvent,
+          source_updated_at:new Date().toISOString(),
+          metadata:{ event_id:eventId },
+          updated_at:new Date().toISOString()
+        }])
+      });
+    }
+
+    await sbRest(`ghl_events?event_id=eq.${encodeURIComponent(eventId)}`, {
+      method:"PATCH",
+      headers:{ Prefer:"return=minimal" },
+      body:JSON.stringify({
+        processed:true,
+        status:"processed",
+        processed_at:new Date().toISOString(),
+        error:null
+      })
+    });
+
+    return json(res, 200, {
+      ok:true,
+      event_id:eventId,
+      email,
+      active,
+      source,
+      user_linked:Boolean(profile?.id)
+    });
+  } catch (e) {
+    const err = e instanceof Error ? e.message : String(e);
+
+    try {
+      await sbRest(`ghl_events?event_id=eq.${encodeURIComponent(eventId)}`, {
+        method:"PATCH",
+        headers:{ Prefer:"return=minimal" },
+        body:JSON.stringify({
+          processed:false,
+          status:"error",
+          error:err.slice(0,1000)
+        })
+      });
+    } catch {}
+
+    return json(res, 500, { error: err });
+  }
+}
+
 async function readBody(req) {
   if (req.body && typeof req.body === "object") return req.body;
   return await new Promise((resolve, reject) => {
@@ -612,9 +774,13 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.3.0-customer-memory",
+        build: "2.4.0-ghl-entitlements",
         benchmarkEnabled: true,
       });
+    }
+
+    if (req.method === "POST" && path === "/api/ghl-entitlement") {
+      return handleGhlEntitlementWebhook(req, res);
     }
 
     const { user, email } = await verifyUser(req);
@@ -806,7 +972,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === "POST" && path === "/api/chat") {
-      if (!(await hasAccess(user.id))) return json(res, 403, { error: "Your Marina On Demand access is inactive." });
+      if (!(await hasAccess(user.id, email))) return json(res, 403, { error: "Your Marina On Demand access is inactive." });
       const body = await readBody(req);
       const message = String(body.message || "").trim();
       const attachments = Array.isArray(body.attachments) ? body.attachments.slice(0, 5) : [];
