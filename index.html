@@ -15,12 +15,12 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .new{margin:26px 0 16px;width:100%;padding:12px;border:1px solid #d9cbbd;background:#fff9f3;border-radius:12px;text-align:left;cursor:pointer}.threads{display:flex;flex-direction:column;gap:6px;overflow:auto}.thread{border:0;background:transparent;text-align:left;padding:10px;border-radius:10px;cursor:pointer;color:#494039}.thread:hover,.thread.active{background:#fff}.sidefoot{margin-top:auto;font-size:12px;color:var(--muted);padding-top:18px}
 .main{display:flex;flex-direction:column;min-width:0}.top{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(255,253,249,.9)}.top span{font-size:12px;color:var(--muted)}
 .messages{flex:1;overflow:auto;padding:34px max(22px,calc((100vw - 1180px)/2));}.welcome{max-width:780px;margin:7vh auto 0}.welcome h2{font-size:46px;margin-bottom:12px}.welcome p{font-size:18px;color:var(--muted);line-height:1.65}.quick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}.quick button{padding:15px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;cursor:pointer}
-.msg{max-width:840px;margin:0 auto 22px;display:grid;grid-template-columns:40px 1fr;gap:12px}.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--dark);color:#fff;font-size:11px;font-weight:800}.msg.user .avatar{background:#c8b5a3;color:var(--dark)}.bubble{white-space:pre-wrap;line-height:1.65;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px}.msg.user .bubble{background:#f0e7dd}
+.msg{max-width:840px;margin:0 auto 22px;display:grid;grid-template-columns:40px 1fr;gap:12px}.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--dark);color:#fff;font-size:11px;font-weight:800}.msg.user .avatar{background:#c8b5a3;color:var(--dark)}.bubble{line-height:1.65;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px}.msg.user .bubble{background:#f0e7dd;white-space:pre-wrap}.msg.assistant .bubble{white-space:normal}
 .composerWrap{border-top:1px solid var(--line);padding:18px 24px;background:var(--panel)}.composer{max-width:860px;margin:auto;display:flex;gap:10px;border:1px solid var(--line);border-radius:18px;padding:10px;background:#fff}.composer textarea{flex:1;border:0;outline:0;resize:none;min-height:54px;padding:7px}.send{width:44px;height:44px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:22px;cursor:pointer}.attach{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--dark);font-size:21px;cursor:pointer;display:grid;place-items:center}.status{max-width:860px;margin:8px auto 0;font-size:12px;color:var(--muted)}.pending{max-width:860px;margin:0 auto 9px;display:flex;gap:8px;flex-wrap:wrap}.filechip{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:7px 9px;font-size:12px}.filechip img{width:44px;height:44px;border-radius:8px;object-fit:cover}.filechip button{border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:16px}.attachmentList{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.attachmentCard{border:1px solid var(--line);background:#faf7f2;border-radius:11px;padding:8px;font-size:12px;max-width:220px}.attachmentCard img{display:block;width:180px;max-height:150px;object-fit:cover;border-radius:8px;margin-bottom:7px}
-.markdown{line-height:1.52;font-size:1rem}
+.markdown{line-height:1.5;font-size:1rem;white-space:normal}
 .markdown>*:first-child{margin-top:0!important}
 .markdown>*:last-child{margin-bottom:0!important}
-.markdown p{margin:.42em 0}
+.markdown p{margin:.38em 0;white-space:normal}
 .markdown h1,.markdown h2,.markdown h3,.markdown h4{
   font-family:Georgia,serif;
   line-height:1.16;
@@ -34,7 +34,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
   margin:.42em 0 .55em;
   padding-left:1.35rem
 }
-.markdown li{
+.markdown li{white-space:normal;
   margin:.12em 0;
   padding-left:.08rem
 }

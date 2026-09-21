@@ -1,4 +1,4 @@
-# Marina On Demand 2.1.2 — Compact Chat Formatting
+# Marina On Demand 2.1.3 — Spacing Fix
 
 Flat browser-upload build. No folders.
 
@@ -10,19 +10,15 @@ Upload these four files to the ROOT of the existing GitHub repository and replac
 - README_BROWSER_UPLOAD.md
 
 Build marker:
-2.1.2-compact-formatting
+2.1.3-spacing-fix
 
-Changes from 2.1.1:
-- Removed forced Markdown line breaks
-- Tightened paragraph spacing
-- Tightened heading spacing
-- Tightened numbered and bulleted lists
-- Fixed loose-list paragraph gaps
-- More ChatGPT-like chat readability
-- Keeps bold, headings, tables, blockquotes, links, and occasional emojis
-- Keeps image/file attachment support and persistence
+Root cause fixed:
+The old chat bubble used `white-space: pre-wrap`, which was correct for plain text but caused invisible whitespace around rendered Markdown block elements to become giant vertical gaps.
 
-After Vercel says Ready, verify the top-right label shows:
-2.1.2-compact-formatting
+Fix:
+- Assistant bubbles now use normal HTML whitespace
+- User bubbles retain pre-wrap
+- Markdown paragraphs/lists remain compact
+- Existing bold/headings/tables/blockquotes/links/attachments are unchanged
 
-Then reopen any existing conversation. Stored Markdown should immediately render with the tighter spacing.
+No prompt rerun is needed. Existing stored replies will immediately re-render with corrected spacing after deployment.
