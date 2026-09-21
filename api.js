@@ -792,7 +792,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.5.0-wow-dashboard",
+        build: "2.5.1-brand-polish-mobile",
         benchmarkEnabled: true,
       });
     }
