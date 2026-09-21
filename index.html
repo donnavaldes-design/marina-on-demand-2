@@ -63,6 +63,29 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .saveTitle{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;background:#fff;color:var(--ink)}
 .saveDialogActions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 
+
+.actionRunCard{margin-top:14px;border:1px solid rgba(10,186,181,.28);background:linear-gradient(180deg,#ffffff 0%,#f3fffe 100%);border-radius:16px;padding:14px}
+.actionRunHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.actionRunHead strong{font-family:Georgia,serif;font-size:17px}
+.actionRunStatus{font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;padding:4px 7px;border-radius:999px;background:#fff;border:1px solid var(--line);white-space:nowrap}
+.actionRunStatus.completed{color:#08756f;border-color:rgba(10,186,181,.35)}
+.actionRunStatus.needs_approval{color:#8d5868;border-color:rgba(201,163,175,.45);background:var(--rose-soft)}
+.actionRunStatus.failed{color:#a83e33;border-color:#e5c1bc;background:#fff8f6}
+.actionSteps{display:grid;gap:7px}
+.actionStep{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px}
+.actionStepTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.actionStepTitle{font-weight:760;font-size:12px}
+.actionStepMeta{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+.actionStepDesc{font-size:11px;color:var(--muted);line-height:1.45;margin-top:6px}
+.actionStepButtons{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.actionStepButtons button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 8px;font-size:10px;cursor:pointer}
+.actionStepButtons .approve{background:var(--accent);color:#fff;border-color:var(--accent)}
+.actionStepButtons .reject{background:var(--rose-soft);border-color:rgba(201,163,175,.35)}
+.actionInternalBadge{color:#08756f}
+.actionApprovalBadge{color:#8d5868}
+.actionBlockedBadge{color:#8b6a33}
+.actionModeNote{border:1px solid rgba(10,186,181,.25);background:var(--accent-soft);padding:11px 13px;border-radius:13px;margin-top:12px;font-size:12px;color:#4f5e5b;line-height:1.45}
+
 @media(max-width:960px){.card{grid-template-columns:1fr;gap:18px}.loginVisual{min-height:280px}.dashboardHero{grid-template-columns:1fr 200px}}
 @media(max-width:860px){.settingGrid,.brainList,.businessEditGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
 @media(max-width:560px){.center{padding:14px}.card{padding:16px;border-radius:22px}.card h1{font-size:42px}.field{flex-direction:column}.dashboardHero h2,.hub h2{font-size:32px}.focusCard strong{font-size:22px}.topBrand strong{font-size:14px}.topAvatar{width:34px;height:34px}.logo{font-size:28px}.brandPortrait{width:60px;height:60px;border-radius:14px}}</style>
@@ -762,9 +785,9 @@ function renderCreateHub(){
   wireModeBar();qs("#messages").querySelectorAll("[data-create]").forEach(b=>b.onclick=()=>send(b.dataset.create,"create"));
 }
 function renderActionHub(){
-  qs("#messages").innerHTML=renderModeBar()+`<div class="hub"><div class="eyebrow">Action Mode ⚡ <span class="betaPill">Beta</span></div><h2>Give Marina the outcome.</h2><p>Action Mode turns the goal into an execution sequence, builds the assets Marina can complete here, and separates anything that still needs your approval or an external app connection.</p><div class="actionCallout"><strong>Try this tomorrow:</strong><p>“I need to sell 10 of my $97 workshop this month. Take the lead and build what I need to do this week.”</p></div><div class="hubGrid">
-    <button class="hubBtn" data-action="Take my current goal and build the exact 7-day execution sprint I should follow. Create the content, CTAs and follow-up assets you can complete here, then show me anything that needs my approval."><strong>Build my 7-day sprint</strong><span>Strategy + assets + sequence.</span></button>
-    <button class="hubBtn" data-action="Look at what you remember about my business and identify the single biggest conversion bottleneck. Take the lead on fixing it and build everything you can here."><strong>Fix my biggest bottleneck</strong><span>Diagnose it and start executing.</span></button>
+  qs("#messages").innerHTML=renderModeBar()+`<div class="hub"><div class="eyebrow">Action Mode ⚡ <span class="betaPill">Beta</span></div><h2>Give Marina the outcome. She'll build the work.</h2><p>Action Mode now creates real Workspace assets, tracks the execution run, assigns only the tasks you personally need to do, and queues outside-app actions for approval instead of pretending they happened.</p><div class="actionModeNote"><strong>What Marina can do now:</strong> create and save campaigns, content, offers, DM flows, goals and other business assets automatically. External actions like sending emails, changing HighLevel or publishing content are safely queued until that system is connected and you approve the action.</div><div class="actionCallout"><strong>Try this:</strong><p>“I need to sell 10 of my $97 workshop this month. Take the lead and build everything you can for this week.”</p></div><div class="hubGrid">
+    <button class="hubBtn" data-action="Take my current goal and run a real 7-day execution sprint. Build and save the finished content, CTAs, campaign plan and follow-up assets you can complete internally. Create only the human tasks I truly need to do, and queue any external-system actions for approval."><strong>Run my 7-day sprint</strong><span>Creates and saves the work, not just the plan.</span></button>
+    <button class="hubBtn" data-action="Use what you remember about my business to identify my single biggest conversion bottleneck. Take the lead on fixing it. Build and save every internal asset needed, create my exact next tasks, and queue any external actions for approval."><strong>Fix my biggest bottleneck</strong><span>Diagnose, build, save, and queue.</span></button>
   </div></div>`;
   wireModeBar();qs("#messages").querySelectorAll("[data-action]").forEach(b=>b.onclick=()=>send(b.dataset.action,"action"));
 }
@@ -803,6 +826,63 @@ function renderWelcome(){
     </div></div>`;
   wireModeBar();qs("#messages").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>send(b.dataset.p,"coach"));
 }
+
+function actionStepStatusLabel(step){
+  if(step.step_type==="workspace_asset"&&step.status==="completed")return"Created";
+  if(step.step_type==="external_action"&&step.approval_status==="pending")return"Needs Approval";
+  if(step.step_type==="external_action"&&step.approval_status==="approved")return"Approved · Needs Connection";
+  if(step.step_type==="external_action"&&step.approval_status==="rejected")return"Rejected";
+  if(step.step_type==="user_task")return"Your Move";
+  return String(step.status||"").replace(/_/g," ");
+}
+
+function renderActionRun(run){
+  if(!run)return"";
+  const steps=run.steps||[];
+  const status=String(run.status||"").replace(/_/g," ");
+  return `<div class="actionRunCard" data-run-id="${esc(run.id)}">
+    <div class="actionRunHead">
+      <div><strong>⚡ Marina Action Run</strong><div class="actionStepMeta">${esc(run.objective||"")}</div></div>
+      <span class="actionRunStatus ${esc(run.status||"")}">${esc(status)}</span>
+    </div>
+    <div class="actionSteps">${steps.map(step=>`
+      <div class="actionStep" data-step-id="${esc(step.id)}">
+        <div class="actionStepTop"><div><div class="actionStepTitle">${esc(step.title)}</div><div class="actionStepMeta">${esc(actionStepStatusLabel(step))}${step.workspace_section?` · ${esc(workspaceLabel(step.workspace_section))}`:""}${step.external_system?` · ${esc(step.external_system)}`:""}</div></div></div>
+        ${step.description?`<div class="actionStepDesc">${esc(step.description)}</div>`:""}
+        ${step.step_type==="external_action"&&step.approval_status==="pending"?`<div class="actionStepButtons"><button class="approve" data-action-approve="approve">Approve</button><button class="reject" data-action-approve="reject">Reject</button></div>`:""}
+        ${step.step_type==="external_action"&&step.approval_status==="approved"?`<div class="actionStepDesc"><strong>Approved.</strong> Waiting for this external system to be connected to Marina's executor.</div>`:""}
+      </div>`).join("")}</div>
+  </div>`;
+}
+
+async function refreshActionRun(runId){
+  const j=await api(`/api/action-run?id=${encodeURIComponent(runId)}`);
+  for(const m of state.messages){
+    if(m.action_run_id===runId||m.action_run?.id===runId)m.action_run=j.run;
+  }
+  renderMessages();
+}
+
+function wireActionRuns(){
+  qs("#messages").querySelectorAll("[data-action-approve]").forEach(btn=>btn.onclick=async()=>{
+    const step=btn.closest("[data-step-id]");
+    const run=btn.closest("[data-run-id]");
+    if(!step||!run)return;
+    btn.disabled=true;
+    try{
+      const j=await api("/api/action-step-approval",{
+        method:"POST",
+        body:JSON.stringify({stepId:step.dataset.stepId,decision:btn.dataset.actionApprove})
+      });
+      qs("#status").textContent=j.note||"Updated.";
+      await refreshActionRun(run.dataset.runId);
+    }catch(e){
+      qs("#status").textContent=e.message;
+      btn.disabled=false;
+    }
+  });
+}
+
 function renderMessages(){
   if(!state.messages.length){renderWelcome();return}
   qs("#messages").innerHTML=renderModeBar()+state.messages.map(m=>{
@@ -820,9 +900,10 @@ function renderMessages(){
       : `<div>${esc(m.content)}</div>`;
     const receipt=m.role==="assistant"?`<div class="receipt"><span>${esc(modeLabel(m.experience_mode||state.mode))}</span><span>${esc(routeLabel(m.route))}</span></div>`:"";
     const feedback=m.role==="assistant"&&m.id?`<div class="feedback" data-feedback-for="${esc(m.id)}"><button data-rating="1" title="Helpful">👍</button><button data-rating="-1" title="Needs improvement">👎</button><button class="saveWorkspaceBtn" data-save-workspace="${esc(m.id)}">☆ Save to Workspace</button></div>`:"";
+    const actionRun=m.role==="assistant"&&m.action_run?renderActionRun(m.action_run):"";
     return `<div class="msg ${m.role}">
       <div class="avatar">${m.role==="assistant"?"M":"YOU"}</div>
-      <div class="bubble">${body}${atts?`<div class="attachmentList">${atts}</div>`:""}${receipt}${feedback}</div>
+      <div class="bubble">${body}${atts?`<div class="attachmentList">${atts}</div>`:""}${actionRun}${receipt}${feedback}</div>
     </div>`;
   }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Working...</div></div>`:"");
   wireModeBar();
@@ -837,6 +918,7 @@ function renderMessages(){
     })
   });
   qs("#messages").querySelectorAll("[data-save-workspace]").forEach(btn=>btn.onclick=()=>openSaveModal(btn.dataset.saveWorkspace));
+  wireActionRuns();
   qs("#messages").scrollTop=qs("#messages").scrollHeight;
 }
 async function send(prefill, forcedMode){
@@ -880,7 +962,7 @@ async function send(prefill, forcedMode){
     });
 
     state.conversationId=j.conversationId;
-    state.messages.push({id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode});
+    state.messages.push({id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null});
     await loadConversations();
     qs("#status").textContent="";
   }catch(e){

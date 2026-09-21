@@ -661,6 +661,412 @@ function parseOpenAIText(data) {
   return parts.join("\n").trim();
 }
 
+
+const ACTION_TOOLS = [
+  {
+    type: "function",
+    name: "save_workspace_asset",
+    description: "Create a finished business asset and save it into the user's Marina Workspace. Use this when you have actually built something useful, not merely suggested it.",
+    strict: true,
+    parameters: {
+      type: "object",
+      properties: {
+        section: {
+          type: "string",
+          enum: ["brand","offer","content","leads","campaigns","goals","assets"],
+          description: "The Marina Workspace section where the finished asset belongs."
+        },
+        title: { type: "string", description: "A clear human-readable asset title." },
+        content: { type: "string", description: "The finished usable asset in clean Markdown." },
+        pinned: { type: "boolean", description: "Whether this should be pinned as a high-priority workspace item." }
+      },
+      required: ["section","title","content","pinned"],
+      additionalProperties: false
+    }
+  },
+  {
+    type: "function",
+    name: "create_user_task",
+    description: "Create one concrete user task when the user themselves must do something that Marina cannot perform internally.",
+    strict: true,
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Short action title." },
+        description: { type: "string", description: "Exactly what the user needs to do and why." }
+      },
+      required: ["title","description"],
+      additionalProperties: false
+    }
+  },
+  {
+    type: "function",
+    name: "queue_external_action",
+    description: "Queue a proposed action in an external system. This NEVER executes the action. Use it for things like sending email, posting content, editing CRM records, changing automations, scheduling, publishing, or other connected-app work. It must wait for user approval and a connected executor.",
+    strict: true,
+    parameters: {
+      type: "object",
+      properties: {
+        external_system: { type: "string", description: "The external app or system, e.g. HighLevel, Gmail, Canva, Meta." },
+        title: { type: "string", description: "Short proposed action title." },
+        description: { type: "string", description: "What would be done after approval." },
+        action_payload: { type: "string", description: "A compact JSON string or plain-text specification describing the proposed external action. Do not include secrets." }
+      },
+      required: ["external_system","title","description","action_payload"],
+      additionalProperties: false
+    }
+  }
+];
+
+async function createActionRun(userId, conversationId, objective) {
+  const rows = await sbRest("action_runs?select=id,status,objective,created_at", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify([{
+      user_id: userId,
+      conversation_id: conversationId,
+      objective: String(objective || "").slice(0,4000),
+      status: "running",
+    }]),
+  });
+  return rows?.[0] || null;
+}
+
+async function nextActionStepOrder(runId) {
+  const rows = await sbRest(
+    `action_steps?run_id=eq.${encodeURIComponent(runId)}&select=step_order&order=step_order.desc&limit=1`
+  );
+  const n = Array.isArray(rows) && rows[0] ? Number(rows[0].step_order || 0) : 0;
+  return n + 1;
+}
+
+async function insertActionStep(row) {
+  const rows = await sbRest("action_steps?select=id,step_order,step_type,title,description,status,workspace_section,workspace_item_id,external_system,proposed_action,approval_status,result,created_at,updated_at", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify([row]),
+  });
+  return rows?.[0] || null;
+}
+
+async function executeActionTool({ name, args, userId, conversationId, runId }) {
+  const stepOrder = await nextActionStepOrder(runId);
+
+  if (name === "save_workspace_asset") {
+    const section = validWorkspaceSection(args.section);
+    if (!section) throw new Error("Invalid workspace section");
+
+    const title = String(args.title || "").trim().slice(0,120) || "Marina Action Asset";
+    const content = String(args.content || "").trim().slice(0,30000);
+    if (!content) throw new Error("Workspace asset content required");
+
+    const items = await sbRest("workspace_items?select=id,section,title,created_at,updated_at", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify([{
+        user_id: userId,
+        section,
+        title,
+        content,
+        status: "active",
+        pinned: Boolean(args.pinned),
+        source_conversation_id: conversationId,
+        source_message_id: null,
+        metadata: {
+          created_by: "action_mode",
+          action_run_id: runId,
+        },
+      }]),
+    });
+
+    const item = items?.[0] || null;
+    const step = await insertActionStep({
+      run_id: runId,
+      user_id: userId,
+      step_order: stepOrder,
+      step_type: "workspace_asset",
+      title,
+      description: `Created and saved to ${section}.`,
+      status: "completed",
+      workspace_section: section,
+      workspace_item_id: item?.id || null,
+      approval_status: "not_required",
+      result: { workspace_item_id: item?.id || null, section },
+    });
+
+    return {
+      ok: true,
+      status: "completed",
+      step_id: step?.id || null,
+      workspace_item_id: item?.id || null,
+      section,
+      title,
+    };
+  }
+
+  if (name === "create_user_task") {
+    const title = String(args.title || "").trim().slice(0,160) || "User action";
+    const description = String(args.description || "").trim().slice(0,4000);
+
+    const step = await insertActionStep({
+      run_id: runId,
+      user_id: userId,
+      step_order: stepOrder,
+      step_type: "user_task",
+      title,
+      description,
+      status: "planned",
+      approval_status: "not_required",
+      result: {},
+    });
+
+    return {
+      ok: true,
+      status: "planned",
+      step_id: step?.id || null,
+      title,
+    };
+  }
+
+  if (name === "queue_external_action") {
+    const externalSystem = String(args.external_system || "").trim().slice(0,120) || "External system";
+    const title = String(args.title || "").trim().slice(0,160) || "External action";
+    const description = String(args.description || "").trim().slice(0,4000);
+    const payload = String(args.action_payload || "").slice(0,12000);
+
+    const step = await insertActionStep({
+      run_id: runId,
+      user_id: userId,
+      step_order: stepOrder,
+      step_type: "external_action",
+      title,
+      description,
+      status: "needs_approval",
+      external_system: externalSystem,
+      proposed_action: { specification: payload },
+      approval_status: "pending",
+      result: {},
+    });
+
+    return {
+      ok: true,
+      status: "needs_approval",
+      step_id: step?.id || null,
+      external_system: externalSystem,
+      title,
+      note: "Queued only. Nothing was sent, published, changed, or executed externally.",
+    };
+  }
+
+  throw new Error(`Unknown action tool: ${name}`);
+}
+
+async function getActionRun(userId, runId) {
+  const runs = await sbRest(
+    `action_runs?id=eq.${encodeURIComponent(runId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,objective,status,summary,created_at,updated_at,completed_at&limit=1`
+  );
+  const run = Array.isArray(runs) ? runs[0] : null;
+  if (!run) return null;
+
+  const steps = await sbRest(
+    `action_steps?run_id=eq.${encodeURIComponent(runId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,step_order,step_type,title,description,status,workspace_section,workspace_item_id,external_system,proposed_action,approval_status,result,created_at,updated_at&order=step_order.asc`
+  );
+
+  return { ...run, steps: Array.isArray(steps) ? steps : [] };
+}
+
+async function finalizeActionRun(userId, runId, summary, failed = false) {
+  const steps = await sbRest(
+    `action_steps?run_id=eq.${encodeURIComponent(runId)}&user_id=eq.${encodeURIComponent(userId)}&select=status,approval_status`
+  );
+  const list = Array.isArray(steps) ? steps : [];
+  const needsApproval = list.some(s => s.status === "needs_approval" || s.approval_status === "pending");
+  const status = failed ? "failed" : needsApproval ? "needs_approval" : "completed";
+
+  await sbRest(`action_runs?id=eq.${encodeURIComponent(runId)}&user_id=eq.${encodeURIComponent(userId)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      status,
+      summary: String(summary || "").slice(0,12000),
+      updated_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+    }),
+  });
+
+  return status;
+}
+
+async function runActionAgent(message, history, memory, attachments, workspaceContext, userId, conversationId) {
+  const routed = routeMessage(message);
+  const liveBrain = await getLiveBrainContext(routed.route);
+  const run = await createActionRun(userId, conversationId, message);
+  if (!run?.id) throw new Error("ACTION_RUN_NOT_CREATED");
+
+  const memoryText = memory
+    ? `\nCUSTOMER BUSINESS MEMORY:\n${JSON.stringify(memory)}`
+    : "";
+
+  const workspaceText = workspaceContext.length
+    ? `\nCUSTOMER WORKSPACE:\n${JSON.stringify(workspaceContext)}`
+    : "";
+
+  const attachmentContext = attachments.length
+    ? `\nATTACHMENT NOTE: The user supplied ${attachments.length} attachment(s). Analyze the actual attached content. Do not infer identity from filenames or metadata.`
+    : "";
+
+  const liveCore = liveBrain.core || MARINA_CORE;
+  const liveRouteSource = liveBrain.routeSource
+    ? `\nLIVE CANONICAL SOURCE ${liveBrain.routeSourceKey}:\n${liveBrain.routeSource}`
+    : "";
+  const liveBusiness = (routed.route === "product" || routed.route === "current")
+    ? `\nLIVE BUSINESS DATA:\n${JSON.stringify(compactBusinessData(liveBrain.business))}`
+    : "";
+
+  const actionInstructions = `${liveCore}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}
+
+ROUTED CANONICAL CONTEXT:
+${routed.context}${memoryText}${workspaceText}${attachmentContext}
+
+ACTION MODE EXECUTION RULES:
+You are not merely planning. You are operating inside Marina's controlled execution environment.
+
+1. Use save_workspace_asset whenever you create a finished reusable asset. Do not leave valuable finished work only in the chat.
+2. Use create_user_task only for something the human must personally do.
+3. Use queue_external_action for any action that would touch an outside system, send/publish content, change CRM data, schedule, email, post, modify an automation, or otherwise have external side effects.
+4. queue_external_action DOES NOT execute anything. Never claim the external action happened.
+5. Build first. Explain second.
+6. Keep the run focused on the user's stated objective. Do not create busywork.
+7. Usually create 1 to 5 strong assets, not dozens of junk files.
+8. If a proposed external action would be consequential, queue it for approval rather than merely telling the user to do it.
+9. End with a concise operator report containing:
+   - DONE: what Marina actually created/saved internally
+   - YOUR MOVE: human tasks, if any
+   - NEEDS APPROVAL: queued external actions, if any
+10. Never claim an external app connection exists unless the tool result says so.`;
+
+  const input = history.map(m => ({ role: m.role, content: m.content }));
+  const userContent = [{
+    type: "input_text",
+    text: message || "Execute the requested objective using the attached file(s).",
+  }];
+
+  for (const a of attachments) {
+    const signedUrl = await createAttachmentSignedUrl(a.storagePath, 900);
+    if (isImageMime(a.mimeType)) {
+      userContent.push({ type: "input_image", image_url: signedUrl, detail: "auto" });
+    } else {
+      userContent.push({ type: "input_file", file_url: signedUrl });
+    }
+  }
+  input.push({ role: "user", content: userContent });
+
+  let response;
+  let iterations = 0;
+  const maxIterations = 10;
+
+  try {
+    response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
+        reasoning: { effort: "medium" },
+        instructions: actionInstructions,
+        input,
+        tools: ACTION_TOOLS,
+        tool_choice: "auto",
+        parallel_tool_calls: false,
+      }),
+    }).then(async r => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(`OPENAI_${r.status}: ${data.error?.message || JSON.stringify(data)}`);
+      return data;
+    });
+
+    while (iterations < maxIterations) {
+      iterations += 1;
+      const calls = (response.output || []).filter(item => item.type === "function_call");
+      if (!calls.length) break;
+
+      const outputs = [];
+      for (const call of calls) {
+        let args = {};
+        try {
+          args = JSON.parse(call.arguments || "{}");
+        } catch {
+          args = {};
+        }
+
+        let result;
+        try {
+          result = await executeActionTool({
+            name: call.name,
+            args,
+            userId,
+            conversationId,
+            runId: run.id,
+          });
+        } catch (e) {
+          result = {
+            ok: false,
+            error: e instanceof Error ? e.message : String(e),
+          };
+        }
+
+        outputs.push({
+          type: "function_call_output",
+          call_id: call.call_id,
+          output: JSON.stringify(result),
+        });
+      }
+
+      response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
+          reasoning: { effort: "medium" },
+          previous_response_id: response.id,
+          input: outputs,
+          tools: ACTION_TOOLS,
+          tool_choice: "auto",
+          parallel_tool_calls: false,
+        }),
+      }).then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(`OPENAI_${r.status}: ${data.error?.message || JSON.stringify(data)}`);
+        return data;
+      });
+    }
+
+    const answer = parseOpenAIText(response)
+      || "I completed the internal work I could and saved the results in your Action Run.";
+
+    await finalizeActionRun(userId, run.id, answer, false);
+    const actionRun = await getActionRun(userId, run.id);
+
+    return {
+      answer,
+      responseId: response.id || null,
+      model: response.model || process.env.OPENAI_MODEL || "gpt-5.6-terra",
+      usage: response.usage || null,
+      route: routed.route,
+      actionRun,
+    };
+  } catch (e) {
+    const err = e instanceof Error ? e.message : String(e);
+    await finalizeActionRun(userId, run.id, err, true);
+    throw e;
+  }
+}
+
 async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach", workspaceContext = []) {
   const routed = routeMessage(message);
   const liveBrain = await getLiveBrainContext(routed.route);
@@ -960,7 +1366,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.7.0-workspace",
+        build: "2.8.0-action-engine",
         benchmarkEnabled: true,
       });
     }
@@ -1056,7 +1462,7 @@ module.exports = async function handler(req, res) {
       if (!Array.isArray(conv) || !conv.length) return json(res, 404, { error: "Not found" });
 
       const rows = await sbRest(
-        `messages?conversation_id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,role,content,created_at,route,experience_mode&order=created_at.asc`
+        `messages?conversation_id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,role,content,created_at,route,experience_mode,action_run_id&order=created_at.asc`
       );
 
       const attachmentRows = await sbRest(
@@ -1070,15 +1476,70 @@ module.exports = async function handler(req, res) {
         byMessage[a.message_id].push(a);
       }
 
+      const runIds = [...new Set((rows || []).map(m => m.action_run_id).filter(Boolean))];
+      const runMap = {};
+      for (const runId of runIds) {
+        const run = await getActionRun(user.id, runId);
+        if (run) runMap[runId] = run;
+      }
+
       const messages = (rows || []).map(m => ({
         ...m,
         attachments: byMessage[m.id] || [],
+        action_run: m.action_run_id ? (runMap[m.action_run_id] || null) : null,
       }));
 
       return json(res, 200, { messages });
     }
 
 
+
+
+    if (req.method === "GET" && path === "/api/action-run") {
+      const runId = url.searchParams.get("id") || "";
+      if (!runId) return json(res, 400, { error: "Action run id required" });
+      const run = await getActionRun(user.id, runId);
+      if (!run) return json(res, 404, { error: "Action run not found" });
+      return json(res, 200, { run });
+    }
+
+    if (req.method === "POST" && path === "/api/action-step-approval") {
+      const body = await readBody(req);
+      const stepId = String(body.stepId || "");
+      const decision = String(body.decision || "").toLowerCase();
+
+      if (!stepId || !["approve","reject"].includes(decision)) {
+        return json(res, 400, { error: "stepId and approve/reject decision required" });
+      }
+
+      const rows = await sbRest(
+        `action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}&step_type=eq.external_action&select=id,run_id,approval_status,status&limit=1`
+      );
+      const step = Array.isArray(rows) ? rows[0] : null;
+      if (!step) return json(res, 404, { error: "Action step not found" });
+
+      const approved = decision === "approve";
+      await sbRest(`action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          approval_status: approved ? "approved" : "rejected",
+          status: approved ? "blocked" : "blocked",
+          result: approved
+            ? { note: "Approved by user. Waiting for a connected external executor." }
+            : { note: "Rejected by user. Nothing was executed." },
+          updated_at: new Date().toISOString(),
+        }),
+      });
+
+      return json(res, 200, {
+        ok: true,
+        approved,
+        note: approved
+          ? "Approved. This action is queued but cannot execute until the external system is connected."
+          : "Rejected. Nothing was executed.",
+      });
+    }
 
     if (req.method === "GET" && path === "/api/dashboard") {
       const memory = await getMemory(user.id);
@@ -1435,7 +1896,9 @@ module.exports = async function handler(req, res) {
         getMemory(user.id),
         getWorkspaceContext(user.id),
       ]);
-      const ai = await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext);
+      const ai = experienceMode === "action"
+        ? await runActionAgent(message, history, memory, attachments, workspaceContext, user.id, conversationId)
+        : await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext);
 
       const safeUsage = ai.usage
         ? JSON.parse(JSON.stringify(ai.usage))
@@ -1447,6 +1910,7 @@ module.exports = async function handler(req, res) {
         usage: safeUsage,
         route: ai.route,
         experience_mode: experienceMode,
+        action_run_id: ai.actionRun?.id || null,
       });
 
       await applyMemoryChanges(
@@ -1468,7 +1932,8 @@ module.exports = async function handler(req, res) {
         conversationId,
         route: ai.route,
         mode: experienceMode,
-        messageId: assistantMessage.id
+        messageId: assistantMessage.id,
+        actionRun: ai.actionRun || null
       });
     }
 

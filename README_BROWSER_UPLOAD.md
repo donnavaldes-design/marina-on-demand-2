@@ -1,4 +1,4 @@
-# Marina On Demand 2.7.0 — Marina Workspace
+# Marina On Demand 2.8.0 — Real Action Engine
 
 Flat browser-upload build. No folders.
 
@@ -10,34 +10,37 @@ Upload these four files to the ROOT of the existing GitHub repository and replac
 - README_BROWSER_UPLOAD.md
 
 Build marker:
-2.7.0-workspace
+2.8.0-action-engine
 
-New customer workspace:
-- My Brand
-- My Offer
-- My Content
-- My Leads
-- My Campaigns
-- My Goals
-- My Assets
+Action Mode is now an actual controlled execution engine.
 
-Key behavior:
-- Every Marina assistant response now has “Save to Workspace”
-- User chooses the destination section and can rename the asset
-- Saved assets persist independently from conversation history
-- Saved items can be pinned, opened, worked on with Marina, or deleted
-- Workspace items are private to the authenticated user
-- Marina receives recent/pinned workspace context when answering, so saved business assets can inform future conversations
-- “Build with Marina” starts a section-specific creation workflow
+What Marina can execute internally:
+- Create finished business assets
+- Save them automatically into the correct Marina Workspace section
+- Build campaigns, content, offers, DM flows, goals and reusable assets
+- Create concrete user tasks only when the human must do something
+- Track every Action Run and its steps
 
-Control Room remains owner-only via:
-CONTROL_ROOM_ADMIN_EMAIL
+External side effects:
+- External actions are NEVER silently executed
+- Marina can queue proposed actions for systems like HighLevel, Gmail, Canva, Meta, etc.
+- User can Approve or Reject each proposed action
+- Approved actions remain clearly marked as waiting for a connected executor
+- No email, post, CRM edit, automation change, scheduling action, purchase, or other external side effect is claimed unless a future connected executor actually performs it
 
-All prior features preserved:
-- branded/mobile interface
-- live brain + Control Room
-- cross-conversation customer memory
-- Coach Me / Create With Me / Action Mode Beta
+This build is the foundation for:
+- HighLevel execution tools
+- Email tools
+- Canva creation
+- publishing/scheduling
+- future Agents API migration for long-running work
+
+All previous features are preserved:
+- Marina Workspace
+- Owner-only Control Room
+- Live Brain
+- customer memory
+- branded/mobile UI
 - attachments
-- feedback loop
+- feedback
 - multi-source GHL entitlements
