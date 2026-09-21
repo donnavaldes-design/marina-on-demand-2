@@ -395,7 +395,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.2.0-benchmark-runner",
+        build: "2.2.1-benchmark-ui",
         benchmarkEnabled: true,
       });
     }

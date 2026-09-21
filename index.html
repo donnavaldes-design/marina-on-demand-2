@@ -12,7 +12,7 @@ button,input,textarea{font:inherit}.brand{font-family:Georgia,serif;letter-spaci
 h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:12px;color:var(--muted);font-weight:700}.card h1{font-size:44px;line-height:.95;margin-bottom:14px}.card p{color:var(--muted);line-height:1.6}
 .field{display:flex;gap:10px;margin-top:22px}.field input{flex:1;border:1px solid var(--line);border-radius:12px;padding:14px 15px;background:#fff}.primary{border:0;border-radius:12px;padding:14px 18px;background:var(--dark);color:white;font-weight:700;cursor:pointer}.note{font-size:13px;margin-top:14px;color:var(--muted)}
 .app{display:none;min-height:100vh;grid-template-columns:280px 1fr}.sidebar{border-right:1px solid var(--line);padding:26px 18px;display:flex;flex-direction:column;background:#f1eae1}.logo{font-size:34px;line-height:.9}.logo small{display:block;font-family:Inter,sans-serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;margin-top:12px;color:var(--muted)}
-.new{margin:26px 0 16px;width:100%;padding:12px;border:1px solid #d9cbbd;background:#fff9f3;border-radius:12px;text-align:left;cursor:pointer}.threads{display:flex;flex-direction:column;gap:6px;overflow:auto}.thread{border:0;background:transparent;text-align:left;padding:10px;border-radius:10px;cursor:pointer;color:#494039}.thread:hover,.thread.active{background:#fff}.sidefoot{margin-top:auto;font-size:12px;color:var(--muted);padding-top:18px}
+.new{margin:26px 0 16px;width:100%;padding:12px;border:1px solid #d9cbbd;background:#fff9f3;border-radius:12px;text-align:left;cursor:pointer}.benchmarkBtn{width:100%;padding:10px 12px;margin:0 0 16px;border:1px dashed #c9b29e;background:transparent;border-radius:10px;text-align:left;cursor:pointer;font-size:12px;color:#67584d}.benchmarkBtn:hover{background:#fff8f1}.benchmarkBtn:disabled{opacity:.55;cursor:not-allowed}.benchmarkPanel{max-width:860px;margin:0 auto;padding:20px;border:1px solid var(--line);background:#fff;border-radius:16px}.benchmarkPanel h3{margin:0 0 8px;font-family:Georgia,serif;font-size:1.25rem}.benchmarkProgress{font-size:13px;color:var(--muted);margin-top:6px}.benchmarkBar{height:8px;background:#eee3d8;border-radius:999px;overflow:hidden;margin-top:12px}.benchmarkBar span{display:block;height:100%;width:0;background:var(--accent);transition:width .25s ease}.benchmarkLog{margin-top:12px;max-height:260px;overflow:auto;font-size:12px;line-height:1.55;color:#5b5149;background:#fbf8f4;border-radius:10px;padding:10px}.threads{display:flex;flex-direction:column;gap:6px;overflow:auto}.thread{border:0;background:transparent;text-align:left;padding:10px;border-radius:10px;cursor:pointer;color:#494039}.thread:hover,.thread.active{background:#fff}.sidefoot{margin-top:auto;font-size:12px;color:var(--muted);padding-top:18px}
 .main{display:flex;flex-direction:column;min-width:0}.top{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(255,253,249,.9)}.top span{font-size:12px;color:var(--muted)}
 .messages{flex:1;overflow:auto;padding:34px max(22px,calc((100vw - 1180px)/2));}.welcome{max-width:780px;margin:7vh auto 0}.welcome h2{font-size:46px;margin-bottom:12px}.welcome p{font-size:18px;color:var(--muted);line-height:1.65}.quick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}.quick button{padding:15px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;cursor:pointer}
 .msg{max-width:840px;margin:0 auto 22px;display:grid;grid-template-columns:40px 1fr;gap:12px}.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--dark);color:#fff;font-size:11px;font-weight:800}.msg.user .avatar{background:#c8b5a3;color:var(--dark)}.bubble{line-height:1.65;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px}.msg.user .bubble{background:#f0e7dd;white-space:pre-wrap}.msg.assistant .bubble{white-space:normal}
@@ -111,6 +111,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
   <aside class="sidebar">
     <div class="logo brand">Marina<br>On Demand<small>Brand. Lead. Convert.</small></div>
     <button id="newChat" class="new">+ New conversation</button>
+    <button id="benchmarkBtn" class="benchmarkBtn" type="button">Run 30-prompt migration benchmark</button>
     <div id="threads" class="threads"></div>
     <div class="sidefoot"><span id="userEmail"></span><br><button id="signOut" style="border:0;background:transparent;padding:8px 0;color:inherit;cursor:pointer">Sign out</button></div>
   </aside>
@@ -181,6 +182,10 @@ qs("#loginForm").addEventListener("submit", async e=>{
 
 qs("#signOut").addEventListener("click",async()=>{await state.supabase.auth.signOut();location.href="/"});
 qs("#newChat").addEventListener("click",()=>{state.conversationId="";state.messages=[];state.pendingFiles=[];renderPending();renderWelcome();renderThreads()});
+qs("#benchmarkBtn").addEventListener("click", async ()=>{
+  if(state.loading)return;
+  await runBenchmark();
+});
 qs("#composer").addEventListener("submit",e=>{e.preventDefault();send()});
 qs("#input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
 qs("#attachBtn").addEventListener("click",()=>qs("#fileInput").click());
@@ -195,6 +200,83 @@ qs("#fileInput").addEventListener("change",e=>{
   renderPending();
 });
 
+
+
+function renderBenchmarkPanel(runId, completed, total, currentLabel, lines){
+  const pct = total ? Math.round((completed/total)*100) : 0;
+  qs("#messages").innerHTML = `
+    <div class="benchmarkPanel">
+      <h3>Marina 2.0 Migration Benchmark</h3>
+      <div class="benchmarkProgress">${esc(currentLabel)}</div>
+      <div class="benchmarkBar"><span style="width:${pct}%"></span></div>
+      <div class="benchmarkLog">
+        <strong>Run ID:</strong> ${esc(runId)}<br>
+        ${lines.map(x=>esc(x)).join("<br>")}
+      </div>
+    </div>`;
+}
+
+async function runBenchmark(){
+  state.loading=true;
+  qs("#benchmarkBtn").disabled=true;
+  qs("#composer").style.opacity=".45";
+  qs("#composer").style.pointerEvents="none";
+
+  const runId = crypto.randomUUID();
+  const lines = [];
+  let tests = [];
+
+  try{
+    const setup = await api("/api/benchmark");
+    tests = setup.tests || [];
+    renderBenchmarkPanel(runId,0,tests.length,`Starting ${tests.length} fresh-chat tests...`,lines);
+
+    for(let i=0;i<tests.length;i++){
+      const test=tests[i];
+      renderBenchmarkPanel(
+        runId,
+        i,
+        tests.length,
+        `Running ${test.id}/${tests.length} · ${test.category}`,
+        lines
+      );
+
+      try{
+        await api("/api/benchmark",{
+          method:"POST",
+          body:JSON.stringify({runId,testId:test.id})
+        });
+        lines.push(`✓ ${test.id} · ${test.category}`);
+      }catch(e){
+        lines.push(`✗ ${test.id} · ${test.category} · ${e.message}`);
+      }
+
+      renderBenchmarkPanel(
+        runId,
+        i+1,
+        tests.length,
+        `Completed ${i+1}/${tests.length}`,
+        lines
+      );
+    }
+
+    renderBenchmarkPanel(
+      runId,
+      tests.length,
+      tests.length,
+      `Complete. ${tests.length}/${tests.length} tests attempted. Tell ChatGPT: "benchmark complete".`,
+      lines
+    );
+  }catch(e){
+    lines.push(`Benchmark setup failed: ${e.message}`);
+    renderBenchmarkPanel(runId,0,tests.length||30,"Benchmark stopped.",lines);
+  }finally{
+    state.loading=false;
+    qs("#benchmarkBtn").disabled=false;
+    qs("#composer").style.opacity="1";
+    qs("#composer").style.pointerEvents="auto";
+  }
+}
 
 function readableSize(n){
   if(!n)return"0 B";

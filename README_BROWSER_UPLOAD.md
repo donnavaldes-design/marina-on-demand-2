@@ -1,4 +1,4 @@
-# Marina On Demand 2.2.0 — Benchmark Runner
+# Marina On Demand 2.2.1 — Benchmark UI Fix
 
 Flat browser-upload build. No folders.
 
@@ -10,25 +10,23 @@ Upload these four files to the ROOT of the existing GitHub repository and replac
 - README_BROWSER_UPLOAD.md
 
 Build marker:
-2.2.0-benchmark-runner
+2.2.1-benchmark-ui
 
-New migration capability:
-- One-click 30-prompt benchmark runner
-- Every benchmark prompt runs with fresh context
-- No customer memory is injected
-- Results are stored in Supabase benchmark_results
-- Each result stores test ID, category, prompt, response, route, model and OpenAI response ID
-- Designed for direct comparison against the Marina 1.0 benchmark sheet
+Fix:
+The 2.2.0 backend benchmark API deployed correctly, but the sidebar button and browser runner were missing from index.html.
 
-Existing capabilities preserved:
-- Compact rich formatting
-- Persistent conversations
-- Screenshot/image uploads
-- PDF/document uploads
-- Private Supabase attachment storage
+This version visibly adds:
+Run 30-prompt migration benchmark
 
-After deployment:
-1. Confirm top-right says 2.2.0-benchmark-runner
-2. Click “Run 30-prompt migration benchmark”
-3. Leave the browser tab open while it runs
-4. When it says Complete, tell ChatGPT “benchmark complete”
+The runner:
+- creates one run ID
+- runs all 30 prompts sequentially
+- each prompt uses fresh context
+- saves results into Supabase benchmark_results
+- shows progress and pass/fail request status in the browser
+
+After Vercel says Ready:
+1. Confirm the top-right says 2.2.1-benchmark-ui
+2. Click Run 30-prompt migration benchmark
+3. Leave the tab open
+4. When it says Complete, tell ChatGPT: benchmark complete
