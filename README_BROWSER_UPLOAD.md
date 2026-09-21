@@ -1,4 +1,4 @@
-# Marina On Demand 2.1.3 — Spacing Fix
+# Marina On Demand 2.2.0 — Benchmark Runner
 
 Flat browser-upload build. No folders.
 
@@ -10,15 +10,25 @@ Upload these four files to the ROOT of the existing GitHub repository and replac
 - README_BROWSER_UPLOAD.md
 
 Build marker:
-2.1.3-spacing-fix
+2.2.0-benchmark-runner
 
-Root cause fixed:
-The old chat bubble used `white-space: pre-wrap`, which was correct for plain text but caused invisible whitespace around rendered Markdown block elements to become giant vertical gaps.
+New migration capability:
+- One-click 30-prompt benchmark runner
+- Every benchmark prompt runs with fresh context
+- No customer memory is injected
+- Results are stored in Supabase benchmark_results
+- Each result stores test ID, category, prompt, response, route, model and OpenAI response ID
+- Designed for direct comparison against the Marina 1.0 benchmark sheet
 
-Fix:
-- Assistant bubbles now use normal HTML whitespace
-- User bubbles retain pre-wrap
-- Markdown paragraphs/lists remain compact
-- Existing bold/headings/tables/blockquotes/links/attachments are unchanged
+Existing capabilities preserved:
+- Compact rich formatting
+- Persistent conversations
+- Screenshot/image uploads
+- PDF/document uploads
+- Private Supabase attachment storage
 
-No prompt rerun is needed. Existing stored replies will immediately re-render with corrected spacing after deployment.
+After deployment:
+1. Confirm top-right says 2.2.0-benchmark-runner
+2. Click “Run 30-prompt migration benchmark”
+3. Leave the browser tab open while it runs
+4. When it says Complete, tell ChatGPT “benchmark complete”
