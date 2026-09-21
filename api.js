@@ -151,6 +151,53 @@ async function sbRest(path, opts = {}) {
   return data;
 }
 
+
+function safeStoragePath(path) {
+  return String(path || "")
+    .split("/")
+    .map(segment => encodeURIComponent(segment))
+    .join("/");
+}
+
+async function createAttachmentSignedUrl(storagePath, expiresIn = 900) {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const bucket = "marina-attachments";
+  const r = await fetch(
+    `${base}/storage/v1/object/sign/${bucket}/${safeStoragePath(storagePath)}`,
+    {
+      method: "POST",
+      headers: supabaseHeaders(true),
+      body: JSON.stringify({ expiresIn }),
+    }
+  );
+
+  const data = await r.json();
+  if (!r.ok) {
+    throw new Error(`STORAGE_SIGN_${r.status}: ${data.message || JSON.stringify(data)}`);
+  }
+
+  const signed = data.signedURL || data.signedUrl || data.signed_url;
+  if (!signed) throw new Error("STORAGE_SIGN_URL_MISSING");
+  if (/^https?:\/\//i.test(signed)) return signed;
+  return `${base}/storage/v1${signed.startsWith("/") ? signed : `/${signed}`}`;
+}
+
+function isImageMime(mime) {
+  return /^image\/(jpeg|png|webp|gif)$/i.test(String(mime || ""));
+}
+
+async function hydrateAttachments(rows) {
+  const hydrated = [];
+  for (const a of rows || []) {
+    let signedUrl = null;
+    try {
+      signedUrl = await createAttachmentSignedUrl(a.storage_path, 900);
+    } catch {}
+    hydrated.push({ ...a, signed_url: signedUrl });
+  }
+  return hydrated;
+}
+
 async function hasAccess(userId) {
   if (String(process.env.PROTOTYPE_ALLOW_ALL_AUTHENTICATED).toLowerCase() === "true") return true;
   const rows = await sbRest(`entitlements?user_id=eq.${encodeURIComponent(userId)}&select=active,renewal_or_expiry&limit=1`);
@@ -212,14 +259,48 @@ function parseOpenAIText(data) {
   return parts.join("\n").trim();
 }
 
-async function askOpenAI(message, history, memory) {
+async function askOpenAI(message, history, memory, attachments = []) {
   const routed = routeMessage(message);
   const memoryText = memory
-    ? `\nCUSTOMER BUSINESS MEMORY (use only when relevant; current user message wins):\n${JSON.stringify(memory)}`
+    ? `
+CUSTOMER BUSINESS MEMORY (use only when relevant; current user message wins):
+${JSON.stringify(memory)}`
     : "";
-  const instructions = `${MARINA_CORE}\n\nROUTED CANONICAL CONTEXT:\n${routed.context}${memoryText}`;
+
+  const attachmentContext = attachments.length
+    ? `
+ATTACHMENT NOTE: The user supplied ${attachments.length} attachment(s). Analyze the actual attached content. Do not infer the user's name or identity from filenames or metadata.`
+    : "";
+
+  const instructions = `${MARINA_CORE}
+
+ROUTED CANONICAL CONTEXT:
+${routed.context}${memoryText}${attachmentContext}`;
   const input = history.map(m => ({ role: m.role, content: m.content }));
-  input.push({ role: "user", content: message });
+
+  const userContent = [];
+  userContent.push({
+    type: "input_text",
+    text: message || "Please analyze the attached file(s).",
+  });
+
+  for (const a of attachments) {
+    const signedUrl = await createAttachmentSignedUrl(a.storagePath, 900);
+    if (isImageMime(a.mimeType)) {
+      userContent.push({
+        type: "input_image",
+        image_url: signedUrl,
+        detail: "auto",
+      });
+    } else {
+      userContent.push({
+        type: "input_file",
+        file_url: signedUrl,
+      });
+    }
+  }
+
+  input.push({ role: "user", content: userContent });
 
   const r = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -267,7 +348,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.0.1-flat",
+        build: "2.1.0-attachments",
       });
     }
 
@@ -283,21 +364,56 @@ module.exports = async function handler(req, res) {
     if (req.method === "GET" && path === "/api/messages") {
       const cid = url.searchParams.get("conversationId") || "";
       if (!cid) return json(res, 400, { error: "conversationId required" });
+
       const conv = await sbRest(
         `conversations?id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id&limit=1`
       );
       if (!Array.isArray(conv) || !conv.length) return json(res, 404, { error: "Not found" });
+
       const rows = await sbRest(
         `messages?conversation_id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,role,content,created_at&order=created_at.asc`
       );
-      return json(res, 200, { messages: rows || [] });
+
+      const attachmentRows = await sbRest(
+        `message_attachments?conversation_id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,message_id,storage_path,file_name,mime_type,size_bytes,created_at&order=created_at.asc`
+      );
+
+      const hydrated = await hydrateAttachments(attachmentRows || []);
+      const byMessage = {};
+      for (const a of hydrated) {
+        if (!byMessage[a.message_id]) byMessage[a.message_id] = [];
+        byMessage[a.message_id].push(a);
+      }
+
+      const messages = (rows || []).map(m => ({
+        ...m,
+        attachments: byMessage[m.id] || [],
+      }));
+
+      return json(res, 200, { messages });
     }
 
     if (req.method === "POST" && path === "/api/chat") {
       if (!(await hasAccess(user.id))) return json(res, 403, { error: "Your Marina On Demand access is inactive." });
       const body = await readBody(req);
       const message = String(body.message || "").trim();
-      if (!message) return json(res, 400, { error: "Message required" });
+      const attachments = Array.isArray(body.attachments) ? body.attachments.slice(0, 5) : [];
+
+      if (!message && !attachments.length) {
+        return json(res, 400, { error: "Message or attachment required" });
+      }
+
+      for (const a of attachments) {
+        if (!a || typeof a !== "object") return json(res, 400, { error: "Invalid attachment" });
+        const storagePath = String(a.storagePath || "");
+        if (!storagePath.startsWith(`${user.id}/`)) {
+          return json(res, 403, { error: "Attachment does not belong to this user" });
+        }
+        const sizeBytes = Number(a.sizeBytes || 0);
+        if (sizeBytes > 20971520) {
+          return json(res, 400, { error: "Attachments must be 20 MB or smaller" });
+        }
+      }
 
       let conversationId = String(body.conversationId || "");
       if (conversationId) {
@@ -307,16 +423,41 @@ module.exports = async function handler(req, res) {
         if (!Array.isArray(conv) || !conv.length) conversationId = "";
       }
       if (!conversationId) {
-        const title = message.length > 58 ? `${message.slice(0, 55)}...` : message;
+        const titleSource = message || attachments[0]?.fileName || "Attachment";
+        const title = titleSource.length > 58 ? `${titleSource.slice(0, 55)}...` : titleSource;
         const conv = await createConversation(user.id, title);
         conversationId = conv.id;
       }
 
       const history = await getRecentMessages(user.id, conversationId);
-      await saveMessage(user.id, conversationId, "user", message);
+      const userMessage = await saveMessage(
+        user.id,
+        conversationId,
+        "user",
+        message || "[Attachment]"
+      );
+
+      if (attachments.length) {
+        await sbRest("message_attachments", {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify(
+            attachments.map(a => ({
+              user_id: user.id,
+              conversation_id: conversationId,
+              message_id: userMessage.id,
+              storage_bucket: "marina-attachments",
+              storage_path: String(a.storagePath),
+              file_name: String(a.fileName || "attachment"),
+              mime_type: String(a.mimeType || "application/octet-stream"),
+              size_bytes: Number(a.sizeBytes || 0),
+            }))
+          ),
+        });
+      }
 
       const memory = await getMemory(user.id);
-      const ai = await askOpenAI(message, history, memory);
+      const ai = await askOpenAI(message, history, memory, attachments);
 
       const safeUsage = ai.usage
         ? JSON.parse(JSON.stringify(ai.usage))

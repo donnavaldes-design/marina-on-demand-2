@@ -1,22 +1,33 @@
-# Marina On Demand 2.0 — Flat Browser Upload v2
+# Marina On Demand 2.1 — Attachments Build
 
-This build has NO folders.
+Flat browser-upload build. No folders.
 
-Upload these four files directly to the ROOT of the GitHub repository and allow GitHub to replace the existing files:
+Upload these four files to the ROOT of the existing GitHub repository and replace the current files:
 
 - api.js
 - index.html
 - vercel.json
 - README_BROWSER_UPLOAD.md
 
-This version adds:
-- server-side Supabase service-role persistence
-- explicit verification that both user and assistant messages were saved
-- safe JSON serialization of OpenAI usage data
-- build marker: 2.0.1-flat
+Build marker:
+2.1.0-attachments
 
-After Vercel redeploys, the top-right app label should include:
-2.0.1-flat
+New capability:
+- Paperclip/plus attachment button
+- Images and screenshots
+- PDFs
+- TXT/Markdown/JSON/CSV
+- DOC/DOCX
+- XLS/XLSX
+- PPT/PPTX
+- Up to 5 files per message
+- 20 MB max per file
+- Private Supabase Storage
+- Attachments persist with conversation messages
+- Short-lived signed URLs are supplied to OpenAI only when analysis is required
 
-Then rerun one canary:
-Who is Marina Simone?
+After Vercel says Ready, verify the top-right label shows:
+2.1.0-attachments
+
+Recommended first test:
+Upload a screenshot and ask, "Audit this like Marina. What is working, what is weak, and what would you change first?"

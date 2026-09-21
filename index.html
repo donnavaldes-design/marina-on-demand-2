@@ -16,7 +16,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .main{display:flex;flex-direction:column;min-width:0}.top{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(255,253,249,.9)}.top span{font-size:12px;color:var(--muted)}
 .messages{flex:1;overflow:auto;padding:34px max(22px,calc((100vw - 1180px)/2));}.welcome{max-width:780px;margin:7vh auto 0}.welcome h2{font-size:46px;margin-bottom:12px}.welcome p{font-size:18px;color:var(--muted);line-height:1.65}.quick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}.quick button{padding:15px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;cursor:pointer}
 .msg{max-width:840px;margin:0 auto 22px;display:grid;grid-template-columns:40px 1fr;gap:12px}.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--dark);color:#fff;font-size:11px;font-weight:800}.msg.user .avatar{background:#c8b5a3;color:var(--dark)}.bubble{white-space:pre-wrap;line-height:1.65;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px}.msg.user .bubble{background:#f0e7dd}
-.composerWrap{border-top:1px solid var(--line);padding:18px 24px;background:var(--panel)}.composer{max-width:860px;margin:auto;display:flex;gap:10px;border:1px solid var(--line);border-radius:18px;padding:10px;background:#fff}.composer textarea{flex:1;border:0;outline:0;resize:none;min-height:54px;padding:7px}.send{width:44px;height:44px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:22px;cursor:pointer}.status{max-width:860px;margin:8px auto 0;font-size:12px;color:var(--muted)}
+.composerWrap{border-top:1px solid var(--line);padding:18px 24px;background:var(--panel)}.composer{max-width:860px;margin:auto;display:flex;gap:10px;border:1px solid var(--line);border-radius:18px;padding:10px;background:#fff}.composer textarea{flex:1;border:0;outline:0;resize:none;min-height:54px;padding:7px}.send{width:44px;height:44px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:22px;cursor:pointer}.attach{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--dark);font-size:21px;cursor:pointer;display:grid;place-items:center}.status{max-width:860px;margin:8px auto 0;font-size:12px;color:var(--muted)}.pending{max-width:860px;margin:0 auto 9px;display:flex;gap:8px;flex-wrap:wrap}.filechip{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:7px 9px;font-size:12px}.filechip img{width:44px;height:44px;border-radius:8px;object-fit:cover}.filechip button{border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:16px}.attachmentList{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.attachmentCard{border:1px solid var(--line);background:#faf7f2;border-radius:11px;padding:8px;font-size:12px;max-width:220px}.attachmentCard img{display:block;width:180px;max-height:150px;object-fit:cover;border-radius:8px;margin-bottom:7px}
 @media(max-width:760px){.app{grid-template-columns:1fr}.sidebar{display:none}.messages{padding:24px 14px}.welcome h2{font-size:38px}.quick{grid-template-columns:1fr}.top{padding:0 16px}}
 </style>
 </head>
@@ -45,7 +45,10 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
     <header class="top"><strong>Marina On Demand 2.0</strong><span id="modelLabel">Private prototype</span></header>
     <div id="messages" class="messages"></div>
     <div class="composerWrap">
+      <div id="pending" class="pending"></div>
       <form id="composer" class="composer">
+        <input id="fileInput" type="file" hidden multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/markdown,application/json,text/csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+        <button id="attachBtn" class="attach" type="button" title="Attach screenshot, image, PDF or document">＋</button>
         <textarea id="input" placeholder="Ask Marina..."></textarea>
         <button class="send" type="submit">↑</button>
       </form>
@@ -58,7 +61,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const qs = s => document.querySelector(s);
-const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], loading:false };
+const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], loading:false, pendingFiles:[] };
 
 const config = await fetch("/api/config").then(r=>r.json());
 qs("#modelLabel").textContent = `Private prototype · ${config.model || "Marina 2.0"} · ${config.build || "build"}`;
@@ -95,9 +98,61 @@ qs("#loginForm").addEventListener("submit", async e=>{
 });
 
 qs("#signOut").addEventListener("click",async()=>{await state.supabase.auth.signOut();location.href="/"});
-qs("#newChat").addEventListener("click",()=>{state.conversationId="";state.messages=[];renderWelcome();renderThreads()});
+qs("#newChat").addEventListener("click",()=>{state.conversationId="";state.messages=[];state.pendingFiles=[];renderPending();renderWelcome();renderThreads()});
 qs("#composer").addEventListener("submit",e=>{e.preventDefault();send()});
 qs("#input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
+qs("#attachBtn").addEventListener("click",()=>qs("#fileInput").click());
+qs("#fileInput").addEventListener("change",e=>{
+  const files=[...(e.target.files||[])];
+  for(const file of files){
+    if(state.pendingFiles.length>=5){qs("#status").textContent="Up to 5 attachments per message.";break}
+    if(file.size>20*1024*1024){qs("#status").textContent=`${file.name} is over 20 MB.`;continue}
+    state.pendingFiles.push(file);
+  }
+  e.target.value="";
+  renderPending();
+});
+
+
+function readableSize(n){
+  if(!n)return"0 B";
+  if(n<1024)return`${n} B`;
+  if(n<1024*1024)return`${(n/1024).toFixed(1)} KB`;
+  return`${(n/1024/1024).toFixed(1)} MB`;
+}
+function renderPending(){
+  qs("#pending").innerHTML=state.pendingFiles.map((f,i)=>{
+    const image=f.type.startsWith("image/") ? `<img src="${URL.createObjectURL(f)}" alt="">` : "";
+    return `<div class="filechip">${image}<span>${esc(f.name)}<br><small>${readableSize(f.size)}</small></span><button type="button" data-remove="${i}">×</button></div>`;
+  }).join("");
+  qs("#pending").querySelectorAll("[data-remove]").forEach(b=>b.onclick=()=>{
+    state.pendingFiles.splice(Number(b.dataset.remove),1);renderPending();
+  });
+}
+function cleanFileName(name){
+  return String(name||"attachment")
+    .replace(/[^a-zA-Z0-9._-]+/g,"-")
+    .replace(/-+/g,"-")
+    .slice(-120);
+}
+async function uploadPendingFiles(){
+  const uploaded=[];
+  for(const file of state.pendingFiles){
+    const path=`${state.session.user.id}/${Date.now()}-${crypto.randomUUID()}-${cleanFileName(file.name)}`;
+    qs("#status").textContent=`Uploading ${file.name}...`;
+    const {error}=await state.supabase.storage
+      .from("marina-attachments")
+      .upload(path,file,{contentType:file.type||undefined,upsert:false});
+    if(error)throw new Error(`Upload failed: ${error.message}`);
+    uploaded.push({
+      storagePath:path,
+      fileName:file.name,
+      mimeType:file.type||"application/octet-stream",
+      sizeBytes:file.size
+    });
+  }
+  return uploaded;
+}
 
 async function api(url, options={}){
   const r=await fetch(url,{...options,headers:{...authHeader(),...(options.headers||{})}});
@@ -138,25 +193,71 @@ function renderWelcome(){
 }
 function renderMessages(){
   if(!state.messages.length){renderWelcome();return}
-  qs("#messages").innerHTML=state.messages.map(m=>`<div class="msg ${m.role}">
-    <div class="avatar">${m.role==="assistant"?"M":"YOU"}</div>
-    <div class="bubble">${esc(m.content)}</div>
-  </div>`).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Thinking...</div></div>`:"");
+  qs("#messages").innerHTML=state.messages.map(m=>{
+    const atts=(m.attachments||[]).map(a=>{
+      const img=(a.mime_type||"").startsWith("image/") && a.signed_url
+        ? `<img src="${esc(a.signed_url)}" alt="${esc(a.file_name)}">`
+        : "";
+      const link=a.signed_url
+        ? `<a href="${esc(a.signed_url)}" target="_blank" rel="noopener">${esc(a.file_name)}</a>`
+        : esc(a.file_name);
+      return `<div class="attachmentCard">${img}${link}<br><small>${readableSize(a.size_bytes||0)}</small></div>`;
+    }).join("");
+    return `<div class="msg ${m.role}">
+      <div class="avatar">${m.role==="assistant"?"M":"YOU"}</div>
+      <div class="bubble">${esc(m.content)}${atts?`<div class="attachmentList">${atts}</div>`:""}</div>
+    </div>`;
+  }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Thinking...</div></div>`:"");
   qs("#messages").scrollTop=qs("#messages").scrollHeight;
 }
 async function send(prefill){
   const input=qs("#input");
   const value=String(prefill ?? input.value).trim();
-  if(!value||state.loading)return;
-  input.value="";qs("#status").textContent="";
-  state.messages.push({role:"user",content:value});state.loading=true;renderMessages();
+  if((!value&&!state.pendingFiles.length)||state.loading)return;
+
+  state.loading=true;
+  input.value="";
+  qs("#status").textContent="";
+
+  const localAttachments=state.pendingFiles.map(f=>({
+    file_name:f.name,
+    mime_type:f.type,
+    size_bytes:f.size,
+    signed_url:f.type.startsWith("image/") ? URL.createObjectURL(f) : null
+  }));
+
+  state.messages.push({
+    role:"user",
+    content:value||"[Attachment]",
+    attachments:localAttachments
+  });
+  renderMessages();
+
   try{
-    const j=await api("/api/chat",{method:"POST",body:JSON.stringify({message:value,conversationId:state.conversationId||undefined})});
+    const attachments=await uploadPendingFiles();
+    state.pendingFiles=[];
+    renderPending();
+    qs("#status").textContent="Marina is looking at it...";
+
+    const j=await api("/api/chat",{
+      method:"POST",
+      body:JSON.stringify({
+        message:value,
+        conversationId:state.conversationId||undefined,
+        attachments
+      })
+    });
+
     state.conversationId=j.conversationId;
-    state.messages.push({role:"assistant",content:j.answer});
+    state.messages.push({role:"assistant",content:j.answer,attachments:[]});
     await loadConversations();
-  }catch(e){qs("#status").textContent=e.message}
-  state.loading=false;renderMessages();
+    qs("#status").textContent="";
+  }catch(e){
+    qs("#status").textContent=e.message;
+  }
+
+  state.loading=false;
+  renderMessages();
 }
 </script>
 </body>
