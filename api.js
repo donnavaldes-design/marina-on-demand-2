@@ -170,11 +170,23 @@ async function createConversation(userId, title) {
 }
 
 async function saveMessage(userId, conversationId, role, content, extra = {}) {
-  await sbRest("messages", {
+  const rows = await sbRest("messages?select=id,role,created_at", {
     method: "POST",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify([{ user_id: userId, conversation_id: conversationId, role, content, ...extra }]),
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify([{
+      user_id: userId,
+      conversation_id: conversationId,
+      role,
+      content,
+      ...extra
+    }]),
   });
+
+  if (!Array.isArray(rows) || !rows[0]?.id) {
+    throw new Error(`MESSAGE_NOT_SAVED_${String(role).toUpperCase()}`);
+  }
+
+  return rows[0];
 }
 
 async function getRecentMessages(userId, conversationId) {
@@ -255,6 +267,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
+        build: "2.0.1-flat",
       });
     }
 
@@ -305,10 +318,14 @@ module.exports = async function handler(req, res) {
       const memory = await getMemory(user.id);
       const ai = await askOpenAI(message, history, memory);
 
+      const safeUsage = ai.usage
+        ? JSON.parse(JSON.stringify(ai.usage))
+        : null;
+
       await saveMessage(user.id, conversationId, "assistant", ai.answer, {
         model: ai.model,
         response_id: ai.responseId,
-        usage: ai.usage,
+        usage: safeUsage,
       });
 
       await sbRest(`conversations?id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(user.id)}`, {

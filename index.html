@@ -61,7 +61,7 @@ const qs = s => document.querySelector(s);
 const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], loading:false };
 
 const config = await fetch("/api/config").then(r=>r.json());
-qs("#modelLabel").textContent = `Private prototype · ${config.model || "Marina 2.0"}`;
+qs("#modelLabel").textContent = `Private prototype · ${config.model || "Marina 2.0"} · ${config.build || "build"}`;
 state.supabase = createClient(config.supabaseUrl, config.supabasePublishableKey, {
   auth:{persistSession:true,detectSessionInUrl:true,flowType:"pkce"}
 });
