@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Marina On Demand 2.0</title>
+<style>
+:root{--ink:#171512;--muted:#746f68;--paper:#f8f4ee;--panel:#fffdf9;--line:#e9dfd4;--accent:#d6503d;--dark:#29221d}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--paper);color:var(--ink)}
+button,input,textarea{font:inherit}.brand{font-family:Georgia,serif;letter-spacing:-.03em}
+.center{min-height:100vh;display:grid;place-items:center;padding:24px}.card{width:min(520px,100%);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:32px;box-shadow:0 24px 70px rgba(40,28,20,.08)}
+h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:12px;color:var(--muted);font-weight:700}.card h1{font-size:44px;line-height:.95;margin-bottom:14px}.card p{color:var(--muted);line-height:1.6}
+.field{display:flex;gap:10px;margin-top:22px}.field input{flex:1;border:1px solid var(--line);border-radius:12px;padding:14px 15px;background:#fff}.primary{border:0;border-radius:12px;padding:14px 18px;background:var(--dark);color:white;font-weight:700;cursor:pointer}.note{font-size:13px;margin-top:14px;color:var(--muted)}
+.app{display:none;min-height:100vh;grid-template-columns:280px 1fr}.sidebar{border-right:1px solid var(--line);padding:26px 18px;display:flex;flex-direction:column;background:#f1eae1}.logo{font-size:34px;line-height:.9}.logo small{display:block;font-family:Inter,sans-serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;margin-top:12px;color:var(--muted)}
+.new{margin:26px 0 16px;width:100%;padding:12px;border:1px solid #d9cbbd;background:#fff9f3;border-radius:12px;text-align:left;cursor:pointer}.threads{display:flex;flex-direction:column;gap:6px;overflow:auto}.thread{border:0;background:transparent;text-align:left;padding:10px;border-radius:10px;cursor:pointer;color:#494039}.thread:hover,.thread.active{background:#fff}.sidefoot{margin-top:auto;font-size:12px;color:var(--muted);padding-top:18px}
+.main{display:flex;flex-direction:column;min-width:0}.top{height:68px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(255,253,249,.9)}.top span{font-size:12px;color:var(--muted)}
+.messages{flex:1;overflow:auto;padding:34px max(22px,calc((100vw - 1180px)/2));}.welcome{max-width:780px;margin:7vh auto 0}.welcome h2{font-size:46px;margin-bottom:12px}.welcome p{font-size:18px;color:var(--muted);line-height:1.65}.quick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}.quick button{padding:15px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:14px;cursor:pointer}
+.msg{max-width:840px;margin:0 auto 22px;display:grid;grid-template-columns:40px 1fr;gap:12px}.avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--dark);color:#fff;font-size:11px;font-weight:800}.msg.user .avatar{background:#c8b5a3;color:var(--dark)}.bubble{white-space:pre-wrap;line-height:1.65;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px}.msg.user .bubble{background:#f0e7dd}
+.composerWrap{border-top:1px solid var(--line);padding:18px 24px;background:var(--panel)}.composer{max-width:860px;margin:auto;display:flex;gap:10px;border:1px solid var(--line);border-radius:18px;padding:10px;background:#fff}.composer textarea{flex:1;border:0;outline:0;resize:none;min-height:54px;padding:7px}.send{width:44px;height:44px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:22px;cursor:pointer}.status{max-width:860px;margin:8px auto 0;font-size:12px;color:var(--muted)}
+@media(max-width:760px){.app{grid-template-columns:1fr}.sidebar{display:none}.messages{padding:24px 14px}.welcome h2{font-size:38px}.quick{grid-template-columns:1fr}.top{padding:0 16px}}
+</style>
+</head>
+<body>
+<div id="login" class="center">
+  <div class="card">
+    <div class="eyebrow">Private prototype</div>
+    <h1 class="brand">Marina<br>On Demand</h1>
+    <p>Brand. Lead. Convert. Sign in with your email and Marina will send you a secure magic link.</p>
+    <form id="loginForm" class="field">
+      <input id="email" type="email" placeholder="you@example.com" required>
+      <button class="primary" type="submit">Send link</button>
+    </form>
+    <div id="loginStatus" class="note"></div>
+  </div>
+</div>
+
+<div id="app" class="app">
+  <aside class="sidebar">
+    <div class="logo brand">Marina<br>On Demand<small>Brand. Lead. Convert.</small></div>
+    <button id="newChat" class="new">+ New conversation</button>
+    <div id="threads" class="threads"></div>
+    <div class="sidefoot"><span id="userEmail"></span><br><button id="signOut" style="border:0;background:transparent;padding:8px 0;color:inherit;cursor:pointer">Sign out</button></div>
+  </aside>
+  <section class="main">
+    <header class="top"><strong>Marina On Demand 2.0</strong><span id="modelLabel">Private prototype</span></header>
+    <div id="messages" class="messages"></div>
+    <div class="composerWrap">
+      <form id="composer" class="composer">
+        <textarea id="input" placeholder="Ask Marina..."></textarea>
+        <button class="send" type="submit">↑</button>
+      </form>
+      <div id="status" class="status"></div>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const qs = s => document.querySelector(s);
+const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], loading:false };
+
+const config = await fetch("/api/config").then(r=>r.json());
+qs("#modelLabel").textContent = `Private prototype · ${config.model || "Marina 2.0"}`;
+state.supabase = createClient(config.supabaseUrl, config.supabasePublishableKey, {
+  auth:{persistSession:true,detectSessionInUrl:true,flowType:"pkce"}
+});
+
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function authHeader(){return {Authorization:`Bearer ${state.session.access_token}`,"content-type":"application/json"}}
+
+async function refreshSession(){
+  const {data} = await state.supabase.auth.getSession();
+  state.session = data.session;
+  if(state.session){
+    qs("#login").style.display="none"; qs("#app").style.display="grid";
+    qs("#userEmail").textContent=state.session.user.email || "";
+    await loadConversations(); renderWelcome();
+  }else{
+    qs("#login").style.display="grid"; qs("#app").style.display="none";
+  }
+}
+state.supabase.auth.onAuthStateChange((_e,s)=>{state.session=s; refreshSession()});
+await refreshSession();
+
+qs("#loginForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const email=qs("#email").value.trim();
+  qs("#loginStatus").textContent="Sending secure link...";
+  const {error}=await state.supabase.auth.signInWithOtp({
+    email,
+    options:{ emailRedirectTo: window.location.origin }
+  });
+  qs("#loginStatus").textContent=error ? error.message : "Check your email. Click the Marina On Demand sign-in link.";
+});
+
+qs("#signOut").addEventListener("click",async()=>{await state.supabase.auth.signOut();location.href="/"});
+qs("#newChat").addEventListener("click",()=>{state.conversationId="";state.messages=[];renderWelcome();renderThreads()});
+qs("#composer").addEventListener("submit",e=>{e.preventDefault();send()});
+qs("#input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
+
+async function api(url, options={}){
+  const r=await fetch(url,{...options,headers:{...authHeader(),...(options.headers||{})}});
+  const j=await r.json();
+  if(!r.ok) throw new Error(j.error || "Request failed");
+  return j;
+}
+
+async function loadConversations(){
+  try{
+    const j=await api("/api/conversations");
+    state.conversations=j.conversations||[]; renderThreads();
+  }catch(e){qs("#status").textContent=e.message}
+}
+function renderThreads(){
+  qs("#threads").innerHTML=state.conversations.map(c=>`<button class="thread ${c.id===state.conversationId?"active":""}" data-id="${c.id}">${esc(c.title||"Conversation")}</button>`).join("");
+  qs("#threads").querySelectorAll("button").forEach(b=>b.onclick=()=>selectConversation(b.dataset.id));
+}
+async function selectConversation(id){
+  state.conversationId=id;
+  const j=await api(`/api/messages?conversationId=${encodeURIComponent(id)}`);
+  state.messages=j.messages||[]; renderMessages(); renderThreads();
+}
+function renderWelcome(){
+  if(state.messages.length){renderMessages();return}
+  qs("#messages").innerHTML=`<div class="welcome">
+    <h2 class="brand">What are we fixing today?</h2>
+    <p>Bring me the messy caption, the vague offer, the dead DMs, the Reel that got views but no buyers, or the thing you keep overthinking.</p>
+    <div class="quick">
+      ${[
+        "Rewrite my profile like a Lead Slayer",
+        "Create my Seven Layers Deep DM flow",
+        "Turn my story into a weekly live",
+        "Build my warm lead follow-up plan"
+      ].map(x=>`<button data-p="${esc(x)}">${esc(x)}</button>`).join("")}
+    </div></div>`;
+  qs("#messages").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>send(b.dataset.p));
+}
+function renderMessages(){
+  if(!state.messages.length){renderWelcome();return}
+  qs("#messages").innerHTML=state.messages.map(m=>`<div class="msg ${m.role}">
+    <div class="avatar">${m.role==="assistant"?"M":"YOU"}</div>
+    <div class="bubble">${esc(m.content)}</div>
+  </div>`).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Thinking...</div></div>`:"");
+  qs("#messages").scrollTop=qs("#messages").scrollHeight;
+}
+async function send(prefill){
+  const input=qs("#input");
+  const value=String(prefill ?? input.value).trim();
+  if(!value||state.loading)return;
+  input.value="";qs("#status").textContent="";
+  state.messages.push({role:"user",content:value});state.loading=true;renderMessages();
+  try{
+    const j=await api("/api/chat",{method:"POST",body:JSON.stringify({message:value,conversationId:state.conversationId||undefined})});
+    state.conversationId=j.conversationId;
+    state.messages.push({role:"assistant",content:j.answer});
+    await loadConversations();
+  }catch(e){qs("#status").textContent=e.message}
+  state.loading=false;renderMessages();
+}
+</script>
+</body>
+</html>
