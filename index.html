@@ -90,6 +90,22 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 }
 .markdown pre code{background:transparent;color:inherit;padding:0}
 .markdown a{color:#8f3150;text-decoration:underline;text-underline-offset:2px}
+
+.memoryBtn{width:100%;padding:10px 12px;margin:-8px 0 16px;border:1px solid #dacdc1;background:#fffaf5;border-radius:10px;text-align:left;cursor:pointer;font-size:12px;color:#67584d}
+.memoryBtn:hover{background:#fff}
+.memoryPanel{max-width:900px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}
+.memoryPanel h2{font-family:Georgia,serif;font-size:1.65rem;margin:0 0 6px}
+.memoryIntro{color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:18px}
+.memoryGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.memoryField{display:flex;flex-direction:column;gap:5px}
+.memoryField.full{grid-column:1/-1}
+.memoryField label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.memoryField input,.memoryField textarea{border:1px solid var(--line);border-radius:10px;padding:10px 11px;background:#fff;font:inherit;color:var(--ink)}
+.memoryField textarea{min-height:88px;resize:vertical}
+.memoryActions{display:flex;gap:9px;align-items:center;margin-top:16px}
+.secondaryBtn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+.dangerBtn{border:1px solid #e5c1bc;background:#fff8f6;color:#a83e33;border-radius:10px;padding:10px 14px;cursor:pointer;margin-left:auto}
+.memoryStatus{font-size:12px;color:var(--muted);margin-top:10px}
 @media(max-width:760px){.app{grid-template-columns:1fr}.sidebar{display:none}.messages{padding:24px 14px}.welcome h2{font-size:38px}.quick{grid-template-columns:1fr}.top{padding:0 16px}}
 </style>
 </head>
@@ -112,6 +128,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
     <div class="logo brand">Marina<br>On Demand<small>Brand. Lead. Convert.</small></div>
     <button id="newChat" class="new">+ New conversation</button>
     <button id="benchmarkBtn" class="benchmarkBtn" type="button">Run 30-prompt migration benchmark</button>
+    <button id="memoryBtn" class="memoryBtn" type="button">What Marina remembers</button>
     <div id="threads" class="threads"></div>
     <div class="sidefoot"><span id="userEmail"></span><br><button id="signOut" style="border:0;background:transparent;padding:8px 0;color:inherit;cursor:pointer">Sign out</button></div>
   </aside>
@@ -186,6 +203,10 @@ qs("#benchmarkBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
   await runBenchmark();
 });
+qs("#memoryBtn").addEventListener("click", async ()=>{
+  if(state.loading)return;
+  await openMemoryPanel();
+});
 qs("#composer").addEventListener("submit",e=>{e.preventDefault();send()});
 qs("#input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
 qs("#attachBtn").addEventListener("click",()=>qs("#fileInput").click());
@@ -201,6 +222,102 @@ qs("#fileInput").addEventListener("change",e=>{
 });
 
 
+
+
+const MEMORY_UI_FIELDS = [
+  ["business_type","Business type"],
+  ["company_or_vehicle","Company / vehicle"],
+  ["primary_offer","Primary offer"],
+  ["target_audience","Target audience"],
+  ["primary_goal","Primary goal"],
+  ["current_constraint","Current constraint"],
+  ["current_framework","Current framework"],
+  ["preferred_platform","Preferred platform"],
+  ["last_assignment","Last assignment"],
+  ["last_assignment_status","Assignment status"],
+  ["brand_positioning","Brand positioning"],
+];
+
+async function openMemoryPanel(){
+  state.messages=[];
+  state.conversationId="";
+  qs("#status").textContent="";
+  qs("#messages").innerHTML=`
+    <div class="memoryPanel">
+      <h2>What Marina remembers</h2>
+      <div class="memoryIntro">
+        Marina keeps only useful business context so she can continue where you left off.
+        Review it anytime. Sensitive personal information is not intentionally stored here.
+      </div>
+      <div id="memoryForm" class="memoryGrid"></div>
+      <div class="memoryActions">
+        <button id="saveMemory" class="primary" type="button">Save changes</button>
+        <button id="reloadMemory" class="secondaryBtn" type="button">Reload</button>
+        <button id="clearMemory" class="dangerBtn" type="button">Clear memory</button>
+      </div>
+      <div id="memoryStatus" class="memoryStatus">Loading…</div>
+    </div>`;
+  await loadMemoryIntoForm();
+  qs("#saveMemory").onclick=saveMemoryForm;
+  qs("#reloadMemory").onclick=loadMemoryIntoForm;
+  qs("#clearMemory").onclick=clearMemory;
+}
+
+async function loadMemoryIntoForm(){
+  const status=qs("#memoryStatus");
+  status.textContent="Loading…";
+  try{
+    const j=await api("/api/memory");
+    const memory=j.memory||{};
+    const form=qs("#memoryForm");
+    form.innerHTML=MEMORY_UI_FIELDS.map(([key,label])=>`
+      <div class="memoryField ${key==="brand_positioning"?"full":""}">
+        <label for="mem_${key}">${esc(label)}</label>
+        ${key==="brand_positioning"
+          ? `<textarea id="mem_${key}">${esc(memory[key]||"")}</textarea>`
+          : `<input id="mem_${key}" value="${esc(memory[key]||"")}">`}
+      </div>`).join("") + `
+      <div class="memoryField full">
+        <label for="mem_important_business_context">Other useful business context, one item per line</label>
+        <textarea id="mem_important_business_context">${esc((memory.important_business_context||[]).join("\n"))}</textarea>
+      </div>`;
+    status.textContent=Object.keys(memory).length
+      ? "This is the business context Marina can carry into future chats."
+      : "No durable business memory yet. Marina will build this gradually from what you explicitly share.";
+  }catch(e){
+    status.textContent=e.message;
+  }
+}
+
+async function saveMemoryForm(){
+  const status=qs("#memoryStatus");
+  status.textContent="Saving…";
+  const patch={};
+  for(const [key] of MEMORY_UI_FIELDS){
+    patch[key]=qs(`#mem_${key}`).value;
+  }
+  patch.important_business_context=qs("#mem_important_business_context").value
+    .split("\n").map(x=>x.trim()).filter(Boolean);
+  try{
+    await api("/api/memory",{method:"PATCH",body:JSON.stringify(patch)});
+    status.textContent="Saved. Marina will use this context when it is relevant.";
+  }catch(e){
+    status.textContent=e.message;
+  }
+}
+
+async function clearMemory(){
+  const status=qs("#memoryStatus");
+  if(!confirm("Clear Marina's saved business memory for this account? Your conversation history will remain."))return;
+  status.textContent="Clearing…";
+  try{
+    await api("/api/memory",{method:"DELETE"});
+    await loadMemoryIntoForm();
+    status.textContent="Business memory cleared. Conversation history was not deleted.";
+  }catch(e){
+    status.textContent=e.message;
+  }
+}
 
 function renderBenchmarkPanel(runId, completed, total, currentLabel, lines){
   const pct = total ? Math.round((completed/total)*100) : 0;

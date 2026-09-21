@@ -295,6 +295,223 @@ async function getMemory(userId) {
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
+
+const MEMORY_FIELDS = [
+  "business_type",
+  "company_or_vehicle",
+  "primary_offer",
+  "target_audience",
+  "primary_goal",
+  "current_constraint",
+  "current_framework",
+  "preferred_platform",
+  "last_assignment",
+  "last_assignment_status",
+  "brand_positioning",
+  "important_business_context",
+];
+
+function cleanMemoryValue(field, value) {
+  if (value === "__CLEAR__") return null;
+  if (field === "important_business_context") {
+    if (!Array.isArray(value)) return undefined;
+    return value
+      .map(v => String(v || "").trim())
+      .filter(Boolean)
+      .slice(0, 20)
+      .map(v => v.slice(0, 350));
+  }
+  if (value === null || value === undefined) return undefined;
+  const s = String(value).trim();
+  if (!s) return undefined;
+  return s.slice(0, 500);
+}
+
+function memorySnapshot(memory) {
+  if (!memory) return {};
+  const out = {};
+  for (const field of MEMORY_FIELDS) {
+    if (memory[field] !== null && memory[field] !== undefined) {
+      out[field] = memory[field];
+    }
+  }
+  return out;
+}
+
+function parseJsonObject(text) {
+  const raw = String(text || "").trim();
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {}
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) return {};
+  try {
+    const parsed = JSON.parse(match[0]);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+async function extractMemoryChanges(userMessage, assistantAnswer, currentMemory) {
+  if (!userMessage || String(userMessage).trim().length < 4) return {};
+
+  const instructions = `You are a private business-memory extraction process for Marina On Demand.
+
+Return ONLY a valid JSON object. No markdown. No explanation.
+
+Your job is to identify durable BUSINESS context worth remembering across future chats.
+
+Allowed keys only:
+business_type
+company_or_vehicle
+primary_offer
+target_audience
+primary_goal
+current_constraint
+current_framework
+preferred_platform
+last_assignment
+last_assignment_status
+brand_positioning
+important_business_context
+
+Rules:
+- Save only stable business facts explicitly stated by the user or clearly established in the user's message.
+- Do not infer a personal name from account data, filenames, metadata, or context.
+- Do not store health/medical information, mental-health information, religion, politics, race/ethnicity, sexual information, relationship details, passwords, financial account details, or other sensitive personal data.
+- Do not store temporary emotions as durable memory.
+- Do not store guesses.
+- Prefer no change over uncertain memory.
+- If the user explicitly corrects or replaces an old business fact, return the new value.
+- Use "__CLEAR__" only if the user explicitly asks to clear/forget a specific business-memory field.
+- last_assignment may be set only when the assistant clearly gave one concrete next action in this turn.
+- last_assignment_status may be set only when the user explicitly reports whether a prior assignment was done/not done/in progress.
+- important_business_context must be an array of short strings and should contain only durable, useful business context not covered by another field.
+- Omit keys that should not change.
+
+Current memory:
+${JSON.stringify(memorySnapshot(currentMemory))}
+
+User message:
+${String(userMessage)}
+
+Assistant answer:
+${String(assistantAnswer).slice(0, 3500)}
+`;
+
+  const r = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
+      reasoning: { effort: "low" },
+      instructions,
+      input: [{ role: "user", content: "Extract durable business memory now." }],
+    }),
+  });
+
+  const data = await r.json();
+  if (!r.ok) return {};
+
+  const parsed = parseJsonObject(parseOpenAIText(data));
+  const cleaned = {};
+
+  for (const field of MEMORY_FIELDS) {
+    if (!(field in parsed)) continue;
+    const value = cleanMemoryValue(field, parsed[field]);
+    if (value !== undefined) cleaned[field] = value;
+  }
+
+  return cleaned;
+}
+
+async function applyMemoryChanges(userId, conversationId, userMessage, assistantAnswer, currentMemory) {
+  try {
+    const changes = await extractMemoryChanges(
+      userMessage,
+      assistantAnswer,
+      currentMemory
+    );
+
+    if (!changes || !Object.keys(changes).length) return false;
+
+    const merged = {
+      user_id: userId,
+      ...memorySnapshot(currentMemory),
+      ...changes,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (Array.isArray(currentMemory?.important_business_context) &&
+        Array.isArray(changes.important_business_context)) {
+      merged.important_business_context = [
+        ...currentMemory.important_business_context,
+        ...changes.important_business_context,
+      ]
+        .map(x => String(x || "").trim())
+        .filter(Boolean)
+        .filter((x, i, arr) => arr.indexOf(x) === i)
+        .slice(-20);
+    }
+
+    await sbRest("customer_memory?on_conflict=user_id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify([merged]),
+    });
+
+    await sbRest("memory_events", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify([{
+        user_id: userId,
+        conversation_id: conversationId || null,
+        source_message: String(userMessage || "").slice(0, 1000),
+        changes,
+      }]),
+    });
+
+    return true;
+  } catch (e) {
+    console.error("Memory update skipped:", e);
+    return false;
+  }
+}
+
+function sanitizeManualMemoryPatch(body) {
+  const patch = {};
+  for (const field of MEMORY_FIELDS) {
+    if (!(field in body)) continue;
+
+    if (field === "important_business_context") {
+      const raw = body[field];
+      const arr = Array.isArray(raw)
+        ? raw
+        : String(raw || "").split("\n");
+      patch[field] = arr
+        .map(v => String(v || "").trim())
+        .filter(Boolean)
+        .slice(0, 20)
+        .map(v => v.slice(0, 350));
+      continue;
+    }
+
+    const raw = body[field];
+    if (raw === null || String(raw).trim() === "") {
+      patch[field] = null;
+    } else {
+      patch[field] = String(raw).trim().slice(0, 500);
+    }
+  }
+
+  return patch;
+}
+
 function parseOpenAIText(data) {
   if (typeof data.output_text === "string" && data.output_text.trim()) return data.output_text.trim();
   const parts = [];
@@ -395,7 +612,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.2.1-benchmark-ui",
+        build: "2.3.0-customer-memory",
         benchmarkEnabled: true,
       });
     }
@@ -441,6 +658,64 @@ module.exports = async function handler(req, res) {
       return json(res, 200, { messages });
     }
 
+
+
+    if (req.method === "GET" && path === "/api/memory") {
+      const memory = await getMemory(user.id);
+      return json(res, 200, { memory: memorySnapshot(memory) });
+    }
+
+    if (req.method === "PATCH" && path === "/api/memory") {
+      const body = await readBody(req);
+      const patch = sanitizeManualMemoryPatch(body || {});
+      const current = await getMemory(user.id);
+
+      const row = {
+        user_id: user.id,
+        ...memorySnapshot(current),
+        ...patch,
+        updated_at: new Date().toISOString(),
+      };
+
+      await sbRest("customer_memory?on_conflict=user_id", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify([row]),
+      });
+
+      await sbRest("memory_events", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify([{
+          user_id: user.id,
+          conversation_id: null,
+          source_message: "[Manual memory edit]",
+          changes: patch,
+        }]),
+      });
+
+      return json(res, 200, { memory: memorySnapshot(row) });
+    }
+
+    if (req.method === "DELETE" && path === "/api/memory") {
+      await sbRest(`customer_memory?user_id=eq.${encodeURIComponent(user.id)}`, {
+        method: "DELETE",
+        headers: { Prefer: "return=minimal" },
+      });
+
+      await sbRest("memory_events", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify([{
+          user_id: user.id,
+          conversation_id: null,
+          source_message: "[Memory cleared by user]",
+          changes: { cleared: true },
+        }]),
+      });
+
+      return json(res, 200, { memory: {} });
+    }
 
     if (req.method === "GET" && path === "/api/benchmark") {
       if (!benchmarkAdminAllowed(email)) {
@@ -605,6 +880,14 @@ module.exports = async function handler(req, res) {
         response_id: ai.responseId,
         usage: safeUsage,
       });
+
+      await applyMemoryChanges(
+        user.id,
+        conversationId,
+        message,
+        ai.answer,
+        memory
+      );
 
       await sbRest(`conversations?id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(user.id)}`, {
         method: "PATCH",
