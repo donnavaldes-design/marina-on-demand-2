@@ -537,16 +537,14 @@ function sanitizeManualMemoryPatch(body) {
 }
 
 
-function controlRoomEmails() {
-  return [
-    ...String(process.env.CONTROL_ROOM_ADMIN_EMAILS || "").split(","),
-    ...String(process.env.ALLOWED_TEST_EMAILS || "").split(","),
-  ].map(x => x.trim().toLowerCase()).filter(Boolean);
-}
-
 function isControlRoomAdmin(email) {
-  const allowed = controlRoomEmails();
-  return allowed.length > 0 && allowed.includes(String(email || "").toLowerCase());
+  const ownerEmail = String(process.env.CONTROL_ROOM_ADMIN_EMAIL || "")
+    .trim()
+    .toLowerCase();
+
+  if (!ownerEmail) return false;
+
+  return String(email || "").trim().toLowerCase() === ownerEmail;
 }
 
 async function getActiveKnowledge(sourceKey) {
@@ -663,7 +661,7 @@ function parseOpenAIText(data) {
   return parts.join("\n").trim();
 }
 
-async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach") {
+async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach", workspaceContext = []) {
   const routed = routeMessage(message);
   const liveBrain = await getLiveBrainContext(routed.route);
   const memoryText = memory
@@ -675,6 +673,12 @@ ${JSON.stringify(memory)}`
   const attachmentContext = attachments.length
     ? `
 ATTACHMENT NOTE: The user supplied ${attachments.length} attachment(s). Analyze the actual attached content. Do not infer the user's name or identity from filenames or metadata.`
+    : "";
+
+  const workspaceText = workspaceContext.length
+    ? `
+CUSTOMER WORKSPACE (permanent business assets saved by the user; use only when relevant and do not overwrite explicit current instructions):
+${JSON.stringify(workspaceContext)}`
     : "";
 
   const modeContext = experienceMode === "action"
@@ -709,7 +713,7 @@ ${JSON.stringify(compactBusinessData(liveBrain.business))}`
   const instructions = `${liveCore}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}
 
 ROUTED CANONICAL CONTEXT:
-${routed.context}${memoryText}${attachmentContext}${modeContext}`;
+${routed.context}${memoryText}${workspaceText}${attachmentContext}${modeContext}`;
   const input = history.map(m => ({ role: m.role, content: m.content }));
 
   const userContent = [];
@@ -901,6 +905,39 @@ async function handleGhlEntitlementWebhook(req, res) {
   }
 }
 
+
+const WORKSPACE_SECTIONS = ["brand","offer","content","leads","campaigns","goals","assets"];
+
+function validWorkspaceSection(value) {
+  const s = String(value || "").trim().toLowerCase();
+  return WORKSPACE_SECTIONS.includes(s) ? s : null;
+}
+
+function workspaceAutoTitle(content, fallback = "Saved from Marina") {
+  const clean = String(content || "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*/g, "")
+    .replace(/[_`>#]/g, "")
+    .trim();
+
+  const first = clean.split(/\n+/).find(x => x.trim()) || fallback;
+  return first.trim().slice(0, 90);
+}
+
+async function getWorkspaceContext(userId) {
+  const rows = await sbRest(
+    `workspace_items?user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=section,title,content,pinned,updated_at&order=pinned.desc,updated_at.desc&limit=16`
+  );
+
+  return (Array.isArray(rows) ? rows : []).map(item => ({
+    section: item.section,
+    title: item.title,
+    content: String(item.content || "").slice(0, 1400),
+    pinned: Boolean(item.pinned),
+    updated_at: item.updated_at,
+  }));
+}
+
 async function readBody(req) {
   if (req.body && typeof req.body === "object") return req.body;
   return await new Promise((resolve, reject) => {
@@ -923,7 +960,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.6.0-control-room",
+        build: "2.7.0-workspace",
         benchmarkEnabled: true,
       });
     }
@@ -1087,6 +1124,101 @@ module.exports = async function handler(req, res) {
       });
 
       return json(res, 200, { ok:true, rating });
+    }
+
+
+    if (req.method === "GET" && path === "/api/workspace") {
+      const section = validWorkspaceSection(url.searchParams.get("section"));
+      const filter = section ? `&section=eq.${encodeURIComponent(section)}` : "";
+      const rows = await sbRest(
+        `workspace_items?user_id=eq.${encodeURIComponent(user.id)}${filter}&select=id,section,title,content,status,pinned,source_conversation_id,source_message_id,metadata,created_at,updated_at&order=pinned.desc,updated_at.desc`
+      );
+      return json(res, 200, { items: Array.isArray(rows) ? rows : [] });
+    }
+
+    if (req.method === "POST" && path === "/api/workspace") {
+      const body = await readBody(req);
+      const section = validWorkspaceSection(body.section);
+      if (!section) return json(res, 400, { error: "Valid workspace section required" });
+
+      let content = String(body.content || "").trim();
+      let sourceMessageId = body.sourceMessageId ? String(body.sourceMessageId) : null;
+      let sourceConversationId = body.sourceConversationId ? String(body.sourceConversationId) : null;
+
+      if (sourceMessageId) {
+        const rows = await sbRest(
+          `messages?id=eq.${encodeURIComponent(sourceMessageId)}&user_id=eq.${encodeURIComponent(user.id)}&role=eq.assistant&select=id,conversation_id,content&limit=1`
+        );
+        const msg = Array.isArray(rows) ? rows[0] : null;
+        if (!msg) return json(res, 404, { error: "Source message not found" });
+        if (!content) content = String(msg.content || "");
+        sourceConversationId = msg.conversation_id || sourceConversationId;
+      }
+
+      if (!content) return json(res, 400, { error: "Workspace content required" });
+
+      const title = String(body.title || "").trim().slice(0, 120)
+        || workspaceAutoTitle(content);
+
+      const rows = await sbRest("workspace_items?select=id,section,title,content,status,pinned,created_at,updated_at", {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify([{
+          user_id: user.id,
+          section,
+          title,
+          content,
+          status: "active",
+          pinned: Boolean(body.pinned),
+          source_conversation_id: sourceConversationId || null,
+          source_message_id: sourceMessageId || null,
+          metadata: {
+            experience_mode: body.experienceMode || null,
+            route: body.route || null,
+          },
+        }]),
+      });
+
+      return json(res, 200, { item: rows?.[0] || null });
+    }
+
+    if (req.method === "PATCH" && path === "/api/workspace") {
+      const body = await readBody(req);
+      const id = String(body.id || "");
+      if (!id) return json(res, 400, { error: "Workspace item id required" });
+
+      const existingRows = await sbRest(
+        `workspace_items?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user.id)}&select=id&limit=1`
+      );
+      if (!Array.isArray(existingRows) || !existingRows.length) {
+        return json(res, 404, { error: "Workspace item not found" });
+      }
+
+      const patch = { updated_at: new Date().toISOString() };
+      if ("title" in body) patch.title = String(body.title || "").trim().slice(0,120) || "Untitled";
+      if ("content" in body) patch.content = String(body.content || "").slice(0,30000);
+      if ("pinned" in body) patch.pinned = Boolean(body.pinned);
+      if ("status" in body && ["active","archived"].includes(String(body.status))) patch.status = String(body.status);
+
+      await sbRest(`workspace_items?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user.id)}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify(patch),
+      });
+
+      return json(res, 200, { ok: true });
+    }
+
+    if (req.method === "DELETE" && path === "/api/workspace") {
+      const id = url.searchParams.get("id") || "";
+      if (!id) return json(res, 400, { error: "Workspace item id required" });
+
+      await sbRest(`workspace_items?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user.id)}`, {
+        method: "DELETE",
+        headers: { Prefer: "return=minimal" },
+      });
+
+      return json(res, 200, { ok: true });
     }
 
     if (req.method === "GET" && path === "/api/memory") {
@@ -1299,8 +1431,11 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      const memory = await getMemory(user.id);
-      const ai = await askOpenAI(message, history, memory, attachments, experienceMode);
+      const [memory, workspaceContext] = await Promise.all([
+        getMemory(user.id),
+        getWorkspaceContext(user.id),
+      ]);
+      const ai = await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext);
 
       const safeUsage = ai.usage
         ? JSON.parse(JSON.stringify(ai.usage))
