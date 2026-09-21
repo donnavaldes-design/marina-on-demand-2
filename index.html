@@ -91,6 +91,30 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .markdown pre code{background:transparent;color:inherit;padding:0}
 .markdown a{color:#8f3150;text-decoration:underline;text-underline-offset:2px}
 
+
+.homeBtn{width:100%;padding:11px 12px;margin:24px 0 8px;border:0;background:var(--dark);color:#fff;border-radius:12px;text-align:left;cursor:pointer;font-weight:750}
+.new{margin:0 0 8px}
+.memoryBtn{margin:0 0 16px}
+.dashboard{max-width:960px;margin:1vh auto 0}
+.dashboardHero{padding:10px 0 20px}
+.dashboardHero .eyebrow{margin-bottom:8px}
+.dashboardHero h2{font-family:Georgia,serif;font-size:42px;line-height:1.02;margin:0 0 10px;letter-spacing:-.035em}
+.dashboardHero p{color:var(--muted);font-size:16px;line-height:1.55;max-width:760px}
+.focusCard{background:var(--dark);color:#fff;border-radius:20px;padding:22px;margin:4px 0 18px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
+.focusCard small{display:block;text-transform:uppercase;letter-spacing:.12em;opacity:.65;font-size:10px;margin-bottom:7px}
+.focusCard strong{font-family:Georgia,serif;font-size:24px;line-height:1.15;font-weight:600}
+.focusCard button{border:0;background:#fff;color:var(--dark);font-weight:800;border-radius:12px;padding:12px 16px;cursor:pointer;white-space:nowrap}
+.businessGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.bizCard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;min-height:92px}
+.bizCard small{display:block;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-size:9px;font-weight:800;margin-bottom:7px}
+.bizCard strong{display:block;font-size:14px;line-height:1.35;font-weight:720}
+.modeGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}
+.modeCard{border:1px solid var(--line);background:#fff;border-radius:18px;padding:18px;text-align:left;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
+.modeCard:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(40,28,20,.07)}
+.modeCard .modeIcon{font-size:22px;margin-bottom:12px}.modeCard strong{display:block;font-family:Georgia,serif;font-size:20px;margin-bottom:6px}.modeCard span{display:block;color:var(--muted);font-size:13px;line-height:1.45}
+.betaPill{display:inline-block!important;width:auto!important;margin-left:5px;padding:2px 6px;border-radius:999px;background:#f3e4dd;color:#8f3f30!important;font-family:Inter,sans-serif;font-size:8px!important;text-transform:uppercase;letter-spacing:.08em;vertical-align:middle}
+.modeBar{max-width:860px;margin:0 auto 10px;display:flex;gap:6px;align-items:center}.modeChip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;font-size:11px;color:var(--muted);cursor:pointer}.modeChip.active{background:var(--dark);color:#fff;border-color:var(--dark)}
+.hub{max-width:840px;margin:5vh auto 0}.hub h2{font-family:Georgia,serif;font-size:40px;margin-bottom:8px}.hub p{color:var(--muted);font-size:16px;line-height:1.55}.hubGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}.hubBtn{border:1px solid var(--line);background:#fff;border-radius:14px;padding:15px;text-align:left;cursor:pointer}.hubBtn strong{display:block;margin-bottom:4px}.hubBtn span{font-size:12px;color:var(--muted);line-height:1.4}.actionCallout{border:1px solid #e4c6bb;background:#fff8f4;border-radius:16px;padding:16px;margin:18px 0}.actionCallout strong{font-family:Georgia,serif;font-size:18px}.actionCallout p{font-size:13px;margin:6px 0 0}.receipt{display:flex;gap:7px;align-items:center;margin-top:10px;font-size:10px;color:#81776f;text-transform:uppercase;letter-spacing:.07em}.receipt span{background:#f5efe9;border:1px solid var(--line);border-radius:999px;padding:4px 7px}.feedback{display:flex;gap:5px;margin-top:9px}.feedback button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 7px;cursor:pointer;color:#746f68;font-size:12px}.feedback button.selected{background:#f3ebe3;color:var(--dark)}
 .memoryBtn{width:100%;padding:10px 12px;margin:-8px 0 16px;border:1px solid #dacdc1;background:#fffaf5;border-radius:10px;text-align:left;cursor:pointer;font-size:12px;color:#67584d}
 .memoryBtn:hover{background:#fff}
 .memoryPanel{max-width:900px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}
@@ -106,13 +130,13 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .secondaryBtn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
 .dangerBtn{border:1px solid #e5c1bc;background:#fff8f6;color:#a83e33;border-radius:10px;padding:10px 14px;cursor:pointer;margin-left:auto}
 .memoryStatus{font-size:12px;color:var(--muted);margin-top:10px}
-@media(max-width:760px){.app{grid-template-columns:1fr}.sidebar{display:none}.messages{padding:24px 14px}.welcome h2{font-size:38px}.quick{grid-template-columns:1fr}.top{padding:0 16px}}
+@media(max-width:760px){.businessGrid,.modeGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.hubGrid{grid-template-columns:1fr}.app{grid-template-columns:1fr}.sidebar{display:none}.messages{padding:24px 14px}.welcome h2{font-size:38px}.quick{grid-template-columns:1fr}.top{padding:0 16px}}
 </style>
 </head>
 <body>
 <div id="login" class="center">
   <div class="card">
-    <div class="eyebrow">Private prototype</div>
+    <div class="eyebrow">Private Beta</div>
     <h1 class="brand">Marina<br>On Demand</h1>
     <p>Brand. Lead. Convert. Sign in with your email and Marina will send you a secure magic link.</p>
     <form id="loginForm" class="field">
@@ -126,14 +150,14 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 <div id="app" class="app">
   <aside class="sidebar">
     <div class="logo brand">Marina<br>On Demand<small>Brand. Lead. Convert.</small></div>
+    <button id="homeBtn" class="homeBtn" type="button">⌂ Business Dashboard</button>
     <button id="newChat" class="new">+ New conversation</button>
-    <button id="benchmarkBtn" class="benchmarkBtn" type="button">Run 30-prompt migration benchmark</button>
     <button id="memoryBtn" class="memoryBtn" type="button">What Marina remembers</button>
     <div id="threads" class="threads"></div>
     <div class="sidefoot"><span id="userEmail"></span><br><button id="signOut" style="border:0;background:transparent;padding:8px 0;color:inherit;cursor:pointer">Sign out</button></div>
   </aside>
   <section class="main">
-    <header class="top"><strong>Marina On Demand 2.0</strong><span id="modelLabel">Private prototype</span></header>
+    <header class="top"><strong>Marina On Demand</strong><span id="modelLabel">Private Beta</span></header>
     <div id="messages" class="messages"></div>
     <div class="composerWrap">
       <div id="pending" class="pending"></div>
@@ -154,10 +178,10 @@ import { marked } from "https://esm.sh/marked@15";
 import DOMPurify from "https://esm.sh/dompurify@3";
 
 const qs = s => document.querySelector(s);
-const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], loading:false, pendingFiles:[] };
+const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], loading:false, pendingFiles:[], mode:"coach", dashboard:null };
 
 const config = await fetch("/api/config").then(r=>r.json());
-qs("#modelLabel").textContent = `Private prototype · ${config.model || "Marina 2.0"} · ${config.build || "build"}`;
+qs("#modelLabel").textContent = `Private Beta · ${config.build || "build"}`;
 state.supabase = createClient(config.supabaseUrl, config.supabasePublishableKey, {
   auth:{persistSession:true,detectSessionInUrl:true,flowType:"pkce"}
 });
@@ -178,7 +202,7 @@ async function refreshSession(){
   if(state.session){
     qs("#login").style.display="none"; qs("#app").style.display="grid";
     qs("#userEmail").textContent=state.session.user.email || "";
-    await loadConversations(); renderWelcome();
+    await loadConversations(); await renderDashboard();
   }else{
     qs("#login").style.display="grid"; qs("#app").style.display="none";
   }
@@ -198,11 +222,8 @@ qs("#loginForm").addEventListener("submit", async e=>{
 });
 
 qs("#signOut").addEventListener("click",async()=>{await state.supabase.auth.signOut();location.href="/"});
-qs("#newChat").addEventListener("click",()=>{state.conversationId="";state.messages=[];state.pendingFiles=[];renderPending();renderWelcome();renderThreads()});
-qs("#benchmarkBtn").addEventListener("click", async ()=>{
-  if(state.loading)return;
-  await runBenchmark();
-});
+qs("#homeBtn").addEventListener("click",async()=>{if(state.loading)return;await renderDashboard()});
+qs("#newChat").addEventListener("click",()=>{state.conversationId="";state.messages=[];state.pendingFiles=[];state.mode="coach";renderPending();renderWelcome();renderThreads()});
 qs("#memoryBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
   await openMemoryPanel();
@@ -442,6 +463,77 @@ async function api(url, options={}){
   return j;
 }
 
+
+function modeLabel(mode){return mode==="action"?"Action Mode ⚡":mode==="create"?"Create With Me":"Coach Me"}
+function routeLabel(route){
+  return ({framework:"Marina Method Library",identity:"Identity Mode",product:"Product Fit Logic",current:"Current Data Guardrail",operator:"Operator Mode"})[route]||"Marina Strategy";
+}
+function setMode(mode){
+  state.mode=["coach","create","action"].includes(mode)?mode:"coach";
+  const input=qs("#input");
+  input.placeholder=state.mode==="action"?"What do you want Marina to help execute?":state.mode==="create"?"What should Marina build with you?":"Ask Marina...";
+}
+function resetWorkspace(mode="coach"){
+  state.conversationId="";state.messages=[];state.pendingFiles=[];setMode(mode);renderPending();renderThreads();
+}
+async function renderDashboard(){
+  resetWorkspace("coach");
+  qs("#messages").innerHTML=`<div class="dashboard"><div class="dashboardHero"><div class="eyebrow">Your Business, Remembered</div><h2>Marina knows where you left off.</h2><p>One business brain. One current focus. Pick how you want Marina to work with you today.</p></div><div class="bizCard">Loading your business...</div></div>`;
+  try{
+    const j=await api("/api/dashboard");state.dashboard=j;
+    const m=j.memory||{};
+    const cards=[
+      ["Primary offer",m.primary_offer],["Audience",m.target_audience],["Goal",m.primary_goal],
+      ["Current bottleneck",m.current_constraint],["Platform",m.preferred_platform],["Last assignment",m.last_assignment]
+    ];
+    qs("#messages").innerHTML=`<div class="dashboard">
+      <div class="dashboardHero"><div class="eyebrow">Your Business, Remembered</div><h2>Marina knows where you left off.</h2><p>No starting over. No re-explaining your business every time. Here is the work in front of us.</p></div>
+      <div class="focusCard"><div><small>Today's Move</small><strong>${esc(j.todayMove||"Ask Marina for today's move.")}</strong></div><button id="todayMoveBtn">Work this with Marina →</button></div>
+      <div class="businessGrid">${cards.map(([label,value])=>`<div class="bizCard"><small>${esc(label)}</small><strong>${esc(value||"Not set yet")}</strong></div>`).join("")}</div>
+      <div class="eyebrow">How do you want Marina to work today?</div>
+      <div class="modeGrid">
+        <button class="modeCard" data-mode="coach"><div class="modeIcon">💬</div><strong>Coach Me</strong><span>Diagnose the real issue, challenge the thinking, and give me the next move.</span></button>
+        <button class="modeCard" data-mode="create"><div class="modeIcon">✍️</div><strong>Create With Me</strong><span>Build the actual post, Reel, DM flow, offer, funnel, live, or campaign.</span></button>
+        <button class="modeCard" data-mode="action"><div class="modeIcon">⚡</div><strong>Action Mode <span class="betaPill">Beta</span></strong><span>Turn a goal into a sequenced execution plan and build everything Marina can complete here.</span></button>
+      </div>
+    </div>`;
+    qs("#todayMoveBtn").onclick=()=>{resetWorkspace("coach");send("Based on what you remember about my business, help me execute today's highest-leverage move. Keep me focused and give me the exact first steps.","coach")};
+    qs("#messages").querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>openMode(b.dataset.mode));
+  }catch(e){qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Marina is ready.</h2><p>${esc(e.message)}</p></div>`}
+}
+function openMode(mode){
+  resetWorkspace(mode);
+  if(mode==="create")return renderCreateHub();
+  if(mode==="action")return renderActionHub();
+  renderWelcome();
+}
+function renderModeBar(){
+  return `<div class="modeBar">${["coach","create","action"].map(m=>`<button class="modeChip ${state.mode===m?"active":""}" data-switch-mode="${m}">${modeLabel(m)}</button>`).join("")}</div>`;
+}
+function wireModeBar(){
+  qs("#messages").querySelectorAll("[data-switch-mode]").forEach(b=>b.onclick=()=>openMode(b.dataset.switchMode));
+}
+function renderCreateHub(){
+  qs("#messages").innerHTML=renderModeBar()+`<div class="hub"><div class="eyebrow">Create With Me</div><h2>Don't explain it. Build it.</h2><p>Choose a starting point or tell Marina exactly what you need in the box below.</p><div class="hubGrid">
+    ${[
+      ["Build my week","Build my 7-day content and conversion plan around my current offer and goal."],
+      ["Write today's content","Write today's highest-leverage piece of content for my current goal, including hook, body, CTA and suggested format."],
+      ["Create my DM follow-up","Create the warm-audience DM follow-up flow I should use today based on my current offer."],
+      ["Audit my offer","Audit my current offer using Offer → Message → Path → Volume → Conversion and rewrite what is weak."],
+      ["Build a live","Create a 20-minute weekly live that naturally leads to my current offer."],
+      ["Build the funnel","Build the simplest conversion path for my current offer, including page sections, CTA and follow-up."]
+    ].map(([title,prompt])=>`<button class="hubBtn" data-create="${esc(prompt)}"><strong>${esc(title)}</strong><span>Marina will use what she already remembers about your business.</span></button>`).join("")}
+  </div></div>`;
+  wireModeBar();qs("#messages").querySelectorAll("[data-create]").forEach(b=>b.onclick=()=>send(b.dataset.create,"create"));
+}
+function renderActionHub(){
+  qs("#messages").innerHTML=renderModeBar()+`<div class="hub"><div class="eyebrow">Action Mode ⚡ <span class="betaPill">Beta</span></div><h2>Give Marina the outcome.</h2><p>Action Mode turns the goal into an execution sequence, builds the assets Marina can complete here, and separates anything that still needs your approval or an external app connection.</p><div class="actionCallout"><strong>Try this tomorrow:</strong><p>“I need to sell 10 of my $97 workshop this month. Take the lead and build what I need to do this week.”</p></div><div class="hubGrid">
+    <button class="hubBtn" data-action="Take my current goal and build the exact 7-day execution sprint I should follow. Create the content, CTAs and follow-up assets you can complete here, then show me anything that needs my approval."><strong>Build my 7-day sprint</strong><span>Strategy + assets + sequence.</span></button>
+    <button class="hubBtn" data-action="Look at what you remember about my business and identify the single biggest conversion bottleneck. Take the lead on fixing it and build everything you can here."><strong>Fix my biggest bottleneck</strong><span>Diagnose it and start executing.</span></button>
+  </div></div>`;
+  wireModeBar();qs("#messages").querySelectorAll("[data-action]").forEach(b=>b.onclick=()=>send(b.dataset.action,"action"));
+}
+
 async function loadConversations(){
   try{
     const j=await api("/api/conversations");
@@ -459,7 +551,9 @@ async function selectConversation(id){
 }
 function renderWelcome(){
   if(state.messages.length){renderMessages();return}
-  qs("#messages").innerHTML=`<div class="welcome">
+  if(state.mode==="create")return renderCreateHub();
+  if(state.mode==="action")return renderActionHub();
+  qs("#messages").innerHTML=renderModeBar()+`<div class="welcome">
     <h2 class="brand">What are we fixing today?</h2>
     <p>Bring me the messy caption, the vague offer, the dead DMs, the Reel that got views but no buyers, or the thing you keep overthinking.</p>
     <div class="quick">
@@ -470,11 +564,11 @@ function renderWelcome(){
         "Build my warm lead follow-up plan"
       ].map(x=>`<button data-p="${esc(x)}">${esc(x)}</button>`).join("")}
     </div></div>`;
-  qs("#messages").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>send(b.dataset.p));
+  wireModeBar();qs("#messages").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>send(b.dataset.p,"coach"));
 }
 function renderMessages(){
   if(!state.messages.length){renderWelcome();return}
-  qs("#messages").innerHTML=state.messages.map(m=>{
+  qs("#messages").innerHTML=renderModeBar()+state.messages.map(m=>{
     const atts=(m.attachments||[]).map(a=>{
       const img=(a.mime_type||"").startsWith("image/") && a.signed_url
         ? `<img src="${esc(a.signed_url)}" alt="${esc(a.file_name)}">`
@@ -487,15 +581,29 @@ function renderMessages(){
     const body = m.role==="assistant"
       ? `<div class="markdown">${renderMarkdown(m.content)}</div>`
       : `<div>${esc(m.content)}</div>`;
+    const receipt=m.role==="assistant"?`<div class="receipt"><span>${esc(modeLabel(m.experience_mode||state.mode))}</span><span>${esc(routeLabel(m.route))}</span></div>`:"";
+    const feedback=m.role==="assistant"&&m.id?`<div class="feedback" data-feedback-for="${esc(m.id)}"><button data-rating="1" title="Helpful">👍</button><button data-rating="-1" title="Needs improvement">👎</button></div>`:"";
     return `<div class="msg ${m.role}">
       <div class="avatar">${m.role==="assistant"?"M":"YOU"}</div>
-      <div class="bubble">${body}${atts?`<div class="attachmentList">${atts}</div>`:""}</div>
+      <div class="bubble">${body}${atts?`<div class="attachmentList">${atts}</div>`:""}${receipt}${feedback}</div>
     </div>`;
-  }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Thinking...</div></div>`:"");
+  }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Working...</div></div>`:"");
+  wireModeBar();
+  qs("#messages").querySelectorAll("[data-feedback-for]").forEach(box=>{
+    box.querySelectorAll("button").forEach(btn=>btn.onclick=async()=>{
+      try{
+        await api("/api/feedback",{method:"POST",body:JSON.stringify({messageId:box.dataset.feedbackFor,rating:Number(btn.dataset.rating)})});
+        box.querySelectorAll("button").forEach(x=>x.classList.remove("selected"));btn.classList.add("selected");
+        qs("#status").textContent=btn.dataset.rating==="1"?"Saved. Marina learns what works.":"Saved. We'll use this to tune Marina.";
+        setTimeout(()=>{qs("#status").textContent=""},1800);
+      }catch(e){qs("#status").textContent=e.message}
+    })
+  });
   qs("#messages").scrollTop=qs("#messages").scrollHeight;
 }
-async function send(prefill){
+async function send(prefill, forcedMode){
   const input=qs("#input");
+  if(forcedMode)setMode(forcedMode);
   const value=String(prefill ?? input.value).trim();
   if((!value&&!state.pendingFiles.length)||state.loading)return;
 
@@ -528,12 +636,13 @@ async function send(prefill){
       body:JSON.stringify({
         message:value,
         conversationId:state.conversationId||undefined,
-        attachments
+        attachments,
+        mode:state.mode
       })
     });
 
     state.conversationId=j.conversationId;
-    state.messages.push({role:"assistant",content:j.answer,attachments:[]});
+    state.messages.push({id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode});
     await loadConversations();
     qs("#status").textContent="";
   }catch(e){

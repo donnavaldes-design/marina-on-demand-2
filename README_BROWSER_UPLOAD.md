@@ -1,57 +1,33 @@
-# Marina On Demand 2.4.1 — Multi-Source GHL Entitlements
+# Marina On Demand 2.5.0 — Wow Dashboard
 
 Flat browser-upload build. No folders.
 
-Upload these four files to the ROOT of the existing GitHub repository and replace the current files:
-
+Upload the same four ROOT files:
 - api.js
 - index.html
 - vercel.json
 - README_BROWSER_UPLOAD.md
 
-Build marker:
-2.4.1-multisource-entitlements
+Build marker: 2.5.0-wow-dashboard
 
-Important fix:
-Access is now multi-source.
+Adds the demo/retention layer without changing entitlement enforcement:
 
-A customer can simultaneously have:
-- direct MOD access
-- BMOD-included access
-- monthly or annual direct access
-- admin access
+- Business Dashboard on login
+- Current offer, audience, goal, bottleneck, platform and last assignment
+- Today's Move card
+- Three product modes:
+  - Coach Me
+  - Create With Me
+  - Action Mode ⚡ Beta
+- Create With Me quick asset builders
+- Action Mode execution-plan behavior
+- Clear guardrail: Action Mode never claims external actions happened unless a connected tool actually performed them
+- Strategy receipts on new Marina responses
+- 👍 / 👎 answer feedback stored in Supabase for future tuning
+- Benchmark button removed from customer-facing sidebar (benchmark API remains available)
+- Model name hidden from customer-facing header
 
-An inactive event for one source will NOT revoke another still-active source.
-
-Supported source values:
-- monthly
-- annual
-- direct
-- bmod
-- admin
-- prototype
-
-Recommended mapping for the current four BMOD workflows:
-
-1. BMOD Sale and Active Subscription
-   active=true
-   source=bmod
-
-2. BMOD Inactive Subscription
-   active=false
-   source=bmod
-
-3. MOD Tag, Onboarding +AC v2
-   active=true
-   source=direct
-
-4. MOD Inactive Revoke Access
-   active=false
-   source=direct
-
-If the direct MOD workflow is later split cleanly into monthly vs annual, change source from direct to monthly or annual without changing the app architecture.
-
-Keep:
-PROTOTYPE_ALLOW_ALL_AUTHENTICATED=true
-
-Do not enforce production access until active/inactive webhook tests pass.
+Important:
+- Keep PROTOTYPE_ALLOW_ALL_AUTHENTICATED=true until the GHL grant/revoke tests are verified.
+- This build does NOT turn on production access enforcement.
+- Full external-app agent execution comes later; Action Mode is accurately labeled Beta and currently handles execution planning + assets inside Marina.

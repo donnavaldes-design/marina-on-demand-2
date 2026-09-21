@@ -547,7 +547,7 @@ function parseOpenAIText(data) {
   return parts.join("\n").trim();
 }
 
-async function askOpenAI(message, history, memory, attachments = []) {
+async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach") {
   const routed = routeMessage(message);
   const memoryText = memory
     ? `
@@ -560,10 +560,25 @@ ${JSON.stringify(memory)}`
 ATTACHMENT NOTE: The user supplied ${attachments.length} attachment(s). Analyze the actual attached content. Do not infer the user's name or identity from filenames or metadata.`
     : "";
 
+  const modeContext = experienceMode === "action"
+    ? `
+
+EXPERIENCE MODE: ACTION MODE BETA
+Act like an execution partner, not just an adviser. Convert the user's objective into a sequenced execution plan and build every asset you can create inside this conversation now. Be explicit about three categories when relevant: DONE HERE, NEEDS USER APPROVAL, and EXTERNAL ACTION NOT CONNECTED. Never claim you clicked, published, sent, scheduled, logged in, or changed an external app unless a connected tool actually performed that action.`
+    : experienceMode === "create"
+      ? `
+
+EXPERIENCE MODE: CREATE WITH ME
+Prioritize producing finished usable assets over explaining theory. Ask at most one question only if it materially changes the asset. Otherwise make a strong assumption, state it briefly, and build.`
+      : `
+
+EXPERIENCE MODE: COACH ME
+Diagnose clearly, give the next move, and keep the response proportional to the question.`;
+
   const instructions = `${MARINA_CORE}
 
 ROUTED CANONICAL CONTEXT:
-${routed.context}${memoryText}${attachmentContext}`;
+${routed.context}${memoryText}${attachmentContext}${modeContext}`;
   const input = history.map(m => ({ role: m.role, content: m.content }));
 
   const userContent = [];
@@ -777,7 +792,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.4.1-multisource-entitlements",
+        build: "2.5.0-wow-dashboard",
         benchmarkEnabled: true,
       });
     }
@@ -805,7 +820,7 @@ module.exports = async function handler(req, res) {
       if (!Array.isArray(conv) || !conv.length) return json(res, 404, { error: "Not found" });
 
       const rows = await sbRest(
-        `messages?conversation_id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,role,content,created_at&order=created_at.asc`
+        `messages?conversation_id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,role,content,created_at,route,experience_mode&order=created_at.asc`
       );
 
       const attachmentRows = await sbRest(
@@ -828,6 +843,52 @@ module.exports = async function handler(req, res) {
     }
 
 
+
+    if (req.method === "GET" && path === "/api/dashboard") {
+      const memory = await getMemory(user.id);
+      const m = memorySnapshot(memory);
+      const todayMove = m.last_assignment
+        || (m.current_constraint ? `Make one concrete move on: ${m.current_constraint}` : null)
+        || (m.primary_goal ? `Choose the highest-leverage action that moves ${m.primary_goal} forward today.` : null)
+        || "Tell Marina your current offer and goal so she can set today's move.";
+
+      return json(res, 200, {
+        memory: m,
+        todayMove,
+        modes: ["coach","create","action"]
+      });
+    }
+
+    if (req.method === "POST" && path === "/api/feedback") {
+      const body = await readBody(req);
+      const messageId = String(body.messageId || "");
+      const rating = Number(body.rating);
+      const note = body.note ? String(body.note).slice(0,1000) : null;
+      if (!messageId || ![-1,1].includes(rating)) {
+        return json(res, 400, { error: "Valid messageId and rating are required" });
+      }
+
+      const rows = await sbRest(
+        `messages?id=eq.${encodeURIComponent(messageId)}&user_id=eq.${encodeURIComponent(user.id)}&role=eq.assistant&select=id,conversation_id&limit=1`
+      );
+      const msg = Array.isArray(rows) ? rows[0] : null;
+      if (!msg) return json(res, 404, { error: "Assistant message not found" });
+
+      await sbRest("response_feedback?on_conflict=user_id,message_id", {
+        method:"POST",
+        headers:{ Prefer:"resolution=merge-duplicates,return=minimal" },
+        body:JSON.stringify([{
+          user_id:user.id,
+          message_id:messageId,
+          conversation_id:msg.conversation_id,
+          rating,
+          note,
+          updated_at:new Date().toISOString()
+        }])
+      });
+
+      return json(res, 200, { ok:true, rating });
+    }
 
     if (req.method === "GET" && path === "/api/memory") {
       const memory = await getMemory(user.id);
@@ -979,6 +1040,8 @@ module.exports = async function handler(req, res) {
       const body = await readBody(req);
       const message = String(body.message || "").trim();
       const attachments = Array.isArray(body.attachments) ? body.attachments.slice(0, 5) : [];
+      const requestedMode = String(body.mode || "coach").toLowerCase();
+      const experienceMode = ["coach","create","action"].includes(requestedMode) ? requestedMode : "coach";
 
       if (!message && !attachments.length) {
         return json(res, 400, { error: "Message or attachment required" });
@@ -1038,16 +1101,18 @@ module.exports = async function handler(req, res) {
       }
 
       const memory = await getMemory(user.id);
-      const ai = await askOpenAI(message, history, memory, attachments);
+      const ai = await askOpenAI(message, history, memory, attachments, experienceMode);
 
       const safeUsage = ai.usage
         ? JSON.parse(JSON.stringify(ai.usage))
         : null;
 
-      await saveMessage(user.id, conversationId, "assistant", ai.answer, {
+      const assistantMessage = await saveMessage(user.id, conversationId, "assistant", ai.answer, {
         model: ai.model,
         response_id: ai.responseId,
         usage: safeUsage,
+        route: ai.route,
+        experience_mode: experienceMode,
       });
 
       await applyMemoryChanges(
@@ -1064,7 +1129,13 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify({ updated_at: new Date().toISOString() }),
       });
 
-      return json(res, 200, { answer: ai.answer, conversationId, route: ai.route });
+      return json(res, 200, {
+        answer: ai.answer,
+        conversationId,
+        route: ai.route,
+        mode: experienceMode,
+        messageId: assistantMessage.id
+      });
     }
 
     return json(res, 404, { error: "Not found" });
