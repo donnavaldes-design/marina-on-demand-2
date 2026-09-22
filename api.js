@@ -1380,7 +1380,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
         reasoning: { effort: "medium" },
         instructions: actionInstructions,
         input,
-        tools: [...ACTION_TOOLS, BMOD_READ_TOOL, CANVA_MANIFEST.tool, WEB_SEARCH_TOOL, ...mcpTools],
+        tools: [...ACTION_TOOLS, BMOD_READ_TOOL, GOOGLE_MANIFEST.tool, CANVA_MANIFEST.tool, WEB_SEARCH_TOOL, ...mcpTools],
         tool_choice: "auto",
         include: ["web_search_call.action.sources"],
         parallel_tool_calls: false,
@@ -1447,7 +1447,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
           reasoning: { effort: "medium" },
           previous_response_id: response.id,
           input: outputs,
-          tools: [...ACTION_TOOLS, BMOD_READ_TOOL, CANVA_MANIFEST.tool, WEB_SEARCH_TOOL, ...mcpTools],
+          tools: [...ACTION_TOOLS, BMOD_READ_TOOL, GOOGLE_MANIFEST.tool, CANVA_MANIFEST.tool, WEB_SEARCH_TOOL, ...mcpTools],
           tool_choice: "auto",
           include: ["web_search_call.action.sources"],
           parallel_tool_calls: false,
@@ -2013,11 +2013,16 @@ async function buildNativeBusinessTools(userId) {
 
 const CONNECTION_RULES = `
 CONNECTED BUSINESS TOOLS:
-- BMOD Tools uses Marina's native HighLevel API connection. Other providers may use MCP.
-- When the user asks about their connected CRM, pipeline, leads, workflows, ads, campaign performance, or other connected business data, use the relevant connected tool instead of asking for screenshots.
+- BMOD Tools uses Marina's native HighLevel API connection.
+- Canva uses Marina's native Canva connection.
+- Google uses native Gmail, Google Calendar, and Google Drive connections.
+- When the user asks about connected CRM, email, calendar, files, designs, pipeline, leads, workflows, campaigns, or other connected business data, use the relevant connected tool instead of asking for screenshots.
 - Never claim a connection exists unless a connected tool is actually available in this request.
-- Current MCP connections in this release are READ-ONLY. Do not claim you changed, sent, enrolled, paused, published, deleted, or updated anything through MCP.
-- If a write action is needed, build the work and queue it through Marina Action Mode approval instead.
+- Reads may execute automatically when the connection has permission.
+- Supported BMOD Tools writes, Canva design creation, Gmail draft/send, and Google Calendar event creation must be prepared in Action Mode, shown for individual approval, and executed only after approval.
+- Google Drive remains read-only in this release.
+- Generic MCP connections remain READ-ONLY. Do not claim you changed, sent, published, deleted, or updated anything through a generic MCP connector.
+- Never claim an external write succeeded unless the tool returns a confirmed completion receipt.
 `;
 async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach", workspaceContext = [], skillDefinition = null, coachingContext = null, mcpTools = [], nativeTools = [], userId = null) {
   const routed = routeMessage(message);
