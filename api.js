@@ -1414,6 +1414,76 @@ function daysAgoIso(days) {
   return d.toISOString().slice(0,10);
 }
 
+function firstFiniteNumber(...values) {
+  for (const value of values) {
+    const n=Number(value);
+    if (Number.isFinite(n) && n>=0) return n;
+  }
+  return null;
+}
+
+function providerTotal(data, arrayKeys=[]) {
+  if (!data || typeof data!=="object") return null;
+  const direct=firstFiniteNumber(
+    data.total,
+    data.count,
+    data.totalCount,
+    data.total_count,
+    data.meta?.total,
+    data.meta?.totalCount,
+    data.meta?.total_count,
+    data.pagination?.total,
+    data.pagination?.totalCount,
+    data.pagination?.total_count
+  );
+  if (direct!==null) return direct;
+  for (const key of arrayKeys) {
+    if (Array.isArray(data[key]) && data[key].length===0) return 0;
+  }
+  return null;
+}
+
+async function getBmodMomentumSnapshot(userId) {
+  const conn=await getBmodConnection(userId);
+  if (!conn) return {connected:false};
+
+  const available=new Set(bmodGrantedTools(conn));
+  const checks={};
+
+  const run=async(name,parameters,arrayKeys)=>{
+    if(!available.has(name)) return {available:false,total:null};
+    try{
+      const data=await executeBmodRead(userId,{operation:name,parameters_json:JSON.stringify(parameters||{})});
+      if(data?.error) return {available:false,total:null,error:data.error};
+      return {available:true,total:providerTotal(data,arrayKeys)};
+    }catch(e){
+      return {available:false,total:null,error:e instanceof Error?e.message:String(e)};
+    }
+  };
+
+  const [contacts,conversations,openOpps,wonOpps]=await Promise.all([
+    run("search_contacts",{limit:1,page:1},["contacts"]),
+    run("search_conversations",{limit:1},["conversations"]),
+    run("search_opportunities",{limit:1,page:1,status:"open"},["opportunities"]),
+    run("search_opportunities",{limit:1,page:1,status:"won"},["opportunities"]),
+  ]);
+
+  checks.contacts=contacts;
+  checks.conversations=conversations;
+  checks.open_opportunities=openOpps;
+  checks.won_opportunities=wonOpps;
+
+  return {
+    connected:true,
+    checked_at:new Date().toISOString(),
+    contacts_total:contacts.total,
+    conversations_total:conversations.total,
+    open_opportunities_total:openOpps.total,
+    won_opportunities_total:wonOpps.total,
+    checks,
+  };
+}
+
 async function getMomentumSummary(userId) {
   const [events, wins, checkins] = await Promise.all([
     sbRest(`momentum_events?user_id=eq.${encodeURIComponent(userId)}&event_date=gte.${daysAgoIso(30)}&select=id,category,value,note,event_date,source,created_at&order=event_date.desc,created_at.desc`),
@@ -3312,11 +3382,12 @@ module.exports = async function handler(req, res) {
 
 
     if (req.method === "GET" && path === "/api/momentum") {
-      const [memory, momentum] = await Promise.all([
+      const [memory, momentum, bmod] = await Promise.all([
         getMemory(user.id),
-        getMomentumSummary(user.id)
+        getMomentumSummary(user.id),
+        getBmodMomentumSnapshot(user.id)
       ]);
-      return json(res, 200, { memory: memorySnapshot(memory), momentum });
+      return json(res, 200, { memory: memorySnapshot(memory), momentum, bmod });
     }
 
     if (req.method === "POST" && path === "/api/momentum") {
