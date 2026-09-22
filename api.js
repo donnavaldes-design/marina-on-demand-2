@@ -3366,18 +3366,28 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "GET" && path === "/api/memory") {
       const memory = await getMemory(user.id);
-      return json(res, 200, { memory: memorySnapshot(memory) });
+      return json(res, 200, {
+        memory: memorySnapshot(memory),
+        brandBrain: memory?.brand_brain && typeof memory.brand_brain === "object" ? memory.brand_brain : {}
+      });
     }
 
     if (req.method === "PATCH" && path === "/api/memory") {
       const body = await readBody(req);
       const patch = sanitizeManualMemoryPatch(body || {});
       const current = await getMemory(user.id);
+      const brandBrainPatch = body && body.brand_brain && typeof body.brand_brain === "object" && !Array.isArray(body.brand_brain)
+        ? body.brand_brain
+        : null;
+      const currentBrandBrain = current?.brand_brain && typeof current.brand_brain === "object" && !Array.isArray(current.brand_brain)
+        ? current.brand_brain
+        : {};
 
       const row = {
         user_id: user.id,
         ...memorySnapshot(current),
         ...patch,
+        brand_brain: brandBrainPatch ? { ...currentBrandBrain, ...brandBrainPatch } : currentBrandBrain,
         updated_at: new Date().toISOString(),
       };
 
