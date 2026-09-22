@@ -52,7 +52,11 @@ function createService(key,{sbRest,sbRpc,getSecret,getRefreshSecret,fetchImpl=(.
      step_order:await context.nextActionStepOrder(context.runId),
      step_type:'external_action',
      title:`${provider.name}: ${String(args.operation).replaceAll('_',' ')}`,
-     description:args.operation==='send_email'?`Send email to ${values.to} after approval.`:args.operation==='create_draft'?`Create Gmail draft to ${values.to} after approval.`:`Create calendar event "${values.summary}" after approval.`,
+     description:args.operation==='send_email'
+       ?`TO: ${values.to}\nSUBJECT: ${values.subject}\n\n${values.body}`
+       :args.operation==='create_draft'
+         ?`DRAFT TO: ${values.to}\nSUBJECT: ${values.subject}\n\n${values.body}`
+         :`EVENT: ${values.summary}\nSTART: ${values.start}\nEND: ${values.end}\nTIME ZONE: ${values.timeZone}${values.location?`\nLOCATION: ${values.location}`:''}${values.description?`\n\n${values.description}`:''}`,
      status:'needs_approval',
      external_system:provider.name,
      proposed_action:{provider:key,operation:args.operation,parameters:values},
