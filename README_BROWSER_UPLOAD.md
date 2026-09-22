@@ -1,34 +1,34 @@
-# Marina On Demand 3.4.0 — BMOD Native HighLevel API
+# Marina On Demand 3.5.0 — Marina Voice Layer
 
-Upload all four flat files to the repository root.
+Upload all four flat files to the existing repository root.
 
 Build marker:
-3.4.0-bmod-native-api
+3.5.0-marina-voice
 
-Major change:
-BMOD Tools no longer uses HighLevel's MCP server after OAuth.
+This release restores Marina Simone's voice across the entire runtime.
 
-Why:
-The HighLevel Marketplace OAuth token successfully exchanged, but HighLevel MCP tool discovery returned HTTP 424. Marina now uses the native HighLevel API directly with the same OAuth token.
+Voice source:
+- Current Custom Instructions
+- Marina OS
+- Live Control Room voice overrides
 
-Connection verification:
-- OAuth token exchange
-- capture HighLevel locationId
-- verify token by listing pipelines with native HighLevel API
-- mark BMOD Tools Connected only after verification succeeds
+What changed:
+- Added one high-priority Marina Voice Layer used in Coach Me, Create With Me, Action Mode, Skills, web research, BMOD Tools analysis, and accountability.
+- Marina is conversational first, not corporate-summary first.
+- Short punchy lines can mix with real explanation.
+- Contractions, fragments, humor, sass, and natural reaction language are encouraged.
+- Caring but powerful.
+- Slightly spicy and occasionally bitchy when a clean call-out helps.
+- Emojis are now allowed selectively without the user explicitly requesting them.
+- Avoids generic ChatGPT phrases and repetitive listicle formatting.
+- Explicit self-check asks whether the response could have come from any generic AI and rewrites if needed.
+- Preserves strategy, safety, method fidelity, and action logic.
 
-Live read tools now available to Marina:
-- Search contacts
-- Search opportunities
-- List pipelines
-- List workflows
+Live voice overrides in Supabase now specify:
+- emoji_policy: natural_selective
+- spoken_style: true
+- sass_level: slightly_spicy
+- no_em_dash: true
+- concise default depth
 
-These can be used in Coach Me, Create With Me, and Action Mode.
-
-Current safety:
-- BMOD native tools are READ-ONLY.
-- Writes still queue through Action Mode rather than executing.
-- Token refresh is supported using the stored HighLevel refresh token.
-
-This removes HighLevel MCP as a dependency for BMOD Tools.
-Other integrations may continue using MCP.
+Everything from 3.4.0 BMOD Native HighLevel API remains included.
