@@ -1558,7 +1558,7 @@ function renderMessages(){
       ? `<div class="markdown">${renderMarkdown(m.content)}</div>`
       : `<div>${esc(m.content)}</div>`;
     const receipt=m.role==="assistant"?`<div class="receipt"><span>${esc(modeLabel(m.experience_mode||state.mode))}</span><span>${esc(routeLabel(m.route))}</span></div>`:"";
-    const feedback=m.role==="assistant"&&m.id?`<div class="feedback" data-feedback-for="${esc(m.id)}"><button data-rating="1" title="Helpful">👍</button><button data-rating="-1" title="Needs improvement">👎</button><button class="saveWorkspaceBtn" data-save-workspace="${esc(m.id)}">☆ Save to Workspace</button></div>`:"";
+    const feedback=m.role==="assistant"&&m.id?`<div class="feedback" data-feedback-for="${esc(m.id)}"><button data-copy-message="${esc(m.id)}" title="Copy response">📋 Copy</button><button data-rating="1" title="Helpful">👍</button><button data-rating="-1" title="Needs improvement">👎</button><button class="saveWorkspaceBtn" data-save-workspace="${esc(m.id)}">☆ Save to Workspace</button></div>`:"";
     const actionRun=m.role==="assistant"&&m.action_run?renderActionRun(m.action_run):"";
     const webSources=m.role==="assistant"?renderWebSources(m.web_sources||m.webSources||[]):"";
     return `<div class="msg ${m.role}">
@@ -1577,6 +1577,33 @@ function renderMessages(){
         setTimeout(()=>{qs("#status").textContent=""},1800);
       }catch(e){qs("#status").textContent=e.message}
     })
+  });
+  qs("#messages").querySelectorAll("[data-copy-message]").forEach(btn=>btn.onclick=async()=>{
+    const msg=state.messages.find(m=>m.id===btn.dataset.copyMessage&&m.role==="assistant");
+    if(!msg)return;
+    const text=String(msg.content||"");
+    try{
+      if(navigator.clipboard?.writeText){
+        await navigator.clipboard.writeText(text);
+      }else{
+        const ta=document.createElement("textarea");
+        ta.value=text;
+        ta.setAttribute("readonly","");
+        ta.style.position="fixed";
+        ta.style.opacity="0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+      }
+      const original=btn.textContent;
+      btn.textContent="✓ Copied";
+      btn.classList.add("selected");
+      setTimeout(()=>{btn.textContent=original;btn.classList.remove("selected")},1400);
+    }catch(e){
+      qs("#status").textContent="Could not copy that response. Try selecting the text manually.";
+      setTimeout(()=>{qs("#status").textContent=""},2200);
+    }
   });
   qs("#messages").querySelectorAll("[data-save-workspace]").forEach(btn=>btn.onclick=()=>openSaveModal(btn.dataset.saveWorkspace));
   wireActionRuns();
