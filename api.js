@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const MARINA_CORE = `
 You are Marina on Demand, the AI business coach built from Marina Simone's approved identity, methodologies, operating logic, and business frameworks.
 
@@ -1740,6 +1741,213 @@ async function readBody(req) {
   });
 }
 
+
+function b64url(buf) {
+  return Buffer.from(buf).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function randomUrlSafe(bytes=32) {
+  return b64url(crypto.randomBytes(bytes));
+}
+function pkceChallenge(verifier) {
+  return b64url(crypto.createHash("sha256").update(verifier).digest());
+}
+function absoluteSiteUrl(req) {
+  const configured = String(process.env.NEXT_PUBLIC_SITE_URL || "").trim().replace(/\/+$/,"");
+  if (configured) return configured;
+  const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
+  return host ? `${proto}://${host}` : "";
+}
+function safeReturnUrl(siteUrl, value) {
+  try {
+    const u = new URL(value || "/", siteUrl);
+    return u.origin === new URL(siteUrl).origin ? u.toString() : `${siteUrl}/`;
+  } catch {
+    return `${siteUrl}/`;
+  }
+}
+async function fetchJsonMaybe(url, options={}) {
+  const r = await fetch(url, options);
+  const text = await r.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch {}
+  return {response:r, data, text};
+}
+async function discoverMcpOAuth(serverUrl) {
+  const target = new URL(serverUrl);
+  let resourceMetadataUrl = null;
+
+  try {
+    const probe = await fetch(serverUrl, {
+      method:"POST",
+      redirect:"manual",
+      headers:{
+        "content-type":"application/json",
+        "accept":"application/json, text/event-stream",
+      },
+      body:JSON.stringify({
+        jsonrpc:"2.0",
+        id:"marina-auth-discovery",
+        method:"initialize",
+        params:{
+          protocolVersion:"2025-06-18",
+          capabilities:{},
+          clientInfo:{name:"Marina On Demand",version:"3.2.0"}
+        }
+      })
+    });
+    const wa = probe.headers.get("www-authenticate") || "";
+    const match = wa.match(/resource_metadata\s*=\s*"([^"]+)"/i);
+    if (match) resourceMetadataUrl = match[1];
+  } catch {}
+
+  const resourceCandidates = [];
+  if (resourceMetadataUrl) resourceCandidates.push(resourceMetadataUrl);
+  resourceCandidates.push(`${target.origin}/.well-known/oauth-protected-resource${target.pathname === "/" ? "" : target.pathname.replace(/\/$/,"")}`);
+  resourceCandidates.push(`${target.origin}/.well-known/oauth-protected-resource`);
+
+  let resourceMeta = null;
+  for (const url of [...new Set(resourceCandidates)]) {
+    try {
+      const {response,data} = await fetchJsonMaybe(url,{headers:{accept:"application/json"}});
+      if (response.ok && data && typeof data === "object") {
+        resourceMeta = data;
+        resourceMetadataUrl = url;
+        break;
+      }
+    } catch {}
+  }
+
+  const authServers = Array.isArray(resourceMeta?.authorization_servers)
+    ? resourceMeta.authorization_servers
+    : [];
+  if (!authServers.length) {
+    throw new Error("This MCP provider did not publish an OAuth authorization server that Marina can discover automatically.");
+  }
+
+  const issuer = String(authServers[0]).replace(/\/+$/,"");
+  const metadataCandidates = [
+    `${issuer}/.well-known/oauth-authorization-server`,
+    `${issuer}/.well-known/openid-configuration`,
+  ];
+
+  let authMeta = null;
+  for (const url of metadataCandidates) {
+    try {
+      const {response,data} = await fetchJsonMaybe(url,{headers:{accept:"application/json"}});
+      if (response.ok && data && typeof data === "object") { authMeta=data; break; }
+    } catch {}
+  }
+  if (!authMeta?.authorization_endpoint || !authMeta?.token_endpoint) {
+    throw new Error("The provider's OAuth metadata is incomplete.");
+  }
+
+  return {
+    resourceMetadataUrl,
+    resourceMeta,
+    issuer,
+    authorizationEndpoint:authMeta.authorization_endpoint,
+    tokenEndpoint:authMeta.token_endpoint,
+    registrationEndpoint:authMeta.registration_endpoint || null,
+    scopesSupported:Array.isArray(authMeta.scopes_supported) ? authMeta.scopes_supported : [],
+    tokenAuthMethods:Array.isArray(authMeta.token_endpoint_auth_methods_supported)
+      ? authMeta.token_endpoint_auth_methods_supported
+      : ["none"],
+  };
+}
+
+async function registerDynamicMcpClient(oauth, redirectUri) {
+  if (!oauth.registrationEndpoint) {
+    throw new Error("PROVIDER_APP_REQUIRED");
+  }
+  const payload = {
+    client_name:"Marina On Demand",
+    redirect_uris:[redirectUri],
+    grant_types:["authorization_code","refresh_token"],
+    response_types:["code"],
+    token_endpoint_auth_method:"none",
+  };
+  const {response,data,text} = await fetchJsonMaybe(oauth.registrationEndpoint,{
+    method:"POST",
+    headers:{"content-type":"application/json","accept":"application/json"},
+    body:JSON.stringify(payload),
+  });
+  if (!response.ok || !data?.client_id) {
+    throw new Error(`Dynamic OAuth registration failed (${response.status}): ${data?.error_description || data?.error || text.slice(0,300)}`);
+  }
+  return {
+    clientId:String(data.client_id),
+    clientSecret:data.client_secret ? String(data.client_secret) : null,
+    tokenAuthMethod:String(data.token_endpoint_auth_method || (data.client_secret ? "client_secret_post" : "none")),
+  };
+}
+
+async function exchangeOAuthCode(stateRow, code) {
+  const params = new URLSearchParams({
+    grant_type:"authorization_code",
+    code,
+    redirect_uri:stateRow.redirect_uri,
+    client_id:stateRow.client_id,
+    code_verifier:stateRow.code_verifier,
+  });
+
+  const headers = {"content-type":"application/x-www-form-urlencoded","accept":"application/json"};
+  const method = String(stateRow.token_auth_method || "none");
+  if (stateRow.client_secret) {
+    if (method === "client_secret_basic") {
+      headers.authorization = `Basic ${Buffer.from(`${stateRow.client_id}:${stateRow.client_secret}`).toString("base64")}`;
+    } else {
+      params.set("client_secret",stateRow.client_secret);
+    }
+  }
+
+  const {response,data,text} = await fetchJsonMaybe(stateRow.token_endpoint,{
+    method:"POST",headers,body:params.toString()
+  });
+  if (!response.ok || !data?.access_token) {
+    throw new Error(`OAuth token exchange failed (${response.status}): ${data?.error_description || data?.error || text.slice(0,300)}`);
+  }
+  return data;
+}
+
+async function discoverConnectedMcpTools(userId,integrationKey,serverUrl,accessToken) {
+  const tool = {
+    type:"mcp",
+    server_label:safeServerLabel(integrationKey),
+    server_description:`Tool discovery for ${integrationKey}`,
+    server_url:serverUrl,
+    authorization:accessToken,
+    require_approval:"always",
+  };
+
+  const rr = await fetch("https://api.openai.com/v1/responses",{
+    method:"POST",
+    headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,"content-type":"application/json"},
+    body:JSON.stringify({
+      model:process.env.OPENAI_MODEL || "gpt-5.6-terra",
+      reasoning:{effort:"low"},
+      input:"List the connected MCP tools. Do not execute any tool.",
+      tools:[tool],
+      tool_choice:"auto",
+    })
+  });
+  const data = await rr.json();
+  if(!rr.ok) throw new Error(data.error?.message || JSON.stringify(data));
+  const listItem=(data.output||[]).find(x=>x.type==="mcp_list_tools");
+  const discovered=(listItem?.tools||[]).map(t=>({name:t.name,description:t.description||""}));
+
+  let safe = discovered.filter(t=>readToolNameLooksSafe(t.name)).map(t=>t.name).slice(0,40);
+  // LeadConnector's stable discovery tools are safe to expose; execute_operation remains withheld until
+  // Marina's MCP approval bridge is implemented.
+  if (integrationKey === "bmod_tools") {
+    for (const n of ["list_locations","search_operations","describe_operation"]) {
+      if (discovered.some(t=>t.name===n) && !safe.includes(n)) safe.push(n);
+    }
+    safe = safe.filter(n=>n!=="execute_operation");
+  }
+  return {discovered,safe};
+}
+
 module.exports = async function handler(req, res) {
   try {
     const url = new URL(req.url, "https://local.invalid");
@@ -1750,13 +1958,78 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "3.1.1-preloaded-connections",
+        build: "3.2.0-secure-oauth",
         benchmarkEnabled: true,
       });
     }
 
     if (req.method === "POST" && path === "/api/ghl-entitlement") {
       return handleGhlEntitlementWebhook(req, res);
+    }
+
+    if (req.method === "GET" && path === "/api/connections/oauth/callback") {
+      const state = String(url.searchParams.get("state") || "");
+      const code = String(url.searchParams.get("code") || "");
+      const oauthError = String(url.searchParams.get("error") || "");
+      const rows = state ? await sbRest(`connection_oauth_states?state=eq.${encodeURIComponent(state)}&select=*&limit=1`) : [];
+      const st = Array.isArray(rows) ? rows[0] : null;
+      const fallback = `${absoluteSiteUrl(req) || process.env.NEXT_PUBLIC_SITE_URL || "/"}/`;
+      if (!st) {
+        res.statusCode=302; res.setHeader("Location",`${fallback}?oauth=error&message=${encodeURIComponent("OAuth session expired. Please try connecting again.")}`); return res.end();
+      }
+      const returnUrl = safeReturnUrl(absoluteSiteUrl(req) || process.env.NEXT_PUBLIC_SITE_URL, st.return_url || "/");
+      if (oauthError || !code) {
+        await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.${encodeURIComponent(st.integration_key)}`,{
+          method:"PATCH",headers:{Prefer:"return=minimal"},
+          body:JSON.stringify({status:"error",last_error:`OAuth authorization failed: ${oauthError || "no code returned"}`,updated_at:new Date().toISOString()})
+        });
+        await sbRest(`connection_oauth_states?state=eq.${encodeURIComponent(state)}`,{method:"DELETE"});
+        res.statusCode=302; res.setHeader("Location",`${returnUrl.split("?")[0]}?oauth=error&connection=${encodeURIComponent(st.integration_key)}`); return res.end();
+      }
+
+      try {
+        if (new Date(st.expires_at).getTime() < Date.now()) throw new Error("OAuth session expired.");
+        const token = await exchangeOAuthCode(st,code);
+        await sbRpc("store_connection_secret",{p_user_id:st.user_id,p_integration_key:st.integration_key,p_secret:String(token.access_token)});
+        if (token.refresh_token) await sbRpc("store_connection_refresh_secret",{p_user_id:st.user_id,p_integration_key:st.integration_key,p_secret:String(token.refresh_token)});
+        if (st.client_secret) await sbRpc("store_connection_client_secret",{p_user_id:st.user_id,p_integration_key:st.integration_key,p_secret:String(st.client_secret)});
+
+        const expiresAt = Number(token.expires_in)>0 ? new Date(Date.now()+Number(token.expires_in)*1000).toISOString() : null;
+        const connRows = await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.${encodeURIComponent(st.integration_key)}&select=server_url&limit=1`);
+        const conn = Array.isArray(connRows) ? connRows[0] : null;
+        if (!conn?.server_url) throw new Error("Connection endpoint missing after OAuth.");
+
+        const discovered = await discoverConnectedMcpTools(st.user_id,st.integration_key,conn.server_url,String(token.access_token));
+
+        await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.${encodeURIComponent(st.integration_key)}`,{
+          method:"PATCH",headers:{Prefer:"return=minimal"},
+          body:JSON.stringify({
+            status:"connected",
+            discovered_tools:discovered.discovered,
+            allowed_tools:discovered.safe,
+            oauth_client_id:st.client_id,
+            oauth_authorization_endpoint:st.authorization_endpoint,
+            oauth_token_endpoint:st.token_endpoint,
+            oauth_registration_endpoint:st.registration_endpoint,
+            oauth_scope:String(token.scope || st.scopes || ""),
+            oauth_connected_at:new Date().toISOString(),
+            token_expires_at:expiresAt,
+            last_error:null,
+            last_checked_at:new Date().toISOString(),
+            updated_at:new Date().toISOString(),
+          })
+        });
+        await sbRest(`connection_oauth_states?state=eq.${encodeURIComponent(state)}`,{method:"DELETE"});
+        res.statusCode=302; res.setHeader("Location",`${returnUrl.split("?")[0]}?oauth=success&connection=${encodeURIComponent(st.integration_key)}`); return res.end();
+      } catch(e) {
+        const msg=e instanceof Error?e.message:String(e);
+        await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.${encodeURIComponent(st.integration_key)}`,{
+          method:"PATCH",headers:{Prefer:"return=minimal"},
+          body:JSON.stringify({status:"error",last_error:msg.slice(0,1000),updated_at:new Date().toISOString()})
+        });
+        await sbRest(`connection_oauth_states?state=eq.${encodeURIComponent(state)}`,{method:"DELETE"});
+        res.statusCode=302; res.setHeader("Location",`${returnUrl.split("?")[0]}?oauth=error&connection=${encodeURIComponent(st.integration_key)}&message=${encodeURIComponent(msg.slice(0,250))}`); return res.end();
+      }
     }
 
     const { user, email } = await verifyUser(req);
@@ -1778,6 +2051,98 @@ module.exports = async function handler(req, res) {
           connection:byKey[i.integration_key] || null
         }))
       });
+    }
+
+
+    if (req.method === "POST" && path === "/api/connections/oauth/start") {
+      const body = await readBody(req);
+      const integrationKey = String(body.integrationKey || "").trim();
+      const siteUrl = absoluteSiteUrl(req);
+      if (!siteUrl) return json(res,500,{error:"Site URL is not configured."});
+      const redirectUri = `${siteUrl}/api/connections/oauth/callback`;
+      const returnUrl = safeReturnUrl(siteUrl,body.returnUrl || "/");
+
+      const cat = await sbRest(`integration_catalog?integration_key=eq.${encodeURIComponent(integrationKey)}&customer_visible=eq.true&select=integration_key,display_name,default_server_url&limit=1`);
+      const integration = Array.isArray(cat) ? cat[0] : null;
+      if (!integration?.default_server_url) return json(res,404,{error:"Integration endpoint not configured."});
+
+      // Ensure the connection row exists using the catalog endpoint.
+      await sbRest("user_connections?on_conflict=user_id,integration_key",{
+        method:"POST",
+        headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+        body:JSON.stringify([{
+          user_id:user.id,
+          integration_key:integrationKey,
+          transport:"http",
+          server_url:integration.default_server_url,
+          tunnel_id:null,
+          status:"auth_required",
+          read_only:true,
+          last_error:null,
+          updated_at:new Date().toISOString(),
+        }])
+      });
+
+      try {
+        const oauth = await discoverMcpOAuth(integration.default_server_url);
+        const reg = await registerDynamicMcpClient(oauth,redirectUri);
+        const verifier = randomUrlSafe(48);
+        const challenge = pkceChallenge(verifier);
+        const state = randomUrlSafe(32);
+        const scope = oauth.scopesSupported.join(" ");
+
+        await sbRest("connection_oauth_states",{
+          method:"POST",
+          headers:{Prefer:"return=minimal"},
+          body:JSON.stringify([{
+            state,
+            user_id:user.id,
+            integration_key:integrationKey,
+            code_verifier:verifier,
+            redirect_uri:redirectUri,
+            return_url:returnUrl,
+            client_id:reg.clientId,
+            client_secret:reg.clientSecret,
+            token_endpoint:oauth.tokenEndpoint,
+            authorization_endpoint:oauth.authorizationEndpoint,
+            registration_endpoint:oauth.registrationEndpoint,
+            scopes:scope,
+            token_auth_method:reg.tokenAuthMethod,
+            expires_at:new Date(Date.now()+10*60*1000).toISOString(),
+          }])
+        });
+
+        const au = new URL(oauth.authorizationEndpoint);
+        au.searchParams.set("response_type","code");
+        au.searchParams.set("client_id",reg.clientId);
+        au.searchParams.set("redirect_uri",redirectUri);
+        au.searchParams.set("state",state);
+        au.searchParams.set("code_challenge",challenge);
+        au.searchParams.set("code_challenge_method","S256");
+        au.searchParams.set("resource",integration.default_server_url);
+        if (scope) au.searchParams.set("scope",scope);
+
+        return json(res,200,{authorizeUrl:au.toString(),status:"redirect"});
+      } catch(e) {
+        const msg=e instanceof Error?e.message:String(e);
+        const needsApp = msg==="PROVIDER_APP_REQUIRED" || /registration|client/i.test(msg);
+        await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${encodeURIComponent(integrationKey)}`,{
+          method:"PATCH",headers:{Prefer:"return=minimal"},
+          body:JSON.stringify({
+            status:"auth_required",
+            last_error:needsApp
+              ?"Provider setup is required before customer sign-in can be enabled for this connection."
+              :msg.slice(0,1000),
+            updated_at:new Date().toISOString(),
+          })
+        });
+        return json(res, needsApp?409:400, {
+          error:needsApp
+            ?"This provider requires Marina On Demand to be registered as an OAuth client before customer sign-in can be enabled."
+            :msg,
+          setupRequired:needsApp
+        });
+      }
     }
 
     if (req.method === "POST" && path === "/api/connections") {

@@ -230,7 +230,16 @@ async function refreshSession(){
   if(state.session){
     qs("#login").style.display="none"; qs("#app").style.display="grid";
     qs("#userEmail").textContent=state.session.user.email || "";
-    await loadConversations(); await loadAdminStatus(); await loadSkills(); await renderDashboard();
+    await loadConversations(); await loadAdminStatus(); await loadSkills();
+    const qp=new URLSearchParams(window.location.search);
+    if(qp.get("oauth")){
+      const ok=qp.get("oauth")==="success";
+      qs("#status").textContent=ok?"Account connected successfully.":(qp.get("message")||"Account connection was not completed.");
+      history.replaceState({},document.title,window.location.pathname);
+      await openConnectionsPage();
+    }else{
+      await renderDashboard();
+    }
   }else{
     qs("#login").style.display="grid"; qs("#app").style.display="none";
   }
@@ -818,13 +827,17 @@ function connectionStatusLabel(c,integration){
 
 async function configureConnection(key){
   try{
-    qs("#status").textContent="Preparing secure connection...";
-    const j=await api("/api/connections",{
+    qs("#status").textContent="Opening secure sign-in...";
+    const prep=await api("/api/connections",{
       method:"POST",
       body:JSON.stringify({integrationKey:key})
     });
-    qs("#status").textContent=j.message||"Secure sign-in required.";
-    await openConnectionsPage();
+    const j=await api("/api/connections/oauth/start",{
+      method:"POST",
+      body:JSON.stringify({integrationKey:key,returnUrl:window.location.origin+"/"})
+    });
+    if(!j.authorizeUrl)throw new Error("The provider did not return a secure sign-in URL.");
+    window.location.href=j.authorizeUrl;
   }catch(e){
     qs("#status").textContent=e.message;
     await openConnectionsPage();
