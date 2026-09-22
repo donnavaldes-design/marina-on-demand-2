@@ -88,8 +88,17 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .actionBlockedBadge{color:#8b6a33}
 .actionModeNote{border:1px solid rgba(10,186,181,.25);background:var(--accent-soft);padding:11px 13px;border-radius:13px;margin-top:12px;font-size:12px;color:#4f5e5b;line-height:1.45}
 
+
+.momentumSection{margin:22px 0 20px}.momentumHeader{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:11px}.momentumHeader h3{font-family:Georgia,serif;font-size:25px;margin:3px 0 0}.momentumHeader button{border:1px solid var(--line);background:#fff;border-radius:11px;padding:8px 10px;cursor:pointer;font-size:11px}
+.momentumGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.momentumCard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;min-height:90px}.momentumCard small{display:block;text-transform:uppercase;letter-spacing:.08em;font-size:9px;color:var(--muted);font-weight:800;margin-bottom:7px}.momentumCard strong{font-family:Georgia,serif;font-size:25px}.momentumCard span{display:block;font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35}
+.accountabilityCard{margin:14px 0;background:linear-gradient(135deg,#fff 0%,var(--rose-soft) 100%);border:1px solid rgba(201,163,175,.38);border-radius:18px;padding:16px}.accountabilityCard small{display:block;text-transform:uppercase;letter-spacing:.1em;font-size:9px;color:#8d5868;font-weight:800;margin-bottom:7px}.accountabilityCard strong{font-family:Georgia,serif;font-size:19px;line-height:1.3}.checkinBtns{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.checkinBtns button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;font-size:11px}.checkinBtns button.done{background:var(--accent);color:#fff;border-color:var(--accent)}
+.winsPreview{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:10px}.winMini{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}.winMini strong{display:block;font-size:12px;line-height:1.35}.winMini span{display:block;font-size:10px;color:var(--muted);margin-top:5px}
+.momentumPage{max-width:980px;margin:0 auto}.momentumPage h2{font-family:Georgia,serif;font-size:40px;margin:3px 0 8px}.momentumPage p{color:var(--muted);line-height:1.55}.momentumToolbar{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.momentumToolbar button{border:0;background:var(--accent);color:#fff;border-radius:12px;padding:10px 13px;font-weight:750;cursor:pointer}.momentumToolbar button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.winsList{display:grid;gap:9px;margin-top:12px}.winRow{background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px}.winRow strong{display:block}.winRow small{color:var(--muted)}
+.momentumBtn{width:100%;padding:10px 12px;margin:0 0 10px;border:1px solid rgba(10,186,181,.3);background:var(--accent-soft);color:var(--accent-strong);border-radius:12px;text-align:left;cursor:pointer;font-weight:750}
+
 @media(max-width:960px){.card{grid-template-columns:1fr;gap:18px}.loginVisual{min-height:280px}.dashboardHero{grid-template-columns:1fr 200px}}
-@media(max-width:860px){.settingGrid,.brainList,.businessEditGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.skillGrid{grid-template-columns:1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
+@media(max-width:860px){.settingGrid,.brainList,.businessEditGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.skillGrid{grid-template-columns:1fr}.momentumGrid,.winsPreview{grid-template-columns:1fr 1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
 @media(max-width:560px){.center{padding:14px}.card{padding:16px;border-radius:22px}.card h1{font-size:42px}.field{flex-direction:column}.dashboardHero h2,.hub h2{font-size:32px}.focusCard strong{font-size:22px}.topBrand strong{font-size:14px}.topAvatar{width:34px;height:34px}.logo{font-size:28px}.brandPortrait{width:60px;height:60px;border-radius:14px}}</style>
 </head>
 <body>
@@ -127,6 +136,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
     <button id="homeBtn" class="homeBtn" type="button">⌂ Business Dashboard</button>
     <button id="newChat" class="new">+ New conversation</button>
     <button id="memoryBtn" class="memoryBtn" type="button">What Marina remembers</button>
+    <button id="momentumBtn" class="momentumBtn" type="button">↗ Momentum + Wins</button>
     <div class="sideSectionLabel">My Business</div>
     <div id="workspaceNav" class="workspaceNav">
       <button data-workspace="brand">My Brand</button>
@@ -236,6 +246,11 @@ qs("#memoryBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
   closeSidebarIfMobile();
   await openMemoryPanel();
+});
+qs("#momentumBtn").addEventListener("click",async()=>{
+  if(state.loading)return;
+  closeSidebarIfMobile();
+  await openMomentumPage();
 });
 qs("#controlBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
@@ -736,20 +751,105 @@ function setMode(mode){
 function resetWorkspace(mode="coach"){
   state.conversationId="";state.messages=[];state.pendingFiles=[];setMode(mode);renderPending();renderThreads();
 }
+
+function niceMetric(n){
+  const v=Number(n||0);
+  return Number.isInteger(v)?String(v):v.toFixed(1);
+}
+function winTypeLabel(t){return String(t||"win").replace(/_/g," ")}
+
+async function submitCheckin(status,assignment){
+  let note="";
+  if(status!=="done") note=prompt(status==="partial"?"What got done, and what is still open?":"What got in the way? Keep it short.")||"";
+  try{
+    await api("/api/accountability",{method:"POST",body:JSON.stringify({status,assignment,note})});
+    qs("#status").textContent=status==="done"?"Logged. Kept promise.":"Logged. Marina will coach from the real result.";
+    await renderDashboard();
+  }catch(e){qs("#status").textContent=e.message}
+}
+
+async function logWinQuick(){
+  const title=prompt("What happened? Keep the win factual.");
+  if(!title)return;
+  const type=(prompt("Type: sale, lead, content, confidence, consistency, conversion, launch, or other","other")||"other").toLowerCase();
+  try{
+    await api("/api/wins",{method:"POST",body:JSON.stringify({title,winType:type})});
+    qs("#status").textContent="Win saved.";
+    await openMomentumPage();
+  }catch(e){qs("#status").textContent=e.message}
+}
+
+async function logActivityQuick(){
+  const category=(prompt("Category: clarity, execution, conversations, follow_up, offer_activity, conversion, consistency","execution")||"execution").toLowerCase();
+  const value=Number(prompt("How many?","1")||1);
+  const note=prompt("Short note (optional)","")||"";
+  try{
+    await api("/api/momentum",{method:"POST",body:JSON.stringify({category,value,note})});
+    qs("#status").textContent="Momentum logged.";
+    await openMomentumPage();
+  }catch(e){qs("#status").textContent=e.message}
+}
+
+async function openMomentumPage(){
+  state.messages=[];state.conversationId="";renderThreads();
+  qs("#messages").innerHTML=`<div class="momentumPage"><div class="eyebrow">Momentum</div><h2>Your business is leaving receipts.</h2><p>Marina tracks the work that actually matters, the promises you keep, and the wins you report.</p><div class="workspaceEmpty">Loading momentum...</div></div>`;
+  try{
+    const j=await api("/api/momentum");
+    const m=j.memory||{}, s=j.momentum||{}, c=s.counts30||{}, c7=s.counts7||{};
+    qs("#messages").innerHTML=`<div class="momentumPage">
+      <div class="eyebrow">Momentum + Wins Vault</div>
+      <h2>Your business is leaving receipts.</h2>
+      <p><strong>Current goal:</strong> ${esc(m.primary_goal||"Not set yet")}. Marina uses completed activity and reported wins, not vanity metrics or invented scores.</p>
+      <div class="momentumToolbar"><button id="pageLogWin">+ Log a win</button><button id="pageLogActivity" class="secondary">+ Log activity</button><button id="pageCoachMomentum" class="secondary">Coach me from this data</button></div>
+      <div class="momentumGrid">
+        ${[
+          ["Conversations",c7.conversations,"last 7 days"],
+          ["Follow-ups",c7.follow_up,"last 7 days"],
+          ["Conversions",c7.conversion,"last 7 days"],
+          ["Active days",s.activeDays30,"last 30 days"],
+          ["Execution",c.execution,"last 30 days"],
+          ["Offer activity",c.offer_activity,"last 30 days"],
+          ["Consistency",c.consistency,"last 30 days"],
+          ["Wins",(s.wins||[]).length,"recent saved"]
+        ].map(([label,val,sub])=>`<div class="momentumCard"><small>${esc(label)}</small><strong>${esc(niceMetric(val))}</strong><span>${esc(sub)}</span></div>`).join("")}
+      </div>
+      <div class="momentumSection"><div class="momentumHeader"><div><div class="eyebrow">Wins Vault</div><h3>Proof you are moving.</h3></div></div>
+        <div class="winsList">${(s.wins||[]).length?(s.wins||[]).map(w=>`<div class="winRow"><strong>${esc(w.title)}</strong><small>${esc(winTypeLabel(w.win_type))} · ${esc(formatDate(w.occurred_on))}${w.amount!=null?` · $${esc(w.amount)}`:""}</small>${w.detail?`<div class="actionStepDesc">${esc(w.detail)}</div>`:""}</div>`).join(""):`<div class="workspaceEmpty">No wins saved yet. Tell Marina what happened or log one manually.</div>`}</div>
+      </div>
+    </div>`;
+    qs("#pageLogWin").onclick=logWinQuick;
+    qs("#pageLogActivity").onclick=logActivityQuick;
+    qs("#pageCoachMomentum").onclick=()=>{resetWorkspace("coach");send("Review my recent momentum, accountability and wins. Tell me what the data says is working, where I am leaking momentum, and give me one highest-leverage move for today.","coach")};
+  }catch(e){qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Momentum is ready when you are.</h2><p>${esc(e.message)}</p></div>`}
+}
+
 async function renderDashboard(){
   resetWorkspace("coach");
   qs("#messages").innerHTML=`<div class="dashboard"><div class="dashboardHero"><div><div class="eyebrow">Your Business, Remembered</div><h2>Marina knows where you left off.</h2><p>One business brain. One current focus. Pick how you want Marina to work with you today.</p></div><div class="dashboardPortraitWrap"><img class="dashboardPortrait" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina portrait"></div></div><div class="bizCard">Loading your business...</div></div>`;
   try{
     const j=await api("/api/dashboard");state.dashboard=j;
-    const m=j.memory||{};
+    const m=j.memory||{}, s=j.momentum||{}, c7=s.counts7||{};
     const cards=[
       ["Primary offer",m.primary_offer],["Audience",m.target_audience],["Goal",m.primary_goal],
       ["Current bottleneck",m.current_constraint],["Platform",m.preferred_platform],["Last assignment",m.last_assignment]
     ];
+    const recentWins=(s.wins||[]).slice(0,3);
+    const assignment=m.last_assignment||"";
     qs("#messages").innerHTML=`<div class="dashboard">
       <div class="dashboardHero"><div><div class="eyebrow">Your Business, Remembered</div><h2>Marina knows where you left off.</h2><p>No starting over. No re-explaining your business every time. Here is the work in front of us.</p></div><div class="dashboardPortraitWrap"><img class="dashboardPortrait" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina portrait"></div></div>
       <div class="focusCard"><div><small>Today's Move</small><strong>${esc(j.todayMove||"Ask Marina for today's move.")}</strong></div><button id="todayMoveBtn">Work this with Marina →</button></div>
+      ${assignment?`<div class="accountabilityCard"><small>Accountability Check</small><strong>${esc(assignment)}</strong><div class="checkinBtns"><button class="done" data-checkin="done">Done ✓</button><button data-checkin="partial">Partly</button><button data-checkin="not_done">Nope</button></div></div>`:""}
       <div class="businessGrid">${cards.map(([label,value])=>`<div class="bizCard"><small>${esc(label)}</small><strong>${esc(value||"Not set yet")}</strong></div>`).join("")}</div>
+      <div class="momentumSection">
+        <div class="momentumHeader"><div><div class="eyebrow">Momentum Scoreboard</div><h3>What moved this week?</h3></div><button id="openMomentum">Open Momentum + Wins →</button></div>
+        <div class="momentumGrid">
+          <div class="momentumCard"><small>Conversations</small><strong>${esc(niceMetric(c7.conversations))}</strong><span>last 7 days</span></div>
+          <div class="momentumCard"><small>Follow-ups</small><strong>${esc(niceMetric(c7.follow_up))}</strong><span>last 7 days</span></div>
+          <div class="momentumCard"><small>Conversions</small><strong>${esc(niceMetric(c7.conversion))}</strong><span>last 7 days</span></div>
+          <div class="momentumCard"><small>Active days</small><strong>${esc(niceMetric(s.activeDays30))}</strong><span>last 30 days</span></div>
+        </div>
+        <div class="winsPreview">${recentWins.length?recentWins.map(w=>`<div class="winMini"><strong>${esc(w.title)}</strong><span>${esc(winTypeLabel(w.win_type))} · ${esc(formatDate(w.occurred_on))}</span></div>`).join(""):`<div class="workspaceEmpty" style="grid-column:1/-1">No wins saved yet. When you tell Marina something worked, she can start building your Wins Vault.</div>`}</div>
+      </div>
       <div class="eyebrow">How do you want Marina to work today?</div>
       <div class="modeGrid">
         <button class="modeCard" data-mode="coach"><div class="modeIcon">💬</div><strong>Coach Me</strong><span>Diagnose the real issue, challenge the thinking, and give me the next move.</span></button>
@@ -757,7 +857,9 @@ async function renderDashboard(){
         <button class="modeCard" data-mode="action"><div class="modeIcon">⚡</div><strong>Action Mode <span class="betaPill">Beta</span></strong><span>Turn a goal into a sequenced execution plan and build everything Marina can complete here.</span></button>
       </div>
     </div>`;
-    qs("#todayMoveBtn").onclick=()=>{resetWorkspace("coach");send("Based on what you remember about my business, help me execute today's highest-leverage move. Keep me focused and give me the exact first steps.","coach")};
+    qs("#todayMoveBtn").onclick=()=>{resetWorkspace("coach");send("Based on what you remember about my business and my recent momentum, help me execute today's highest-leverage move. Keep me focused and give me the exact first steps.","coach")};
+    if(qs("#openMomentum"))qs("#openMomentum").onclick=openMomentumPage;
+    qs("#messages").querySelectorAll("[data-checkin]").forEach(b=>b.onclick=()=>submitCheckin(b.dataset.checkin,assignment));
     qs("#messages").querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>openMode(b.dataset.mode));
   }catch(e){qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Marina is ready.</h2><p>${esc(e.message)}</p></div>`}
 }

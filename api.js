@@ -953,7 +953,7 @@ async function finalizeActionRun(userId, runId, summary, failed = false) {
   return status;
 }
 
-async function runActionAgent(message, history, memory, attachments, workspaceContext, userId, conversationId, skillDefinition = null) {
+async function runActionAgent(message, history, memory, attachments, workspaceContext, userId, conversationId, skillDefinition = null, coachingContext = null) {
   const routed = routeMessage(message);
   const liveBrain = await getLiveBrainContext(routed.route);
   const run = await createActionRun(userId, conversationId, message);
@@ -965,6 +965,9 @@ async function runActionAgent(message, history, memory, attachments, workspaceCo
 
   const workspaceText = workspaceContext.length
     ? `\nCUSTOMER WORKSPACE:\n${JSON.stringify(workspaceContext)}`
+    : "";
+  const coachingText = coachingContext
+    ? `\nCUSTOMER MOMENTUM CONTEXT (factual recent progress only; use to coach over time without overpraising):\n${JSON.stringify(coachingContext)}`
     : "";
 
   const attachmentContext = attachments.length
@@ -991,7 +994,7 @@ ${skillDefinition.operating_prompt}`
   const actionInstructions = `${liveCore}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}
 
 ROUTED CANONICAL CONTEXT:
-${routed.context}${memoryText}${workspaceText}${attachmentContext}
+${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext}
 
 ACTION MODE EXECUTION RULES:
 You are not merely planning. You are operating inside Marina's controlled execution environment.
@@ -1132,7 +1135,167 @@ You are not merely planning. You are operating inside Marina's controlled execut
   }
 }
 
-async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach", workspaceContext = [], skillDefinition = null) {
+
+const MOMENTUM_CATEGORIES = ["clarity","execution","conversations","follow_up","offer_activity","conversion","consistency"];
+
+function daysAgoIso(days) {
+  const d = new Date(Date.now() - Number(days || 0) * 86400000);
+  return d.toISOString().slice(0,10);
+}
+
+async function getMomentumSummary(userId) {
+  const [events, wins, checkins] = await Promise.all([
+    sbRest(`momentum_events?user_id=eq.${encodeURIComponent(userId)}&event_date=gte.${daysAgoIso(30)}&select=id,category,value,note,event_date,source,created_at&order=event_date.desc,created_at.desc`),
+    sbRest(`wins?user_id=eq.${encodeURIComponent(userId)}&select=id,title,detail,win_type,amount,occurred_on,source,created_at&order=occurred_on.desc,created_at.desc&limit=12`),
+    sbRest(`accountability_checkins?user_id=eq.${encodeURIComponent(userId)}&select=id,assignment,status,note,checked_at&order=checked_at.desc&limit=8`)
+  ]);
+
+  const eventRows = Array.isArray(events) ? events : [];
+  const sevenStart = daysAgoIso(6);
+  const counts7 = Object.fromEntries(MOMENTUM_CATEGORIES.map(k => [k,0]));
+  const counts30 = Object.fromEntries(MOMENTUM_CATEGORIES.map(k => [k,0]));
+  const activeDays = new Set();
+
+  for (const e of eventRows) {
+    const v = Number(e.value || 0);
+    if (MOMENTUM_CATEGORIES.includes(e.category)) {
+      counts30[e.category] += v;
+      if (String(e.event_date) >= sevenStart) counts7[e.category] += v;
+    }
+    if (v > 0) activeDays.add(String(e.event_date));
+  }
+
+  return {
+    counts7,
+    counts30,
+    activeDays30: activeDays.size,
+    wins: Array.isArray(wins) ? wins : [],
+    checkins: Array.isArray(checkins) ? checkins : [],
+  };
+}
+
+async function getCoachingContext(userId) {
+  const s = await getMomentumSummary(userId);
+  return {
+    last_checkin: s.checkins?.[0] || null,
+    recent_wins: (s.wins || []).slice(0,5),
+    last_7_days: s.counts7,
+    active_days_last_30: s.activeDays30,
+  };
+}
+
+async function logMomentumEvent(userId, data) {
+  const category = MOMENTUM_CATEGORIES.includes(String(data.category || "")) ? String(data.category) : null;
+  if (!category) return null;
+  const rows = await sbRest("momentum_events?select=id,category,value,note,event_date,source,created_at", {
+    method:"POST",
+    headers:{Prefer:"return=representation"},
+    body:JSON.stringify([{
+      user_id:userId,
+      conversation_id:data.conversationId || null,
+      source_message_id:data.sourceMessageId || null,
+      category,
+      value:Number(data.value ?? 1),
+      note:String(data.note || "").slice(0,1000) || null,
+      event_date:data.eventDate || new Date().toISOString().slice(0,10),
+      source:data.source || "manual",
+    }])
+  });
+  return rows?.[0] || null;
+}
+
+async function logWin(userId, data) {
+  const allowed = ["sale","lead","content","confidence","consistency","conversion","launch","other"];
+  const type = allowed.includes(String(data.winType || "")) ? String(data.winType) : "other";
+  const rows = await sbRest("wins?select=id,title,detail,win_type,amount,occurred_on,source,created_at", {
+    method:"POST",
+    headers:{Prefer:"return=representation"},
+    body:JSON.stringify([{
+      user_id:userId,
+      conversation_id:data.conversationId || null,
+      source_message_id:data.sourceMessageId || null,
+      title:String(data.title || "Win").slice(0,180),
+      detail:String(data.detail || "").slice(0,2000) || null,
+      win_type:type,
+      amount:Number.isFinite(Number(data.amount)) ? Number(data.amount) : null,
+      occurred_on:data.occurredOn || new Date().toISOString().slice(0,10),
+      source:data.source || "manual",
+    }])
+  });
+  return rows?.[0] || null;
+}
+
+async function extractMomentumSignals(userMessage) {
+  const message = String(userMessage || "").trim();
+  if (!message || message.length < 3) return { activities:[], wins:[] };
+
+  try {
+    const r = await fetch("https://api.openai.com/v1/responses", {
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,
+        "content-type":"application/json",
+      },
+      body:JSON.stringify({
+        model:process.env.OPENAI_MODEL || "gpt-5.6-terra",
+        reasoning:{effort:"low"},
+        instructions:`Extract only explicit completed business activity or wins the user says already happened.
+
+Do NOT infer intentions, plans, advice, hypothetical examples, goals, or things Marina suggested.
+Do NOT store sensitive personal information.
+Return ONLY valid JSON with this shape:
+{"activities":[{"category":"clarity|execution|conversations|follow_up|offer_activity|conversion|consistency","value":1,"note":"short factual note"}],"wins":[{"title":"short factual win","detail":"optional factual detail","win_type":"sale|lead|content|confidence|consistency|conversion|launch|other","amount":null}]}
+
+Rules:
+- "I sent 5 follow-ups" => follow_up value 5.
+- "I started 3 conversations" => conversations value 3.
+- "I posted the reel" => offer_activity or execution value 1.
+- "I sold 3" => conversion value 3 AND one sale win.
+- "I finally went live" => execution value 1 AND a confidence/content win if explicitly celebratory.
+- If nothing completed is explicitly reported, return empty arrays.
+- Keep notes neutral and factual.`,
+        input:[{role:"user",content:message}]
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) return { activities:[], wins:[] };
+    const raw = parseOpenAIText(data) || "";
+    const cleaned = raw.replace(/^```json\s*/i,"").replace(/```$/,"").trim();
+    const parsed = JSON.parse(cleaned);
+    return {
+      activities:Array.isArray(parsed.activities) ? parsed.activities.slice(0,8) : [],
+      wins:Array.isArray(parsed.wins) ? parsed.wins.slice(0,4) : [],
+    };
+  } catch {
+    return { activities:[], wins:[] };
+  }
+}
+
+async function applyMomentumSignals(userId, conversationId, sourceMessageId, userMessage) {
+  const signals = await extractMomentumSignals(userMessage);
+  for (const a of signals.activities || []) {
+    await logMomentumEvent(userId, {
+      conversationId, sourceMessageId,
+      category:a.category,
+      value:Math.max(0, Number(a.value || 1)),
+      note:a.note,
+      source:"chat",
+    });
+  }
+  for (const w of signals.wins || []) {
+    await logWin(userId, {
+      conversationId, sourceMessageId,
+      title:w.title,
+      detail:w.detail,
+      winType:w.win_type,
+      amount:w.amount,
+      source:"chat",
+    });
+  }
+  return signals;
+}
+
+async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach", workspaceContext = [], skillDefinition = null, coachingContext = null) {
   const routed = routeMessage(message);
   const liveBrain = await getLiveBrainContext(routed.route);
   const memoryText = memory
@@ -1150,6 +1313,11 @@ ATTACHMENT NOTE: The user supplied ${attachments.length} attachment(s). Analyze 
     ? `
 CUSTOMER WORKSPACE (permanent business assets saved by the user; use only when relevant and do not overwrite explicit current instructions):
 ${JSON.stringify(workspaceContext)}`
+    : "";
+  const coachingText = coachingContext
+    ? `
+CUSTOMER MOMENTUM CONTEXT (factual recent progress and wins; use when relevant for continuity and accountability):
+${JSON.stringify(coachingContext)}`
     : "";
 
   const modeContext = experienceMode === "action"
@@ -1193,7 +1361,7 @@ ${skillDefinition.operating_prompt}`
   const instructions = `${liveCore}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}
 
 ROUTED CANONICAL CONTEXT:
-${routed.context}${memoryText}${workspaceText}${attachmentContext}${modeContext}`;
+${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext}${modeContext}`;
   const input = history.map(m => ({ role: m.role, content: m.content }));
 
   const userContent = [];
@@ -1440,7 +1608,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "2.9.0-skill-engine",
+        build: "3.0.0-momentum-coach",
         benchmarkEnabled: true,
       });
     }
@@ -1623,7 +1791,10 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === "GET" && path === "/api/dashboard") {
-      const memory = await getMemory(user.id);
+      const [memory, momentum] = await Promise.all([
+        getMemory(user.id),
+        getMomentumSummary(user.id)
+      ]);
       const m = memorySnapshot(memory);
       const todayMove = m.last_assignment
         || (m.current_constraint ? `Make one concrete move on: ${m.current_constraint}` : null)
@@ -1632,9 +1803,98 @@ module.exports = async function handler(req, res) {
 
       return json(res, 200, {
         memory: m,
+        momentum,
         todayMove,
         modes: ["coach","create","action"]
       });
+    }
+
+
+    if (req.method === "GET" && path === "/api/momentum") {
+      const [memory, momentum] = await Promise.all([
+        getMemory(user.id),
+        getMomentumSummary(user.id)
+      ]);
+      return json(res, 200, { memory: memorySnapshot(memory), momentum });
+    }
+
+    if (req.method === "POST" && path === "/api/momentum") {
+      const body = await readBody(req);
+      const event = await logMomentumEvent(user.id, {
+        category:body.category,
+        value:body.value,
+        note:body.note,
+        source:"manual",
+      });
+      if (!event) return json(res, 400, { error:"Valid momentum category required" });
+      return json(res, 200, { event });
+    }
+
+    if (req.method === "POST" && path === "/api/wins") {
+      const body = await readBody(req);
+      const title = String(body.title || "").trim();
+      if (!title) return json(res, 400, { error:"Win title required" });
+      const win = await logWin(user.id, {
+        title,
+        detail:body.detail,
+        winType:body.winType,
+        amount:body.amount,
+        source:"manual",
+      });
+      if (["sale","conversion"].includes(String(body.winType || ""))) {
+        await logMomentumEvent(user.id, {
+          category:"conversion",
+          value:Number(body.count || 1),
+          note:title,
+          source:"manual",
+        });
+      }
+      return json(res, 200, { win });
+    }
+
+    if (req.method === "POST" && path === "/api/accountability") {
+      const body = await readBody(req);
+      const status = String(body.status || "");
+      if (!["done","partial","not_done"].includes(status)) {
+        return json(res, 400, { error:"Valid accountability status required" });
+      }
+      const memory = await getMemory(user.id);
+      const snapshot = memorySnapshot(memory);
+      const assignment = String(body.assignment || snapshot.last_assignment || "").trim();
+      if (!assignment) return json(res, 400, { error:"No assignment to check in on" });
+
+      const rows = await sbRest("accountability_checkins?select=id,assignment,status,note,checked_at", {
+        method:"POST",
+        headers:{Prefer:"return=representation"},
+        body:JSON.stringify([{
+          user_id:user.id,
+          assignment:assignment.slice(0,1000),
+          status,
+          note:String(body.note || "").slice(0,1000) || null,
+        }])
+      });
+
+      if (status !== "not_done") {
+        await logMomentumEvent(user.id, {
+          category:"execution",
+          value:status === "done" ? 1 : 0.5,
+          note:`Accountability: ${assignment}`,
+          source:"checkin",
+        });
+      }
+
+      await sbRest("customer_memory?on_conflict=user_id", {
+        method:"POST",
+        headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+        body:JSON.stringify([{
+          user_id:user.id,
+          ...snapshot,
+          last_assignment_status:status,
+          updated_at:new Date().toISOString(),
+        }])
+      });
+
+      return json(res, 200, { checkin: rows?.[0] || null });
     }
 
     if (req.method === "POST" && path === "/api/feedback") {
@@ -1985,9 +2245,10 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      const [memory, workspaceContext] = await Promise.all([
+      const [memory, workspaceContext, coachingContext] = await Promise.all([
         getMemory(user.id),
         getWorkspaceContext(user.id),
+        getCoachingContext(user.id),
       ]);
 
       const skillRun = skillDefinition
@@ -1997,8 +2258,8 @@ module.exports = async function handler(req, res) {
       let ai;
       try {
         ai = experienceMode === "action"
-          ? await runActionAgent(message, history, memory, attachments, workspaceContext, user.id, conversationId, skillDefinition)
-          : await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext, skillDefinition);
+          ? await runActionAgent(message, history, memory, attachments, workspaceContext, user.id, conversationId, skillDefinition, coachingContext)
+          : await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext, skillDefinition, coachingContext);
         if (skillRun?.id) await finishSkillRun(user.id, skillRun.id, ai.answer, false);
       } catch (e) {
         if (skillRun?.id) await finishSkillRun(user.id, skillRun.id, e instanceof Error ? e.message : String(e), true);
@@ -2025,6 +2286,12 @@ module.exports = async function handler(req, res) {
         message,
         ai.answer,
         memory
+      );
+      await applyMomentumSignals(
+        user.id,
+        conversationId,
+        userMessage.id,
+        message
       );
 
       await sbRest(`conversations?id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(user.id)}`, {

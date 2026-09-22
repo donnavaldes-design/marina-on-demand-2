@@ -1,4 +1,4 @@
-# Marina On Demand 2.9.0 — Skill Engine
+# Marina On Demand 3.0.0 — Momentum Coach
 
 Flat browser-upload build. No folders.
 
@@ -10,31 +10,40 @@ Upload these four files to the ROOT of the existing GitHub repository and replac
 - README_BROWSER_UPLOAD.md
 
 Build marker:
-2.9.0-skill-engine
+3.0.0-momentum-coach
 
-Claude-sourced Marina skills activated:
-- Engineer the Demand
-- Pinterest Pin Strategist
-- Build My Newsletter System
-- Secret Podcast Builder
-- DM Conversation Auditor (internal Seven Layers quality-control skill)
+New coaching intelligence:
+- Momentum Scoreboard
+- Wins Vault
+- Accountability Loop
+- Automatic extraction of explicit completed business activity from chat
+- Marina can use recent progress and wins as coaching context in future answers
 
-Behavior:
-- User-facing skills appear in Create With Me as branded skill cards.
-- Skill definitions live in Supabase, not hard-coded into the global Marina prompt.
-- Skills route into the same Marina brain, memory, Workspace and Action Engine.
-- Action skills can build and save finished assets into Workspace.
-- DM auditing can auto-route internally without teaching a separate Seven Layers lesson.
-- Skill runs are tracked in Supabase for later analytics and tuning.
-- Marina OS and canonical Method Library remain higher authority than skill-specific workflows.
+Momentum categories:
+- Clarity
+- Execution
+- Conversations
+- Follow-up
+- Offer activity
+- Conversion
+- Consistency
 
-All previous features preserved:
+Important:
+- No fake business score is generated.
+- Marina logs only explicit completed activity, not intentions or plans.
+- Users can manually log a win or activity.
+- Dashboard accountability uses the saved Last Assignment.
+- Done / Partly / Nope check-ins feed future coaching.
+- Wins are factual records. Marina does not invent testimonials or results.
+
+All previous features are preserved:
+- Marina Skill Engine
 - Real Action Engine
 - Marina Workspace
 - Owner-only Control Room
 - Live Brain
-- customer memory
+- cross-conversation business memory
 - branded/mobile UI
 - attachments
 - feedback
-- multi-source GHL entitlements
+- multi-source GHL entitlement architecture
