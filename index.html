@@ -1153,34 +1153,52 @@ async function openConnectionsPage(){
 
 async function openMomentumPage(){
   state.messages=[];state.conversationId="";renderThreads();
-  qs("#messages").innerHTML=`<div class="momentumPage"><div class="eyebrow">Momentum</div><h2>Your business is leaving receipts.</h2><p>Marina tracks the work that actually matters, the promises you keep, and the wins you report.</p><div class="workspaceEmpty">Loading momentum...</div></div>`;
+  qs("#messages").innerHTML=`<div class="momentumPage"><div class="eyebrow">Momentum</div><h2>Your business is leaving receipts.</h2><p>Marina blends live CRM signals with the wins and activity you log yourself.</p><div class="workspaceEmpty">Loading momentum...</div></div>`;
   try{
     const j=await api("/api/momentum");
-    const m=j.memory||{}, s=j.momentum||{}, c=s.counts30||{}, c7=s.counts7||{};
+    const m=j.memory||{}, s=j.momentum||{}, c=s.counts30||{}, c7=s.counts7||{}, b=j.bmod||{};
+    const liveCards=[
+      ["Contacts",b.contacts_total,"live from BMOD"],
+      ["Conversations",b.conversations_total,"live from BMOD"],
+      ["Open opportunities",b.open_opportunities_total,"live from BMOD"],
+      ["Won opportunities",b.won_opportunities_total,"live from BMOD"]
+    ];
     qs("#messages").innerHTML=`<div class="momentumPage">
       <div class="eyebrow">Momentum + Wins Vault</div>
       <h2>Your business is leaving receipts.</h2>
-      <p><strong>Current goal:</strong> ${esc(m.primary_goal||"Not set yet")}. Marina uses completed activity and reported wins, not vanity metrics or invented scores.</p>
-      <div class="momentumToolbar"><button id="pageLogWin">+ Log a win</button><button id="pageLogActivity" class="secondary">+ Log activity</button><button id="pageCoachMomentum" class="secondary">Coach me from this data</button></div>
-      <div class="momentumGrid">
-        ${[
-          ["Conversations",c7.conversations,"last 7 days"],
-          ["Follow-ups",c7.follow_up,"last 7 days"],
-          ["Conversions",c7.conversion,"last 7 days"],
-          ["Active days",s.activeDays30,"last 30 days"],
-          ["Execution",c.execution,"last 30 days"],
-          ["Offer activity",c.offer_activity,"last 30 days"],
-          ["Consistency",c.consistency,"last 30 days"],
-          ["Wins",(s.wins||[]).length,"recent saved"]
-        ].map(([label,val,sub])=>`<div class="momentumCard"><small>${esc(label)}</small><strong>${esc(niceMetric(val))}</strong><span>${esc(sub)}</span></div>`).join("")}
+      <p><strong>Current goal:</strong> ${esc(m.primary_goal||"Not set yet")}. Marina uses live business data where it is reliable and your own logged activity where the CRM cannot see the whole story.</p>
+
+      ${b.connected?`<div class="momentumSection">
+        <div class="momentumHeader"><div><div class="eyebrow">Live CRM snapshot</div><h3>What BMOD Tools can see right now.</h3></div><button id="refreshMomentumBmod">Refresh BMOD data</button></div>
+        <div class="momentumGrid">${liveCards.map(([label,val,sub])=>`<div class="momentumCard"><small>${esc(label)}</small><strong>${val==null?"—":esc(niceMetric(val))}</strong><span>${esc(sub)}</span></div>`).join("")}</div>
+        <div class="memoryStatus">Live totals come from your connected HighLevel account. A dash means that provider response did not expose a reliable total, so Marina will not guess.</div>
+      </div>`:`<div class="workspaceEmpty">Connect BMOD Tools to add live CRM totals here. Manual momentum and wins still work without it.</div>`}
+
+      <div class="momentumSection">
+        <div class="momentumHeader"><div><div class="eyebrow">Your logged momentum</div><h3>The work HighLevel cannot fully see.</h3></div></div>
+        <div class="momentumToolbar"><button id="pageLogWin">+ Log a win</button><button id="pageLogActivity" class="secondary">+ Log activity</button><button id="pageCoachMomentum" class="secondary">Coach me from this data</button></div>
+        <div class="momentumGrid">
+          ${[
+            ["Conversations",c7.conversations,"you logged · last 7 days"],
+            ["Follow-ups",c7.follow_up,"you logged · last 7 days"],
+            ["Conversions",c7.conversion,"you logged · last 7 days"],
+            ["Active days",s.activeDays30,"last 30 days"],
+            ["Execution",c.execution,"last 30 days"],
+            ["Offer activity",c.offer_activity,"last 30 days"],
+            ["Consistency",c.consistency,"last 30 days"],
+            ["Wins",(s.wins||[]).length,"recent saved"]
+          ].map(([label,val,sub])=>`<div class="momentumCard"><small>${esc(label)}</small><strong>${esc(niceMetric(val))}</strong><span>${esc(sub)}</span></div>`).join("")}
+        </div>
       </div>
+
       <div class="momentumSection"><div class="momentumHeader"><div><div class="eyebrow">Wins Vault</div><h3>Proof you are moving.</h3></div></div>
-        <div class="winsList">${(s.wins||[]).length?(s.wins||[]).map(w=>`<div class="winRow"><strong>${esc(w.title)}</strong><small>${esc(winTypeLabel(w.win_type))} · ${esc(formatDate(w.occurred_on))}${w.amount!=null?` · $${esc(w.amount)}`:""}</small>${w.detail?`<div class="actionStepDesc">${esc(w.detail)}</div>`:""}</div>`).join(""):`<div class="workspaceEmpty">No wins saved yet. Tell Marina what happened or log one manually.</div>`}</div>
+        <div class="winsList">${(s.wins||[]).length?(s.wins||[]).map(w=>`<div class="winRow"><strong>${esc(w.title)}</strong><small>${esc(winTypeLabel(w.win_type))} · ${esc(formatDate(w.occurred_on))}${w.amount!=null?` · ${esc(w.amount)}`:""}</small>${w.detail?`<div class="actionStepDesc">${esc(w.detail)}</div>`:""}</div>`).join(""):`<div class="workspaceEmpty">No wins saved yet. Tell Marina what happened or log one manually.</div>`}</div>
       </div>
     </div>`;
     qs("#pageLogWin").onclick=logWinQuick;
     qs("#pageLogActivity").onclick=logActivityQuick;
-    qs("#pageCoachMomentum").onclick=()=>{resetWorkspace("coach");send("Review my recent momentum, accountability and wins. Tell me what the data says is working, where I am leaking momentum, and give me one highest-leverage move for today.","coach")};
+    if(qs("#refreshMomentumBmod"))qs("#refreshMomentumBmod").onclick=openMomentumPage;
+    qs("#pageCoachMomentum").onclick=()=>{resetWorkspace("coach");send("Review my live CRM snapshot together with my recent logged momentum, accountability and wins. Tell me what the combined data says is working, where I am leaking momentum, and give me one highest-leverage move for today.","coach")};
   }catch(e){qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Momentum is ready when you are.</h2><p>${esc(e.message)}</p></div>`}
 }
 
