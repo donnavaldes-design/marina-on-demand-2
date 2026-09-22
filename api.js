@@ -1241,6 +1241,103 @@ async function getOpenLoopsSummary(userId){
   };
 }
 
+async function getDailyBrief(userId){
+  const now=new Date();
+  const next24=new Date(now.getTime()+24*60*60*1000);
+
+  const [memory,openLoops,momentum,bmod,calendarResult,gmailResult]=await Promise.all([
+    getMemory(userId),
+    getOpenLoopsSummary(userId),
+    getMomentumSummary(userId),
+    getBmodMomentumSnapshot(userId),
+    (async()=>{
+      try{
+        const row=await GOOGLE.google_calendar.row(userId);
+        if(row?.status!=="connected")return {connected:false,events:[]};
+        const result=await executeGoogleOperation(userId,{
+          provider:"google_calendar",
+          operation:"list_events",
+          parameters_json:JSON.stringify({
+            calendarId:"primary",
+            timeMin:now.toISOString(),
+            timeMax:next24.toISOString(),
+            maxResults:10
+          })
+        });
+        const events=(Array.isArray(result?.items)?result.items:[]).map(e=>({
+          id:e.id||null,
+          summary:String(e.summary||"Busy"),
+          start:e.start?.dateTime||e.start?.date||null,
+          end:e.end?.dateTime||e.end?.date||null,
+          location:e.location||null,
+          htmlLink:e.htmlLink||null
+        }));
+        return {connected:true,events};
+      }catch(e){
+        return {connected:true,error:e instanceof Error?e.message:String(e),events:[]};
+      }
+    })(),
+    (async()=>{
+      try{
+        const row=await GOOGLE.gmail.row(userId);
+        if(row?.status!=="connected")return {connected:false,unread:[]};
+        const result=await executeGoogleOperation(userId,{
+          provider:"gmail",
+          operation:"list_messages",
+          parameters_json:JSON.stringify({maxResults:5,q:"is:unread newer_than:7d"})
+        });
+        const ids=Array.isArray(result?.messages)?result.messages.slice(0,5):[];
+        const unread=[];
+        for(const item of ids){
+          try{
+            const msg=await executeGoogleOperation(userId,{
+              provider:"gmail",
+              operation:"get_message",
+              parameters_json:JSON.stringify({messageId:item.id})
+            });
+            const headers=Object.fromEntries((msg.headers||[]).map(h=>[String(h.name||"").toLowerCase(),String(h.value||"")]));
+            unread.push({
+              id:msg.id||item.id,
+              threadId:msg.threadId||item.threadId||null,
+              from:headers.from||"",
+              subject:headers.subject||"(no subject)",
+              date:headers.date||"",
+              snippet:String(msg.snippet||"").slice(0,300)
+            });
+          }catch{}
+        }
+        return {connected:true,total_estimate:Number(result?.resultSizeEstimate||0),unread};
+      }catch(e){
+        return {connected:true,error:e instanceof Error?e.message:String(e),unread:[]};
+      }
+    })()
+  ]);
+
+  const m=memorySnapshot(memory);
+  const recentWins=(momentum.wins||[]).slice(0,3);
+  const todayMove=m.last_assignment
+    || (m.current_constraint ? `Make one concrete move on: ${m.current_constraint}` : null)
+    || (m.primary_goal ? `Choose the highest-leverage action that moves ${m.primary_goal} forward today.` : null)
+    || "Tell Marina your current offer and goal so she can set today's move.";
+
+  return {
+    generated_at:now.toISOString(),
+    window_end:next24.toISOString(),
+    current_goal:m.primary_goal||null,
+    today_move:todayMove,
+    open_loops:openLoops,
+    momentum:{
+      last_7_days:momentum.counts7||{},
+      active_days_last_30:momentum.activeDays30||0,
+      recent_wins:recentWins
+    },
+    bmod,
+    calendar:calendarResult,
+    gmail:gmailResult
+  };
+}
+
+
 
 async function finalizeActionRun(userId, runId, summary, failed = false) {
   const steps = await sbRest(
@@ -3581,6 +3678,11 @@ async function executeApprovedBmodStep(userId,step){
       });
     }
 
+
+    if (req.method === "GET" && path === "/api/daily-brief") {
+      const brief=await getDailyBrief(user.id);
+      return json(res,200,brief);
+    }
 
     if (req.method === "GET" && path === "/api/open-loops") {
       const openLoops=await getOpenLoopsSummary(user.id);
