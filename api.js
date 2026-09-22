@@ -1888,24 +1888,46 @@ async function exchangeOAuthCode(stateRow, code) {
     code,
     redirect_uri:stateRow.redirect_uri,
     client_id:stateRow.client_id,
-    code_verifier:stateRow.code_verifier,
   });
 
-  const headers = {"content-type":"application/x-www-form-urlencoded","accept":"application/json"};
+  if (stateRow.code_verifier) {
+    params.set("code_verifier",stateRow.code_verifier);
+  }
+
+  const headers = {
+    "content-type":"application/x-www-form-urlencoded",
+    "accept":"application/json"
+  };
+
   const method = String(stateRow.token_auth_method || "none");
+
   if (stateRow.client_secret) {
     if (method === "client_secret_basic") {
-      headers.authorization = `Basic ${Buffer.from(`${stateRow.client_id}:${stateRow.client_secret}`).toString("base64")}`;
+      headers.authorization = `Basic ${Buffer.from(
+        `${stateRow.client_id}:${stateRow.client_secret}`
+      ).toString("base64")}`;
     } else {
       params.set("client_secret",stateRow.client_secret);
     }
   }
 
+  // HighLevel expects user_type for location-level installs.
+  if (stateRow.integration_key === "bmod_tools") {
+    params.set("user_type","Location");
+  }
+
   const {response,data,text} = await fetchJsonMaybe(stateRow.token_endpoint,{
-    method:"POST",headers,body:params.toString()
+    method:"POST",
+    headers,
+    body:params.toString()
   });
+
   if (!response.ok || !data?.access_token) {
-    throw new Error(`OAuth token exchange failed (${response.status}): ${data?.error_description || data?.error || text.slice(0,300)}`);
+    throw new Error(
+      `OAuth token exchange failed (${response.status}): ${
+        data?.error_description || data?.error || text.slice(0,300)
+      }`
+    );
   }
   return data;
 }
@@ -1958,7 +1980,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "3.3.0-chat-projects",
+        build: "3.3.1-highlevel-oauth",
         benchmarkEnabled: true,
       });
     }
@@ -2059,14 +2081,18 @@ module.exports = async function handler(req, res) {
       const integrationKey = String(body.integrationKey || "").trim();
       const siteUrl = absoluteSiteUrl(req);
       if (!siteUrl) return json(res,500,{error:"Site URL is not configured."});
+
       const redirectUri = `${siteUrl}/api/connections/oauth/callback`;
       const returnUrl = safeReturnUrl(siteUrl,body.returnUrl || "/");
 
-      const cat = await sbRest(`integration_catalog?integration_key=eq.${encodeURIComponent(integrationKey)}&customer_visible=eq.true&select=integration_key,display_name,default_server_url&limit=1`);
+      const cat = await sbRest(
+        `integration_catalog?integration_key=eq.${encodeURIComponent(integrationKey)}&customer_visible=eq.true&select=integration_key,display_name,default_server_url&limit=1`
+      );
       const integration = Array.isArray(cat) ? cat[0] : null;
-      if (!integration?.default_server_url) return json(res,404,{error:"Integration endpoint not configured."});
+      if (!integration?.default_server_url) {
+        return json(res,404,{error:"Integration endpoint not configured."});
+      }
 
-      // Ensure the connection row exists using the catalog endpoint.
       await sbRest("user_connections?on_conflict=user_id,integration_key",{
         method:"POST",
         headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
@@ -2083,6 +2109,72 @@ module.exports = async function handler(req, res) {
         }])
       });
 
+      // Provider-specific HighLevel OAuth flow.
+      if (integrationKey === "bmod_tools") {
+        const clientId = String(process.env.HIGHLEVEL_CLIENT_ID || "").trim();
+        const clientSecret = String(process.env.HIGHLEVEL_CLIENT_SECRET || "").trim();
+
+        if (!clientId || !clientSecret) {
+          await sbRest(
+            `user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.bmod_tools`,
+            {
+              method:"PATCH",
+              headers:{Prefer:"return=minimal"},
+              body:JSON.stringify({
+                status:"auth_required",
+                last_error:"HighLevel OAuth credentials are missing from the server environment.",
+                updated_at:new Date().toISOString(),
+              })
+            }
+          );
+          return json(res,500,{
+            error:"BMOD Tools is not fully configured yet. HIGHLEVEL_CLIENT_ID and HIGHLEVEL_CLIENT_SECRET must be added to Vercel."
+          });
+        }
+
+        const state = randomUrlSafe(32);
+        const verifier = randomUrlSafe(48);
+        const challenge = pkceChallenge(verifier);
+
+        // Scopes are controlled by the HighLevel app definition. We request no extra scope string here.
+        await sbRest("connection_oauth_states",{
+          method:"POST",
+          headers:{Prefer:"return=minimal"},
+          body:JSON.stringify([{
+            state,
+            user_id:user.id,
+            integration_key:integrationKey,
+            code_verifier:verifier,
+            redirect_uri:redirectUri,
+            return_url:returnUrl,
+            client_id:clientId,
+            client_secret:clientSecret,
+            token_endpoint:"https://services.leadconnectorhq.com/oauth/token",
+            authorization_endpoint:"https://marketplace.gohighlevel.com/oauth/chooselocation",
+            registration_endpoint:null,
+            scopes:"",
+            token_auth_method:"client_secret_post",
+            expires_at:new Date(Date.now()+10*60*1000).toISOString(),
+          }])
+        });
+
+        const authUrl = new URL("https://marketplace.gohighlevel.com/oauth/chooselocation");
+        authUrl.searchParams.set("response_type","code");
+        authUrl.searchParams.set("client_id",clientId);
+        authUrl.searchParams.set("redirect_uri",redirectUri);
+        authUrl.searchParams.set("state",state);
+        authUrl.searchParams.set("user_type","Location");
+        authUrl.searchParams.set("code_challenge",challenge);
+        authUrl.searchParams.set("code_challenge_method","S256");
+
+        return json(res,200,{
+          authorizeUrl:authUrl.toString(),
+          status:"redirect",
+          provider:"highlevel"
+        });
+      }
+
+      // Generic MCP OAuth path for other providers.
       try {
         const oauth = await discoverMcpOAuth(integration.default_server_url);
         const reg = await registerDynamicMcpClient(oauth,redirectUri);
@@ -2126,17 +2218,23 @@ module.exports = async function handler(req, res) {
       } catch(e) {
         const msg=e instanceof Error?e.message:String(e);
         const needsApp = msg==="PROVIDER_APP_REQUIRED" || /registration|client/i.test(msg);
-        await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${encodeURIComponent(integrationKey)}`,{
-          method:"PATCH",headers:{Prefer:"return=minimal"},
-          body:JSON.stringify({
-            status:"auth_required",
-            last_error:needsApp
-              ?"Provider setup is required before customer sign-in can be enabled for this connection."
-              :msg.slice(0,1000),
-            updated_at:new Date().toISOString(),
-          })
-        });
-        return json(res, needsApp?409:400, {
+
+        await sbRest(
+          `user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${encodeURIComponent(integrationKey)}`,
+          {
+            method:"PATCH",
+            headers:{Prefer:"return=minimal"},
+            body:JSON.stringify({
+              status:"auth_required",
+              last_error:needsApp
+                ?"Provider setup is required before customer sign-in can be enabled for this connection."
+                :msg.slice(0,1000),
+              updated_at:new Date().toISOString(),
+            })
+          }
+        );
+
+        return json(res,needsApp?409:400,{
           error:needsApp
             ?"This provider requires Marina On Demand to be registered as an OAuth client before customer sign-in can be enabled."
             :msg,
