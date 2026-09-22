@@ -870,6 +870,33 @@ async function disconnectConnection(key){
   }catch(e){qs("#status").textContent=e.message}
 }
 
+async function verifyBmodReadCycle(button){
+  button.disabled=true;
+  const result=document.createElement("p");button.parentElement.after(result);result.textContent="Checking reads and token refresh...";
+  try{const j=await api("/api/connections/bmod/verify",{method:"POST",body:"{}"});result.textContent=`Refresh: ${j.refresh}. Connection: ${j.status}. `+(j.checks||[]).map(c=>`${c.phase.replaceAll("_"," ")} / ${c.operation}: ${c.status.replaceAll("_"," ")}`).join("; ");}
+  catch(e){result.textContent=e.message;}finally{button.disabled=false;}
+}
+function bmodCapabilitiesMarkup(c){
+  if(!c || !Array.isArray(c.operations))return "";
+  const families=[...new Set(c.operations.filter(o=>o.classification==="read").map(o=>o.family))];
+  return `<div class="connectionTools"><label>Permission mode <select data-bmod-permission-mode>
+    <option value="view_only" ${c.permission_mode==="view_only"?"selected":""}>View only</option>
+    <option value="view_and_take_action" ${c.permission_mode==="view_and_take_action"?"selected":""}>View and take action</option>
+    </select></label><p>External writes remain blocked until the Action Mode approval executor is available. Changing this mode does not execute an action.</p>
+    <details><summary>Granted capabilities and permissions</summary>${families.map(f=>{
+      const ops=c.operations.filter(o=>o.family===f && o.classification==="read"),ready=ops.filter(o=>o.status==="available").length;
+      return `<p><strong>${esc(f)}</strong>: ${ready}/${ops.length} reads granted${ready<ops.length?", update permissions for more access":""}</p>`;
+    }).join("")}<p><strong>Granted scopes:</strong> ${(c.granted_scopes||[]).map(esc).join(", ")||"Not reported by HighLevel"}</p>
+    ${(c.missing_scopes||[]).length?`<p><strong>Additional permissions requested:</strong> ${c.missing_scopes.map(esc).join(", ")}</p>`:""}
+    <p><strong>Write preparation:</strong> ${c.operations.filter(o=>o.classification==="write").map(o=>esc(o.name)+" ("+esc(o.status.replaceAll("_"," "))+")").join(", ")}</p>
+    ${(c.limitations||[]).map(l=>`<p>${esc(l.family)}: ${esc(l.note)}</p>`).join("")}</details>
+    ${c.reauthorization_required?`<p>Additional capabilities need your authorization. Existing granted access remains connected.</p>`:""}</div>`;
+}
+async function updateBmodPermissionMode(mode){
+  try{await api("/api/connections/bmod/permissions",{method:"PATCH",body:JSON.stringify({permissionMode:mode})});await openConnectionsPage();}
+  catch(e){qs("#status").textContent=e.message;await openConnectionsPage();}
+}
+
 async function openConnectionsPage(){
   state.messages=[];state.conversationId="";renderThreads();
   qs("#messages").innerHTML=`<div class="connectionsPage"><div class="eyebrow">Connections</div><h2>Give Marina eyes on the business.</h2><p>Connect trusted MCP servers so Marina can work from live business data instead of screenshots.</p><div class="workspaceEmpty">Loading connections...</div></div>`;
@@ -887,6 +914,7 @@ async function openConnectionsPage(){
           <div class="connectionTop"><div><div class="connectionIcon">${esc(i.icon||"⌘")}</div><div class="connectionTitle">${esc(i.display_name)}</div><div class="connectionSub">${esc(i.subtitle||"")}</div></div><span class="connectionStatus ${esc(c?.status||"")}">${esc(status)}</span></div>
           <div class="connectionDesc">${esc(i.description||"")}</div>
           ${c?.last_error?`<div class="actionStepDesc" style="color:#a83e33">${esc(c.last_error)}</div>`:""}
+          ${i.integration_key==="bmod_tools"?bmodCapabilitiesMarkup(c):""}
           ${tools.length?`<div class="connectionTools"><strong>Approved read tools:</strong> ${tools.map(esc).join(", ")}</div>`:""}
           <div class="connectionActions">
             ${i.status==="coming_soon"?`<button disabled>Coming soon</button>`:
@@ -894,12 +922,14 @@ async function openConnectionsPage(){
               ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Connect Account</button>`
               :c.status==="auth_required"
                 ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Continue Secure Sign-In</button><button data-disconnect="${esc(i.integration_key)}">Cancel</button>`
-                :`${c?.needs_funnel_authorization?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Enable funnel access</button>`:""}<button data-test-connection="${esc(i.integration_key)}">Test connection</button><button data-disconnect="${esc(i.integration_key)}">Disconnect</button>`}
+                :`${c?.reauthorization_required?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Update permissions</button>`:""}<button data-test-connection="${esc(i.integration_key)}">Test connection</button>${i.integration_key==="bmod_tools"?`<button data-bmod-verify>Verify reads + refresh</button>`:""}<button data-disconnect="${esc(i.integration_key)}">Disconnect</button>`}
           </div>
         </div>`;
       }).join("")}</div>
       <div class="securityNote"><strong>Security:</strong> Connection endpoints are preconfigured server-side. Marina only auto-enables tools whose names clearly look read-only, such as get, list, search, read, fetch or view. Account authorization is handled separately from the MCP URL, and credentials are never displayed back in the browser.</div>
     </div>`;
+    qs("#messages").querySelectorAll("[data-bmod-verify]").forEach(b=>b.onclick=()=>verifyBmodReadCycle(b));
+    qs("#messages").querySelectorAll("[data-bmod-permission-mode]").forEach(s=>s.onchange=()=>updateBmodPermissionMode(s.value));
     qs("#messages").querySelectorAll("[data-connect]").forEach(b=>b.onclick=()=>configureConnection(b.dataset.connect));
     qs("#messages").querySelectorAll("[data-test-connection]").forEach(b=>b.onclick=()=>testConnection(b.dataset.testConnection));
     qs("#messages").querySelectorAll("[data-disconnect]").forEach(b=>b.onclick=()=>disconnectConnection(b.dataset.disconnect));
