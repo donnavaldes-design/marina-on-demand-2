@@ -107,7 +107,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 
 .connectionsBtn{width:100%;padding:10px 12px;margin:0 0 10px;border:1px solid rgba(201,163,175,.38);background:var(--rose-soft);color:var(--ink);border-radius:12px;text-align:left;cursor:pointer;font-weight:750}
 .connectionsPage{max-width:980px;margin:0 auto}.connectionsPage h2{font-family:Georgia,serif;font-size:40px;margin:4px 0 8px}.connectionsPage>p{color:var(--muted);line-height:1.55}
-.connectionGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.connectionCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}.connectionTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.connectionIcon{font-size:24px}.connectionTitle{font-family:Georgia,serif;font-size:20px;margin-top:5px}.connectionSub{font-size:11px;color:var(--muted);margin-top:3px}.connectionDesc{font-size:12px;line-height:1.5;color:var(--muted);margin-top:10px}.connectionStatus{font-size:9px;text-transform:uppercase;letter-spacing:.08em;border:1px solid var(--line);border-radius:999px;padding:4px 7px;white-space:nowrap}.connectionStatus.connected{color:#08756f;border-color:rgba(10,186,181,.35);background:var(--accent-soft)}.connectionStatus.error{color:#a83e33;background:#fff8f6}.connectionStatus.configured{color:#8b6a33}.connectionActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.connectionActions button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-size:11px;cursor:pointer}.connectionActions button.primaryConnect{background:var(--accent);color:#fff;border-color:var(--accent)}.connectionTools{font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5}.securityNote{margin-top:18px;border:1px solid rgba(10,186,181,.25);background:var(--accent-soft);padding:13px;border-radius:14px;font-size:12px;line-height:1.5;color:#4f5e5b}
+.connectionGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.connectionCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;position:relative;overflow:hidden}.comingSoonBanner{position:absolute;top:16px;right:-42px;transform:rotate(35deg);background:var(--rose);color:#fff;font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;padding:7px 46px;box-shadow:0 4px 12px rgba(43,21,15,.12);z-index:2}.connectionCard.comingSoonCard{opacity:.88}.connectionTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.connectionIcon{font-size:24px}.connectionTitle{font-family:Georgia,serif;font-size:20px;margin-top:5px}.connectionSub{font-size:11px;color:var(--muted);margin-top:3px}.connectionDesc{font-size:12px;line-height:1.5;color:var(--muted);margin-top:10px}.connectionStatus{font-size:9px;text-transform:uppercase;letter-spacing:.08em;border:1px solid var(--line);border-radius:999px;padding:4px 7px;white-space:nowrap}.connectionStatus.connected{color:#08756f;border-color:rgba(10,186,181,.35);background:var(--accent-soft)}.connectionStatus.error{color:#a83e33;background:#fff8f6}.connectionStatus.configured{color:#8b6a33}.connectionActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.connectionActions button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-size:11px;cursor:pointer}.connectionActions button.primaryConnect{background:var(--accent);color:#fff;border-color:var(--accent)}.connectionTools{font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5}.securityNote{margin-top:18px;border:1px solid rgba(10,186,181,.25);background:var(--accent-soft);padding:13px;border-radius:14px;font-size:12px;line-height:1.5;color:#4f5e5b}
 
 
 .projectPanel{margin:6px 0 10px}.projectPanelHeader{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}.projectPanelHeader strong{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.projectAdd{border:0;background:transparent;color:var(--accent-strong);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px}
@@ -987,6 +987,7 @@ async function logActivityQuick(){
 
 
 function connectionStatusLabel(c,integration){
+  if(integration.integration_key==="meta_ads")return"Coming Soon";
   if(integration.integration_key==="canva")return c?.status==="connected"?"Connected":"Not Connected";
   if(integration.status==="coming_soon")return"Coming Soon";
   if(!c||c.status==="disconnected"||c.status==="disabled")return"Not Connected";
@@ -1095,14 +1096,16 @@ async function openConnectionsPage(){
       <div class="connectionGrid">${list.map(i=>{
         const c=i.connection, status=connectionStatusLabel(c,i);
         const tools=Array.isArray(c?.allowed_tools)?c.allowed_tools:[];
-        return `<div class="connectionCard">
+        const isMetaComingSoon=i.integration_key==="meta_ads";
+        return `<div class="connectionCard ${isMetaComingSoon?"comingSoonCard":""}">
+          ${isMetaComingSoon?'<div class="comingSoonBanner">Coming Soon</div>':""}
           <div class="connectionTop"><div><div class="connectionIcon">${esc(i.icon||"⌘")}</div><div class="connectionTitle">${esc(i.display_name)}</div><div class="connectionSub">${esc(i.subtitle||"")}</div></div><span class="connectionStatus ${esc(c?.status||"")}">${esc(status)}</span></div>
           <div class="connectionDesc">${esc(i.description||"")}</div>
           ${c?.last_error?`<div class="actionStepDesc" style="color:#a83e33">${esc(c.last_error)}</div>`:""}
           ${i.integration_key==="bmod_tools"?bmodControlsMarkup(c)+bmodCapabilitiesMarkup(c):i.integration_key==="canva"?canvaControlsMarkup(c):""}
           ${!["bmod_tools","canva"].includes(i.integration_key) && tools.length?`<div class="connectionTools"><strong>Approved read tools:</strong> ${tools.map(esc).join(", ")}</div>`:""}
           <div class="connectionActions">
-            ${i.status==="coming_soon"?`<button disabled>Coming soon</button>`:
+            ${isMetaComingSoon||i.status==="coming_soon"?`<button disabled>Coming soon</button>`:
               (!c||["disconnected","disabled","error"].includes(c.status))
               ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Connect Account</button>`
               :c.status==="auth_required"
