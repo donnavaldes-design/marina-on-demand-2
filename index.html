@@ -215,6 +215,8 @@ import DOMPurify from "https://esm.sh/dompurify@3";
 const qs = s => document.querySelector(s);
 const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
 
+const googleKeys=['gmail','google_calendar','google_drive'];
+
 const config = await fetch("/api/config").then(r=>r.json());
 qs("#modelLabel").textContent = `Private Beta · ${config.build || "build"}`;
 state.supabase = createClient(config.supabaseUrl, config.supabasePublishableKey, {
@@ -1071,7 +1073,6 @@ async function updateBmodPermissionMode(mode){
   catch(e){qs("#status").textContent=e.message;await openConnectionsPage();}
 }
 
-const googleKeys=['gmail','google_calendar','google_drive'];
 function googleControlsMarkup(key,c){
  if(!c||c.status!=='connected')return '';
  return `<div class="connectionTools"><label>Connection permission <select data-google-mode="${esc(key)}"><option value="view_only" ${c.permission_mode!=='view_and_take_action'?'selected':''}>View Only</option><option value="view_and_take_action" ${c.permission_mode==='view_and_take_action'?'selected':''}>View + Take Action</option></select></label><p>Google reads are available. Write actions are not enabled yet; future actions will require individual Action Mode approval.</p>${c.reauthorization_required?`<p>Additional permissions are needed. Your connection remains active.</p>`:''}<button data-google-verify="${esc(key)}">Verify reads + refresh</button><div data-google-result role="status" aria-live="polite"></div><details><summary>Granted capabilities</summary>${(c.operations||[]).map(o=>`<p>${esc(o.name.replaceAll('_',' '))}: ${esc(o.status.replaceAll('_',' '))}</p>`).join('')}</details></div>`;
