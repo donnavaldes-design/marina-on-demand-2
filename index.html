@@ -97,6 +97,13 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .winsList{display:grid;gap:9px;margin-top:12px}.winRow{background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px}.winRow strong{display:block}.winRow small{color:var(--muted)}
 .momentumBtn{width:100%;padding:10px 12px;margin:0 0 10px;border:1px solid rgba(10,186,181,.3);background:var(--accent-soft);color:var(--accent-strong);border-radius:12px;text-align:left;cursor:pointer;font-weight:750}
 
+
+.webSources{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.webSourcesLabel{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:800;margin-bottom:7px}
+.webSourceLinks{display:flex;gap:6px;flex-wrap:wrap}
+.webSourceLinks a{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(10,186,181,.24);background:var(--accent-soft);color:var(--accent-strong);border-radius:999px;padding:5px 8px;text-decoration:none;font-size:10px;max-width:100%}
+.webSourceLinks a:hover{border-color:var(--accent)}
+
 @media(max-width:960px){.card{grid-template-columns:1fr;gap:18px}.loginVisual{min-height:280px}.dashboardHero{grid-template-columns:1fr 200px}}
 @media(max-width:860px){.settingGrid,.brainList,.businessEditGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.skillGrid{grid-template-columns:1fr}.momentumGrid,.winsPreview{grid-template-columns:1fr 1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
 @media(max-width:560px){.center{padding:14px}.card{padding:16px;border-radius:22px}.card h1{font-size:42px}.field{flex-direction:column}.dashboardHero h2,.hub h2{font-size:32px}.focusCard strong{font-size:22px}.topBrand strong{font-size:14px}.topAvatar{width:34px;height:34px}.logo{font-size:28px}.brandPortrait{width:60px;height:60px;border-radius:14px}}</style>
@@ -954,7 +961,7 @@ function renderWelcome(){
   if(state.mode==="action")return renderActionHub();
   qs("#messages").innerHTML=renderModeBar()+renderActiveSkillBar()+`<div class="welcome">
     <h2 class="brand">What are we fixing today?</h2>
-    <p>Bring me the messy caption, the vague offer, the dead DMs, the Reel that got views but no buyers, or the thing you keep overthinking.</p>
+    <p>Bring me the messy caption, the vague offer, the dead DMs, the Reel that got views but no buyers, or tell me what you want researched on the live web.</p>
     <div class="quick">
       ${[
         "Rewrite my profile like a Lead Slayer",
@@ -1022,6 +1029,13 @@ function wireActionRuns(){
   });
 }
 
+
+function renderWebSources(sources){
+  const list=Array.isArray(sources)?sources.filter(s=>/^https?:\/\//i.test(String(s?.url||""))).slice(0,8):[];
+  if(!list.length)return"";
+  return `<div class="webSources"><div class="webSourcesLabel">Web research sources</div><div class="webSourceLinks">${list.map(s=>`<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">↗ ${esc(s.title||s.url)}</a>`).join("")}</div></div>`;
+}
+
 function renderMessages(){
   if(!state.messages.length){renderWelcome();return}
   qs("#messages").innerHTML=renderModeBar()+renderActiveSkillBar()+state.messages.map(m=>{
@@ -1040,9 +1054,10 @@ function renderMessages(){
     const receipt=m.role==="assistant"?`<div class="receipt"><span>${esc(modeLabel(m.experience_mode||state.mode))}</span><span>${esc(routeLabel(m.route))}</span></div>`:"";
     const feedback=m.role==="assistant"&&m.id?`<div class="feedback" data-feedback-for="${esc(m.id)}"><button data-rating="1" title="Helpful">👍</button><button data-rating="-1" title="Needs improvement">👎</button><button class="saveWorkspaceBtn" data-save-workspace="${esc(m.id)}">☆ Save to Workspace</button></div>`:"";
     const actionRun=m.role==="assistant"&&m.action_run?renderActionRun(m.action_run):"";
+    const webSources=m.role==="assistant"?renderWebSources(m.web_sources||m.webSources||[]):"";
     return `<div class="msg ${m.role}">
       <div class="avatar">${m.role==="assistant"?"M":"YOU"}</div>
-      <div class="bubble">${body}${atts?`<div class="attachmentList">${atts}</div>`:""}${actionRun}${receipt}${feedback}</div>
+      <div class="bubble">${body}${atts?`<div class="attachmentList">${atts}</div>`:""}${webSources}${actionRun}${receipt}${feedback}</div>
     </div>`;
   }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Working...</div></div>`:"");
   wireModeBar();
@@ -1105,7 +1120,7 @@ async function send(prefill, forcedMode, forcedSkillKey){
 
     state.conversationId=j.conversationId;
     if(j.skillKey){state.selectedSkill=state.skills.find(s=>s.skill_key===j.skillKey)||state.selectedSkill}
-    state.messages.push({id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null,skill_key:j.skillKey||null});
+    state.messages.push({id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null,skill_key:j.skillKey||null,web_sources:j.webSources||[]});
     await loadConversations();
     qs("#status").textContent="";
   }catch(e){

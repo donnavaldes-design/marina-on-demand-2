@@ -662,6 +662,66 @@ function parseOpenAIText(data) {
 }
 
 
+function shouldForceWebSearch(message) {
+  const s = String(message || "").toLowerCase();
+  if (/https?:\/\/|www\./i.test(s)) return true;
+  return /\b(search|research|look up|lookup|browse|web|website|site|current|currently|latest|today|recent|verify|check online|go to|social media|instagram|facebook|linkedin|tiktok|pinterest|competitor)\b/i.test(s);
+}
+
+function extractWebSources(data) {
+  const out = [];
+  const seen = new Set();
+
+  for (const item of data?.output || []) {
+    if (item?.type !== "web_search_call") continue;
+    const sources = item?.action?.sources || item?.sources || [];
+    for (const s of Array.isArray(sources) ? sources : []) {
+      const url = String(s?.url || "").trim();
+      if (!/^https?:\/\//i.test(url) || seen.has(url)) continue;
+      seen.add(url);
+      out.push({
+        title: String(s?.title || s?.name || url).slice(0,240),
+        url,
+      });
+      if (out.length >= 12) break;
+    }
+  }
+
+  // Fallback: some Responses API payloads attach citations to output text annotations.
+  if (!out.length) {
+    for (const item of data?.output || []) {
+      for (const c of item?.content || []) {
+        for (const a of c?.annotations || []) {
+          const url = String(a?.url || a?.url_citation?.url || "").trim();
+          if (!/^https?:\/\//i.test(url) || seen.has(url)) continue;
+          seen.add(url);
+          out.push({
+            title: String(a?.title || a?.url_citation?.title || url).slice(0,240),
+            url,
+          });
+          if (out.length >= 12) break;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+const WEB_SEARCH_TOOL = { type: "web_search" };
+
+const WEB_RESEARCH_RULES = `
+LIVE WEB RESEARCH:
+- You have access to live web search.
+- If the user explicitly asks you to research, search, browse, look up, verify, check a website, inspect a public brand, or asks for current/latest information, USE web search.
+- If the user gives a public URL/domain and asks you to study or audit it, use web search rather than asking them to paste the page unless the page is inaccessible.
+- For public social media research, use what is publicly discoverable on the web. Be transparent when a platform/profile is not fully accessible or indexed.
+- Do not use web search when Marina's canonical methods, saved Workspace, memory, or user-provided material already answer the question and freshness is not needed.
+- Never replace Marina's proprietary Method Library with generic web advice.
+- For facts that may have changed (pricing, availability, current programs, platform features, trends, events), prefer fresh web research.
+- When web research is used, ground factual claims in the retrieved sources and avoid claiming you inspected content you could not actually access.
+`;
+
+
 const ACTION_TOOLS = [
   {
     type: "function",
@@ -1011,7 +1071,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
    - DONE: what Marina actually created/saved internally
    - YOUR MOVE: human tasks, if any
    - NEEDS APPROVAL: queued external actions, if any
-10. Never claim an external app connection exists unless the tool result says so.`;
+10. Never claim an external app connection exists unless the tool result says so.\n${WEB_RESEARCH_RULES}`;
 
   const input = history.map(m => ({ role: m.role, content: m.content }));
   const userContent = [{
@@ -1045,8 +1105,9 @@ You are not merely planning. You are operating inside Marina's controlled execut
         reasoning: { effort: "medium" },
         instructions: actionInstructions,
         input,
-        tools: ACTION_TOOLS,
+        tools: [...ACTION_TOOLS, WEB_SEARCH_TOOL],
         tool_choice: "auto",
+        include: ["web_search_call.action.sources"],
         parallel_tool_calls: false,
       }),
     }).then(async r => {
@@ -1103,8 +1164,9 @@ You are not merely planning. You are operating inside Marina's controlled execut
           reasoning: { effort: "medium" },
           previous_response_id: response.id,
           input: outputs,
-          tools: ACTION_TOOLS,
+          tools: [...ACTION_TOOLS, WEB_SEARCH_TOOL],
           tool_choice: "auto",
+          include: ["web_search_call.action.sources"],
           parallel_tool_calls: false,
         }),
       }).then(async r => {
@@ -1127,6 +1189,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
       usage: response.usage || null,
       route: routed.route,
       actionRun,
+      webSources: extractWebSources(response),
     };
   } catch (e) {
     const err = e instanceof Error ? e.message : String(e);
@@ -1358,7 +1421,7 @@ Apply this specialized operating workflow when relevant. Do not expose internal 
 ${skillDefinition.operating_prompt}`
     : "";
 
-  const instructions = `${liveCore}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}
+  const instructions = `${liveCore}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}${WEB_RESEARCH_RULES}
 
 ROUTED CANONICAL CONTEXT:
 ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext}${modeContext}`;
@@ -1399,6 +1462,9 @@ ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext
       reasoning: { effort: "medium" },
       instructions,
       input,
+      tools: [WEB_SEARCH_TOOL],
+      tool_choice: shouldForceWebSearch(message) ? "required" : "auto",
+      include: ["web_search_call.action.sources"],
     }),
   });
   const data = await r.json();
@@ -1409,6 +1475,7 @@ ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext
     model: data.model || process.env.OPENAI_MODEL || "gpt-5.6-terra",
     usage: data.usage || null,
     route: routed.route,
+    webSources: extractWebSources(data),
   };
 }
 
@@ -1608,7 +1675,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "3.0.0-momentum-coach",
+        build: "3.0.1-live-web-research",
         benchmarkEnabled: true,
       });
     }
@@ -1704,7 +1771,7 @@ module.exports = async function handler(req, res) {
       if (!Array.isArray(conv) || !conv.length) return json(res, 404, { error: "Not found" });
 
       const rows = await sbRest(
-        `messages?conversation_id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,role,content,created_at,route,experience_mode,action_run_id,skill_key&order=created_at.asc`
+        `messages?conversation_id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,role,content,created_at,route,experience_mode,action_run_id,skill_key,web_sources&order=created_at.asc`
       );
 
       const attachmentRows = await sbRest(
@@ -2278,6 +2345,7 @@ module.exports = async function handler(req, res) {
         experience_mode: experienceMode,
         action_run_id: ai.actionRun?.id || null,
         skill_key: skillDefinition?.skill_key || null,
+        web_sources: Array.isArray(ai.webSources) ? ai.webSources : [],
       });
 
       await applyMemoryChanges(
@@ -2307,6 +2375,7 @@ module.exports = async function handler(req, res) {
         mode: experienceMode,
         messageId: assistantMessage.id,
         actionRun: ai.actionRun || null,
+        webSources: Array.isArray(ai.webSources) ? ai.webSources : [],
         skillKey: skillDefinition?.skill_key || null,
         skillName: skillDefinition?.display_name || null
       });
