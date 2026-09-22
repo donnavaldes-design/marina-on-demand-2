@@ -1842,6 +1842,7 @@ async function send(prefill, forcedMode, forcedSkillKey){
     });
 
     state.conversationId=j.conversationId;
+    if(j.mode==="action")setMode("action");
     if(j.skillKey){state.selectedSkill=state.skills.find(s=>s.skill_key===j.skillKey)||state.selectedSkill}
     state.messages.push({id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null,skill_key:j.skillKey||null,web_sources:j.webSources||[]});
     await loadConversations();
