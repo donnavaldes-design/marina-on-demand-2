@@ -104,8 +104,13 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .webSourceLinks a{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(10,186,181,.24);background:var(--accent-soft);color:var(--accent-strong);border-radius:999px;padding:5px 8px;text-decoration:none;font-size:10px;max-width:100%}
 .webSourceLinks a:hover{border-color:var(--accent)}
 
+
+.connectionsBtn{width:100%;padding:10px 12px;margin:0 0 10px;border:1px solid rgba(201,163,175,.38);background:var(--rose-soft);color:var(--ink);border-radius:12px;text-align:left;cursor:pointer;font-weight:750}
+.connectionsPage{max-width:980px;margin:0 auto}.connectionsPage h2{font-family:Georgia,serif;font-size:40px;margin:4px 0 8px}.connectionsPage>p{color:var(--muted);line-height:1.55}
+.connectionGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.connectionCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}.connectionTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.connectionIcon{font-size:24px}.connectionTitle{font-family:Georgia,serif;font-size:20px;margin-top:5px}.connectionSub{font-size:11px;color:var(--muted);margin-top:3px}.connectionDesc{font-size:12px;line-height:1.5;color:var(--muted);margin-top:10px}.connectionStatus{font-size:9px;text-transform:uppercase;letter-spacing:.08em;border:1px solid var(--line);border-radius:999px;padding:4px 7px;white-space:nowrap}.connectionStatus.connected{color:#08756f;border-color:rgba(10,186,181,.35);background:var(--accent-soft)}.connectionStatus.error{color:#a83e33;background:#fff8f6}.connectionStatus.configured{color:#8b6a33}.connectionActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.connectionActions button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-size:11px;cursor:pointer}.connectionActions button.primaryConnect{background:var(--accent);color:#fff;border-color:var(--accent)}.connectionTools{font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5}.securityNote{margin-top:18px;border:1px solid rgba(10,186,181,.25);background:var(--accent-soft);padding:13px;border-radius:14px;font-size:12px;line-height:1.5;color:#4f5e5b}
+
 @media(max-width:960px){.card{grid-template-columns:1fr;gap:18px}.loginVisual{min-height:280px}.dashboardHero{grid-template-columns:1fr 200px}}
-@media(max-width:860px){.settingGrid,.brainList,.businessEditGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.skillGrid{grid-template-columns:1fr}.momentumGrid,.winsPreview{grid-template-columns:1fr 1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
+@media(max-width:860px){.settingGrid,.brainList,.businessEditGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.skillGrid{grid-template-columns:1fr}.momentumGrid,.winsPreview{grid-template-columns:1fr 1fr}.connectionGrid{grid-template-columns:1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
 @media(max-width:560px){.center{padding:14px}.card{padding:16px;border-radius:22px}.card h1{font-size:42px}.field{flex-direction:column}.dashboardHero h2,.hub h2{font-size:32px}.focusCard strong{font-size:22px}.topBrand strong{font-size:14px}.topAvatar{width:34px;height:34px}.logo{font-size:28px}.brandPortrait{width:60px;height:60px;border-radius:14px}}</style>
 </head>
 <body>
@@ -144,6 +149,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
     <button id="newChat" class="new">+ New conversation</button>
     <button id="memoryBtn" class="memoryBtn" type="button">What Marina remembers</button>
     <button id="momentumBtn" class="momentumBtn" type="button">↗ Momentum + Wins</button>
+    <button id="connectionsBtn" class="connectionsBtn" type="button">⌘ Connections</button>
     <div class="sideSectionLabel">My Business</div>
     <div id="workspaceNav" class="workspaceNav">
       <button data-workspace="brand">My Brand</button>
@@ -258,6 +264,11 @@ qs("#momentumBtn").addEventListener("click",async()=>{
   if(state.loading)return;
   closeSidebarIfMobile();
   await openMomentumPage();
+});
+qs("#connectionsBtn").addEventListener("click",async()=>{
+  if(state.loading)return;
+  closeSidebarIfMobile();
+  await openConnectionsPage();
 });
 qs("#controlBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
@@ -795,6 +806,86 @@ async function logActivityQuick(){
     qs("#status").textContent="Momentum logged.";
     await openMomentumPage();
   }catch(e){qs("#status").textContent=e.message}
+}
+
+
+function connectionStatusLabel(c,integration){
+  if(integration.status==="coming_soon")return"Coming Soon";
+  if(!c||c.status==="disconnected"||c.status==="disabled")return"Not Connected";
+  return String(c.status||"").replace(/_/g," ");
+}
+
+async function configureConnection(key){
+  const transport=(prompt("Connection type: type HTTP for an MCP URL, or TUNNEL for an OpenAI Secure MCP Tunnel.","HTTP")||"HTTP").trim().toLowerCase()==="tunnel"?"tunnel":"http";
+  let serverUrl="",tunnelId="";
+  if(transport==="http"){
+    serverUrl=prompt("Paste the trusted remote MCP URL. It must start with https://","")||"";
+    if(!serverUrl)return;
+  }else{
+    tunnelId=prompt("Paste the OpenAI Secure MCP tunnel ID.","")||"";
+    if(!tunnelId)return;
+  }
+  const token=prompt("Authorization token if this MCP server requires one. Leave blank if it does not. This token is stored in Supabase Vault and is never shown back to you.","")||"";
+  try{
+    qs("#status").textContent="Saving secure connection...";
+    await api("/api/connections",{method:"POST",body:JSON.stringify({integrationKey:key,transport,serverUrl,tunnelId,authorizationToken:token})});
+    qs("#status").textContent="Discovering read-only tools...";
+    const j=await api("/api/connections/discover",{method:"POST",body:JSON.stringify({integrationKey:key})});
+    qs("#status").textContent=j.status==="connected"?`Connected. ${j.allowedTools.length} read-only tools approved.`:"Configured. Review connection details.";
+    await openConnectionsPage();
+  }catch(e){qs("#status").textContent=e.message;await openConnectionsPage()}
+}
+
+async function testConnection(key){
+  try{
+    qs("#status").textContent="Testing MCP connection...";
+    const j=await api("/api/connections/discover",{method:"POST",body:JSON.stringify({integrationKey:key})});
+    qs("#status").textContent=j.status==="connected"?`Connected. ${j.allowedTools.length} read-only tools ready.`:"Connection reached, but no read-only tools were auto-approved.";
+    await openConnectionsPage();
+  }catch(e){qs("#status").textContent=e.message;await openConnectionsPage()}
+}
+
+async function disconnectConnection(key){
+  if(!confirm("Disconnect this integration from Marina?"))return;
+  try{
+    await api(`/api/connections?integrationKey=${encodeURIComponent(key)}`,{method:"DELETE"});
+    qs("#status").textContent="Disconnected.";
+    await openConnectionsPage();
+  }catch(e){qs("#status").textContent=e.message}
+}
+
+async function openConnectionsPage(){
+  state.messages=[];state.conversationId="";renderThreads();
+  qs("#messages").innerHTML=`<div class="connectionsPage"><div class="eyebrow">Connections</div><h2>Give Marina eyes on the business.</h2><p>Connect trusted MCP servers so Marina can work from live business data instead of screenshots.</p><div class="workspaceEmpty">Loading connections...</div></div>`;
+  try{
+    const j=await api("/api/connections");
+    const list=j.integrations||[];
+    qs("#messages").innerHTML=`<div class="connectionsPage">
+      <div class="eyebrow">Connections</div>
+      <h2>Give Marina eyes on the business.</h2>
+      <p>BMOD Tools is Marina's customer-facing name for HighLevel. This release connects approved MCP servers in <strong>read-only mode</strong>. Writes still go through Action Mode approvals.</p>
+      <div class="connectionGrid">${list.map(i=>{
+        const c=i.connection, status=connectionStatusLabel(c,i);
+        const tools=Array.isArray(c?.allowed_tools)?c.allowed_tools:[];
+        return `<div class="connectionCard">
+          <div class="connectionTop"><div><div class="connectionIcon">${esc(i.icon||"⌘")}</div><div class="connectionTitle">${esc(i.display_name)}</div><div class="connectionSub">${esc(i.subtitle||"")}</div></div><span class="connectionStatus ${esc(c?.status||"")}">${esc(status)}</span></div>
+          <div class="connectionDesc">${esc(i.description||"")}</div>
+          ${c?.last_error?`<div class="actionStepDesc" style="color:#a83e33">${esc(c.last_error)}</div>`:""}
+          ${tools.length?`<div class="connectionTools"><strong>Approved read tools:</strong> ${tools.map(esc).join(", ")}</div>`:""}
+          <div class="connectionActions">
+            ${i.status==="coming_soon"?`<button disabled>Coming soon</button>`:
+              (!c||["disconnected","disabled","error"].includes(c.status))
+              ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Connect MCP</button>`
+              :`<button data-test-connection="${esc(i.integration_key)}">Test / rediscover</button><button data-disconnect="${esc(i.integration_key)}">Disconnect</button>`}
+          </div>
+        </div>`;
+      }).join("")}</div>
+      <div class="securityNote"><strong>Security:</strong> Marina only auto-enables tools whose names clearly look read-only, such as get, list, search, read, fetch or view. Authorization tokens are stored in Supabase Vault and are never returned to the browser. Remote MCP servers should only be connected if you trust them.</div>
+    </div>`;
+    qs("#messages").querySelectorAll("[data-connect]").forEach(b=>b.onclick=()=>configureConnection(b.dataset.connect));
+    qs("#messages").querySelectorAll("[data-test-connection]").forEach(b=>b.onclick=()=>testConnection(b.dataset.testConnection));
+    qs("#messages").querySelectorAll("[data-disconnect]").forEach(b=>b.onclick=()=>disconnectConnection(b.dataset.disconnect));
+  }catch(e){qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Connections</h2><p>${esc(e.message)}</p></div>`}
 }
 
 async function openMomentumPage(){

@@ -198,6 +198,19 @@ async function sbRest(path, opts = {}) {
   return data;
 }
 
+async function sbRpc(name, body = {}) {
+  const r = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: supabaseHeaders(true, {"content-type":"application/json"}),
+    body: JSON.stringify(body),
+  });
+  const text = await r.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (!r.ok) throw new Error(`SUPABASE_RPC_${r.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
+  return data;
+}
+
 
 function safeStoragePath(path) {
   return String(path || "")
@@ -1013,7 +1026,7 @@ async function finalizeActionRun(userId, runId, summary, failed = false) {
   return status;
 }
 
-async function runActionAgent(message, history, memory, attachments, workspaceContext, userId, conversationId, skillDefinition = null, coachingContext = null) {
+async function runActionAgent(message, history, memory, attachments, workspaceContext, userId, conversationId, skillDefinition = null, coachingContext = null, mcpTools = []) {
   const routed = routeMessage(message);
   const liveBrain = await getLiveBrainContext(routed.route);
   const run = await createActionRun(userId, conversationId, message);
@@ -1071,7 +1084,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
    - DONE: what Marina actually created/saved internally
    - YOUR MOVE: human tasks, if any
    - NEEDS APPROVAL: queued external actions, if any
-10. Never claim an external app connection exists unless the tool result says so.\n${WEB_RESEARCH_RULES}`;
+10. Never claim an external app connection exists unless the tool result says so.\n${WEB_RESEARCH_RULES}${CONNECTION_RULES}`;
 
   const input = history.map(m => ({ role: m.role, content: m.content }));
   const userContent = [{
@@ -1105,7 +1118,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
         reasoning: { effort: "medium" },
         instructions: actionInstructions,
         input,
-        tools: [...ACTION_TOOLS, WEB_SEARCH_TOOL],
+        tools: [...ACTION_TOOLS, WEB_SEARCH_TOOL, ...mcpTools],
         tool_choice: "auto",
         include: ["web_search_call.action.sources"],
         parallel_tool_calls: false,
@@ -1164,7 +1177,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
           reasoning: { effort: "medium" },
           previous_response_id: response.id,
           input: outputs,
-          tools: [...ACTION_TOOLS, WEB_SEARCH_TOOL],
+          tools: [...ACTION_TOOLS, WEB_SEARCH_TOOL, ...mcpTools],
           tool_choice: "auto",
           include: ["web_search_call.action.sources"],
           parallel_tool_calls: false,
@@ -1358,7 +1371,69 @@ async function applyMomentumSignals(userId, conversationId, sourceMessageId, use
   return signals;
 }
 
-async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach", workspaceContext = [], skillDefinition = null, coachingContext = null) {
+
+function safeServerLabel(key) {
+  return String(key || "integration").toLowerCase().replace(/[^a-z0-9_]/g,"_").slice(0,48);
+}
+
+function readToolNameLooksSafe(name) {
+  return /^(get|list|search|read|fetch|find|view|lookup|describe|inspect|query|report|analy)/i.test(String(name||""));
+}
+
+async function getConnectionsForUser(userId) {
+  const rows = await sbRest(
+    `user_connections?user_id=eq.${encodeURIComponent(userId)}&select=id,integration_key,transport,server_url,tunnel_id,status,allowed_tools,discovered_tools,read_only,last_error,last_checked_at,updated_at`
+  );
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function getConnectionSecret(userId, integrationKey) {
+  try {
+    const value = await sbRpc("get_connection_secret", {
+      p_user_id:userId,
+      p_integration_key:integrationKey,
+    });
+    return typeof value === "string" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+async function buildUserMcpTools(userId) {
+  const rows = await getConnectionsForUser(userId);
+  const tools = [];
+  for (const row of rows) {
+    if (row.status !== "connected" || row.read_only !== true) continue;
+    const allowed = Array.isArray(row.allowed_tools) ? row.allowed_tools.filter(Boolean) : [];
+    if (!allowed.length) continue;
+
+    const tool = {
+      type:"mcp",
+      server_label:safeServerLabel(row.integration_key),
+      server_description:`Connected ${row.integration_key} data source for Marina On Demand. Read-only tools only.`,
+      require_approval:"never",
+      allowed_tools:allowed,
+    };
+    if (row.transport === "tunnel" && row.tunnel_id) tool.tunnel_id = row.tunnel_id;
+    else if (row.server_url) tool.server_url = row.server_url;
+    else continue;
+
+    const secret = await getConnectionSecret(userId,row.integration_key);
+    if (secret) tool.authorization = secret;
+    tools.push(tool);
+  }
+  return tools;
+}
+
+const CONNECTION_RULES = `
+CONNECTED BUSINESS TOOLS:
+- You may have read-only MCP connections such as BMOD Tools (HighLevel) or Meta Ads.
+- When the user asks about their connected CRM, pipeline, leads, workflows, ads, campaign performance, or other connected business data, use the relevant connected tool instead of asking for screenshots.
+- Never claim a connection exists unless a connected tool is actually available in this request.
+- Current MCP connections in this release are READ-ONLY. Do not claim you changed, sent, enrolled, paused, published, deleted, or updated anything through MCP.
+- If a write action is needed, build the work and queue it through Marina Action Mode approval instead.
+`;
+async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach", workspaceContext = [], skillDefinition = null, coachingContext = null, mcpTools = []) {
   const routed = routeMessage(message);
   const liveBrain = await getLiveBrainContext(routed.route);
   const memoryText = memory
@@ -1421,7 +1496,7 @@ Apply this specialized operating workflow when relevant. Do not expose internal 
 ${skillDefinition.operating_prompt}`
     : "";
 
-  const instructions = `${liveCore}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}${WEB_RESEARCH_RULES}
+  const instructions = `${liveCore}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}${WEB_RESEARCH_RULES}${CONNECTION_RULES}
 
 ROUTED CANONICAL CONTEXT:
 ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext}${modeContext}`;
@@ -1462,7 +1537,7 @@ ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext
       reasoning: { effort: "medium" },
       instructions,
       input,
-      tools: [WEB_SEARCH_TOOL],
+      tools: [WEB_SEARCH_TOOL, ...mcpTools],
       tool_choice: shouldForceWebSearch(message) ? "required" : "auto",
       include: ["web_search_call.action.sources"],
     }),
@@ -1675,7 +1750,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "3.0.1-live-web-research",
+        build: "3.1.0-connections-mcp",
         benchmarkEnabled: true,
       });
     }
@@ -1688,6 +1763,135 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "GET" && path === "/api/admin-status") {
       return json(res, 200, { admin: isControlRoomAdmin(email) });
+    }
+
+    if (req.method === "GET" && path === "/api/connections") {
+      const [catalog, connections] = await Promise.all([
+        sbRest(`integration_catalog?customer_visible=eq.true&select=integration_key,display_name,subtitle,description,provider,icon,connection_type,status,read_only_default&order=display_name.asc`),
+        getConnectionsForUser(user.id),
+      ]);
+      const byKey = {};
+      for (const c of connections) byKey[c.integration_key] = c;
+      return json(res,200,{
+        integrations:(Array.isArray(catalog)?catalog:[]).map(i=>({
+          ...i,
+          connection:byKey[i.integration_key] || null
+        }))
+      });
+    }
+
+    if (req.method === "POST" && path === "/api/connections") {
+      const body = await readBody(req);
+      const integrationKey = String(body.integrationKey || "").trim();
+      const transport = body.transport === "tunnel" ? "tunnel" : "http";
+      const serverUrl = String(body.serverUrl || "").trim() || null;
+      const tunnelId = String(body.tunnelId || "").trim() || null;
+      const authToken = String(body.authorizationToken || "").trim();
+
+      const cat = await sbRest(`integration_catalog?integration_key=eq.${encodeURIComponent(integrationKey)}&customer_visible=eq.true&select=integration_key,status,read_only_default&limit=1`);
+      if (!Array.isArray(cat) || !cat[0]) return json(res,404,{error:"Integration not found"});
+      if (cat[0].status === "coming_soon") return json(res,400,{error:"This integration is not available yet."});
+      if (transport === "http" && !/^https:\/\//i.test(serverUrl || "")) return json(res,400,{error:"A secure https:// MCP URL is required."});
+      if (transport === "tunnel" && !tunnelId) return json(res,400,{error:"Tunnel ID required."});
+
+      await sbRest("user_connections?on_conflict=user_id,integration_key",{
+        method:"POST",
+        headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+        body:JSON.stringify([{
+          user_id:user.id,
+          integration_key:integrationKey,
+          transport,
+          server_url:transport==="http"?serverUrl:null,
+          tunnel_id:transport==="tunnel"?tunnelId:null,
+          status:"configured",
+          read_only:true,
+          last_error:null,
+          updated_at:new Date().toISOString(),
+        }])
+      });
+
+      if (authToken) {
+        await sbRpc("store_connection_secret",{
+          p_user_id:user.id,
+          p_integration_key:integrationKey,
+          p_secret:authToken,
+        });
+      }
+
+      return json(res,200,{ok:true,status:"configured"});
+    }
+
+    if (req.method === "POST" && path === "/api/connections/discover") {
+      const body = await readBody(req);
+      const integrationKey = String(body.integrationKey || "").trim();
+      const rows = await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${encodeURIComponent(integrationKey)}&select=integration_key,transport,server_url,tunnel_id,status&limit=1`);
+      const c = Array.isArray(rows) ? rows[0] : null;
+      if (!c) return json(res,404,{error:"Connection is not configured."});
+
+      const tool = {
+        type:"mcp",
+        server_label:safeServerLabel(integrationKey),
+        server_description:`Connection discovery for ${integrationKey}`,
+        require_approval:"always",
+      };
+      if (c.transport==="tunnel" && c.tunnel_id) tool.tunnel_id=c.tunnel_id;
+      else if (c.server_url) tool.server_url=c.server_url;
+      else return json(res,400,{error:"Connection endpoint missing."});
+
+      const secret = await getConnectionSecret(user.id,integrationKey);
+      if (secret) tool.authorization=secret;
+
+      try{
+        const rr=await fetch("https://api.openai.com/v1/responses",{
+          method:"POST",
+          headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,"content-type":"application/json"},
+          body:JSON.stringify({
+            model:process.env.OPENAI_MODEL || "gpt-5.6-terra",
+            reasoning:{effort:"low"},
+            input:"Check this MCP connection. Do not execute a tool call.",
+            tools:[tool],
+            tool_choice:"auto",
+          })
+        });
+        const data=await rr.json();
+        if(!rr.ok) throw new Error(data.error?.message || JSON.stringify(data));
+        const listItem=(data.output||[]).find(x=>x.type==="mcp_list_tools");
+        const discovered=(listItem?.tools||[]).map(t=>({name:t.name,description:t.description||""}));
+        const safe=discovered.filter(t=>readToolNameLooksSafe(t.name)).map(t=>t.name).slice(0,40);
+
+        await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${encodeURIComponent(integrationKey)}`,{
+          method:"PATCH",
+          headers:{Prefer:"return=minimal"},
+          body:JSON.stringify({
+            status:safe.length?"connected":"configured",
+            discovered_tools:discovered,
+            allowed_tools:safe,
+            last_error:safe.length?null:"Connected, but no clearly read-only tools were auto-approved.",
+            last_checked_at:new Date().toISOString(),
+            updated_at:new Date().toISOString(),
+          })
+        });
+        return json(res,200,{ok:true,discoveredTools:discovered,allowedTools:safe,status:safe.length?"connected":"configured"});
+      }catch(e){
+        const msg=e instanceof Error?e.message:String(e);
+        await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${encodeURIComponent(integrationKey)}`,{
+          method:"PATCH",
+          headers:{Prefer:"return=minimal"},
+          body:JSON.stringify({status:"error",last_error:msg.slice(0,1000),last_checked_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+        });
+        return json(res,400,{error:msg});
+      }
+    }
+
+    if (req.method === "DELETE" && path === "/api/connections") {
+      const integrationKey = String(url.searchParams.get("integrationKey") || "").trim();
+      if (!integrationKey) return json(res,400,{error:"integrationKey required"});
+      await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${encodeURIComponent(integrationKey)}`,{
+        method:"PATCH",
+        headers:{Prefer:"return=minimal"},
+        body:JSON.stringify({status:"disabled",allowed_tools:[],updated_at:new Date().toISOString()})
+      });
+      return json(res,200,{ok:true});
     }
 
     if (req.method === "GET" && path === "/api/control-room") {
@@ -2312,10 +2516,11 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      const [memory, workspaceContext, coachingContext] = await Promise.all([
+      const [memory, workspaceContext, coachingContext, mcpTools] = await Promise.all([
         getMemory(user.id),
         getWorkspaceContext(user.id),
         getCoachingContext(user.id),
+        buildUserMcpTools(user.id),
       ]);
 
       const skillRun = skillDefinition
@@ -2325,8 +2530,8 @@ module.exports = async function handler(req, res) {
       let ai;
       try {
         ai = experienceMode === "action"
-          ? await runActionAgent(message, history, memory, attachments, workspaceContext, user.id, conversationId, skillDefinition, coachingContext)
-          : await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext, skillDefinition, coachingContext);
+          ? await runActionAgent(message, history, memory, attachments, workspaceContext, user.id, conversationId, skillDefinition, coachingContext, mcpTools)
+          : await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext, skillDefinition, coachingContext, mcpTools);
         if (skillRun?.id) await finishSkillRun(user.id, skillRun.id, ai.answer, false);
       } catch (e) {
         if (skillRun?.id) await finishSkillRun(user.id, skillRun.id, e instanceof Error ? e.message : String(e), true);
