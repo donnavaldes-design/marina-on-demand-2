@@ -235,28 +235,50 @@ function closeSidebar(){document.body.classList.remove("sidebarOpen")}
 function closeSidebarIfMobile(){if(window.innerWidth<=860)closeSidebar()}
 window.addEventListener("resize",()=>{if(window.innerWidth>860)closeSidebar()});
 
-async function refreshSession(){
-  const {data} = await state.supabase.auth.getSession();
-  state.session = data.session;
-  if(state.session){
-    qs("#login").style.display="none"; qs("#app").style.display="grid";
-    qs("#userEmail").textContent=state.session.user.email || "";
-    await loadConversations(); await loadAdminStatus(); await loadSkills();
-    const qp=new URLSearchParams(window.location.search);
-    if(qp.get("oauth")){
-      const ok=qp.get("oauth")==="success";
-      qs("#status").textContent=ok?"Account connected successfully.":(qp.get("message")||"Account connection was not completed.");
-      history.replaceState({},document.title,window.location.pathname);
-      await openConnectionsPage();
-    }else{
-      await renderDashboard();
-    }
-  }else{
+// Session maintenance must not navigate away from the user's current work.
+let authViewUserId=null;
+let authViewGeneration=0;
+let authEventRevision=0;
+async function applyAuthSession(session){
+  state.session=session;
+  if(!session){
+    authViewUserId=null;
+    authViewGeneration++;
     qs("#login").style.display="grid"; qs("#app").style.display="none";
+    return;
+  }
+  qs("#login").style.display="none"; qs("#app").style.display="grid";
+  qs("#userEmail").textContent=session.user.email || "";
+  if(authViewUserId===session.user.id)return;
+  authViewUserId=session.user.id;
+  const generation=++authViewGeneration;
+  await loadConversations();
+  if(generation!==authViewGeneration)return;
+  await loadAdminStatus();
+  if(generation!==authViewGeneration)return;
+  await loadSkills();
+  if(generation!==authViewGeneration)return;
+  const qp=new URLSearchParams(window.location.search);
+  if(qp.get("oauth")){
+    const ok=qp.get("oauth")==="success";
+    qs("#status").textContent=ok?"Account connected successfully.":(qp.get("message")||"Account connection was not completed.");
+    history.replaceState({},document.title,window.location.pathname);
+    await openConnectionsPage();
+  }else{
+    await renderDashboard();
   }
 }
-state.supabase.auth.onAuthStateChange((_e,s)=>{state.session=s; refreshSession()});
-await refreshSession();
+state.supabase.auth.onAuthStateChange((_event,session)=>{
+  state.session=session;
+  authEventRevision++;
+  // Keep the auth callback synchronous; use its session rather than reentering getSession.
+  setTimeout(()=>{applyAuthSession(state.session).catch(()=>{
+    qs("#status").textContent="Could not finish loading Marina. Please reload to retry.";
+  });},0);
+});
+const initialAuthRevision=authEventRevision;
+const {data:initialAuthData}=await state.supabase.auth.getSession();
+await applyAuthSession(authEventRevision===initialAuthRevision?initialAuthData.session:state.session);
 
 qs("#loginForm").addEventListener("submit", async e=>{
   e.preventDefault();
