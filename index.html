@@ -1071,6 +1071,13 @@ async function updateBmodPermissionMode(mode){
   catch(e){qs("#status").textContent=e.message;await openConnectionsPage();}
 }
 
+const googleKeys=['gmail','google_calendar','google_drive'];
+function googleControlsMarkup(key,c){
+ if(!c||c.status!=='connected')return '';
+ return `<div class="connectionTools"><label>Connection permission <select data-google-mode="${esc(key)}"><option value="view_only" ${c.permission_mode!=='view_and_take_action'?'selected':''}>View Only</option><option value="view_and_take_action" ${c.permission_mode==='view_and_take_action'?'selected':''}>View + Take Action</option></select></label><p>Google reads are available. Write actions are not enabled yet; future actions will require individual Action Mode approval.</p>${c.reauthorization_required?`<p>Additional permissions are needed. Your connection remains active.</p>`:''}<button data-google-verify="${esc(key)}">Verify reads + refresh</button><div data-google-result role="status" aria-live="polite"></div><details><summary>Granted capabilities</summary>${(c.operations||[]).map(o=>`<p>${esc(o.name.replaceAll('_',' '))}: ${esc(o.status.replaceAll('_',' '))}</p>`).join('')}</details></div>`;
+}
+async function verifyGoogle(button){button.disabled=true;const out=button.closest('.connectionCard').querySelector('[data-google-result]');out.textContent='Checking reads before and after token refresh...';try{const j=await api(`/api/connections/${button.dataset.googleVerify}/verify`,{method:'POST',body:'{}'});out.textContent=`Connection: ${j.status}. Token refresh: ${j.refresh}. `+(j.checks||[]).map(c=>`${c.operation.replaceAll('_',' ')} (${c.phase.replaceAll('_',' ')}): ${c.status.replaceAll('_',' ')}`).join('; ');}catch(e){out.textContent=e.message;}finally{button.disabled=false;}}
+async function updateGoogleMode(key,mode){try{await api(`/api/connections/${key}/permissions`,{method:'PATCH',body:JSON.stringify({permissionMode:mode})});await openConnectionsPage();}catch(e){qs('#status').textContent=e.message;}}
 function canvaControlsMarkup(c){
   const connected=c?.status==="connected";
   const groups=[...new Set((c?.operations||[]).map(o=>o.family))];
@@ -1102,7 +1109,7 @@ async function openConnectionsPage(){
           <div class="connectionTop"><div><div class="connectionIcon">${esc(i.icon||"⌘")}</div><div class="connectionTitle">${esc(i.display_name)}</div><div class="connectionSub">${esc(i.subtitle||"")}</div></div><span class="connectionStatus ${esc(c?.status||"")}">${esc(status)}</span></div>
           <div class="connectionDesc">${esc(i.description||"")}</div>
           ${c?.last_error?`<div class="actionStepDesc" style="color:#a83e33">${esc(c.last_error)}</div>`:""}
-          ${i.integration_key==="bmod_tools"?bmodControlsMarkup(c)+bmodCapabilitiesMarkup(c):i.integration_key==="canva"?canvaControlsMarkup(c):""}
+          ${i.integration_key==="bmod_tools"?bmodControlsMarkup(c)+bmodCapabilitiesMarkup(c):i.integration_key==="canva"?canvaControlsMarkup(c):googleKeys.includes(i.integration_key)?googleControlsMarkup(i.integration_key,c):""}
           ${!["bmod_tools","canva"].includes(i.integration_key) && tools.length?`<div class="connectionTools"><strong>Approved read tools:</strong> ${tools.map(esc).join(", ")}</div>`:""}
           <div class="connectionActions">
             ${isMetaComingSoon||i.status==="coming_soon"?`<button disabled>Coming soon</button>`:
@@ -1110,12 +1117,14 @@ async function openConnectionsPage(){
               ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Connect Account</button>`
               :c.status==="auth_required"
                 ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">${i.integration_key==="canva"?"Connect Account":"Continue Secure Sign-In"}</button><button data-disconnect="${esc(i.integration_key)}">Cancel</button>`
-                :`${!["bmod_tools","canva"].includes(i.integration_key) && c?.reauthorization_required?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Update permissions</button>`:""}${i.integration_key==="canva"?"":`<button data-test-connection="${esc(i.integration_key)}">Test connection</button>`}<button data-disconnect="${esc(i.integration_key)}">Disconnect</button>`}
+                :`${!["bmod_tools","canva"].includes(i.integration_key) && c?.reauthorization_required?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Update permissions</button>`:""}${i.integration_key==="canva"||googleKeys.includes(i.integration_key)?"":`<button data-test-connection="${esc(i.integration_key)}">Test connection</button>`}<button data-disconnect="${esc(i.integration_key)}">Disconnect</button>`}
           </div>
         </div>`;
       }).join("")}</div>
       <div class="securityNote"><strong>Security:</strong> Connection endpoints are preconfigured server-side. Marina only auto-enables tools whose names clearly look read-only, such as get, list, search, read, fetch or view. Account authorization is handled separately from the MCP URL, and credentials are never displayed back in the browser.</div>
     </div>`;
+    qs('#messages').querySelectorAll('[data-google-verify]').forEach(b=>b.onclick=()=>verifyGoogle(b));
+    qs('#messages').querySelectorAll('[data-google-mode]').forEach(s=>s.onchange=()=>updateGoogleMode(s.dataset.googleMode,s.value));
     qs("#messages").querySelectorAll("[data-canva-mode]").forEach(s=>s.onchange=()=>updateCanvaMode(s.value));
     qs("#messages").querySelectorAll("[data-canva-verify]").forEach(b=>b.onclick=()=>verifyCanva(b));
     qs("#messages").querySelectorAll("[data-bmod-verify]").forEach(b=>b.onclick=()=>verifyBmodReadCycle(b));

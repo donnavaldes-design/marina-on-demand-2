@@ -1248,6 +1248,8 @@ You are not merely planning. You are operating inside Marina's controlled execut
         try {
           if (call.name === "bmod_read") {
             result = await executeBmodRead(userId,args);
+          } else if(call.name === "google_operation") {
+            result=await executeGoogleRead(userId,args);
           } else if(call.name === "canva_operation") {
             result = await CANVA.execute(userId,args,{runId:run.id});
           } else {
@@ -1491,7 +1493,7 @@ async function getConnectionsForUser(userId) {
   const rows = await sbRest(
     `user_connections?user_id=eq.${encodeURIComponent(userId)}&select=id,integration_key,transport,server_url,tunnel_id,status,oauth_scope,permission_mode,oauth_requested_scope,bmod_manifest_version,allowed_tools,discovered_tools,read_only,last_error,last_checked_at,updated_at`
   );
-  return (Array.isArray(rows) ? rows : []).map(c => c.integration_key === "bmod_tools" ? bmodConnectionSummary(c) : c.integration_key === "canva" ? {...c,...CANVA_MANIFEST.capabilities(c)} : c);
+  return (Array.isArray(rows) ? rows : []).map(c => c.integration_key === "bmod_tools" ? bmodConnectionSummary(c) : c.integration_key === "canva" ? {...c,...CANVA_MANIFEST.capabilities(c)} : GOOGLE_MANIFEST.isProvider(c.integration_key)?{...c,...GOOGLE_MANIFEST.capabilities(c)}:c);
 }
 
 async function getConnectionSecret(userId, integrationKey) {
@@ -1510,7 +1512,7 @@ async function buildUserMcpTools(userId) {
   const rows = await getConnectionsForUser(userId);
   const tools = [];
   for (const row of rows) {
-    if (["bmod_tools","canva"].includes(row.integration_key)) continue;
+    if (["bmod_tools","canva",...Object.keys(GOOGLE)].includes(row.integration_key)) continue;
     if (row.status !== "connected" || row.read_only !== true) continue;
     const allowed = Array.isArray(row.allowed_tools) ? row.allowed_tools.filter(Boolean) : [];
     if (!allowed.length) continue;
@@ -1534,6 +1536,9 @@ async function buildUserMcpTools(userId) {
 }
 
 
+const GOOGLE_MANIFEST=require('./google/manifest');
+const GOOGLE=Object.fromEntries(Object.keys(GOOGLE_MANIFEST.providers).map(key=>[key,require('./google/service').createService(key,{sbRest,sbRpc,getSecret:getConnectionSecret,getRefreshSecret:getConnectionRefreshSecret})]));
+async function executeGoogleRead(user,args){if(!GOOGLE_MANIFEST.isProvider(args.provider))throw Error('Unsupported Google provider.');return GOOGLE[args.provider].execute(user,args);}
 const CANVA_MANIFEST = require("./canva/manifest");
 const CANVA = require("./canva/service").createService({sbRest,sbRpc,getSecret:getConnectionSecret,getRefreshSecret:getConnectionRefreshSecret,insertActionStep,nextActionStepOrder});
 const BMOD_MANIFEST = require("./bmod/manifest");
@@ -1744,7 +1749,8 @@ async function executeBmodRead(userId,args) {
 async function buildNativeBusinessTools(userId) {
   const bmod = await getBmodConnection(userId);
   const canva=await CANVA.row(userId);
-  return [...(bmod ? [BMOD_READ_TOOL] : []),...(canva?.status==="connected" ? [CANVA_MANIFEST.tool] : [])];
+  const googleRows=await Promise.all(Object.values(GOOGLE).map(service=>service.row(userId)));
+  return [...(googleRows.some(c=>c?.status==="connected")?[GOOGLE_MANIFEST.tool]:[]),...(bmod ? [BMOD_READ_TOOL] : []),...(canva?.status==="connected" ? [CANVA_MANIFEST.tool] : [])];
 }
 
 const CONNECTION_RULES = `
@@ -1883,6 +1889,7 @@ ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext
       let result;
       try {
         if (call.name === "bmod_read") result = await executeBmodRead(userId,args);
+        else if(call.name === "google_operation") result=await executeGoogleRead(userId,args);
         else if(call.name === "canva_operation") result = await CANVA.execute(userId,args);
         else result = {ok:false,error:`Unsupported tool ${call.name}`};
       } catch(e) {
@@ -2416,6 +2423,10 @@ module.exports = async function handler(req, res) {
         res.statusCode=302; res.setHeader("Location",`${fallback}?oauth=error&message=${encodeURIComponent("OAuth session expired. Please try connecting again.")}`); return res.end();
       }
       const returnUrl = safeReturnUrl(absoluteSiteUrl(req) || process.env.NEXT_PUBLIC_SITE_URL, st.return_url || "/");
+      if(GOOGLE_MANIFEST.isProvider(st.integration_key)){
+        const outcome=await GOOGLE[st.integration_key].callback(state,code,oauthError);
+        res.statusCode=302;res.setHeader('Location',`${returnUrl.split('?')[0]}?oauth=${outcome?.ok?'success':'error'}&connection=${st.integration_key}`);return res.end();
+      }
       if(st.integration_key==="canva") {
         await sbRest(`connection_oauth_states?state=eq.${encodeURIComponent(state)}&integration_key=eq.canva`,{method:"DELETE"});
         res.statusCode=302;res.setHeader("Location",`${returnUrl.split("?")[0]}?oauth=error&connection=canva`);return res.end();
@@ -2495,6 +2506,12 @@ module.exports = async function handler(req, res) {
       return json(res, 200, { admin: isControlRoomAdmin(email) });
     }
 
+    const googleRoute=path.match(/^\/api\/connections\/(gmail|google_calendar|google_drive)\/(permissions|verify)$/);
+    if(googleRoute&&req.method==='PATCH'&&googleRoute[2]==='permissions'){
+      const body=await readBody(req);if(!['view_only','view_and_take_action'].includes(body.permissionMode))return json(res,400,{error:'Invalid permission mode.'});
+      await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${googleRoute[1]}`,{method:'PATCH',body:JSON.stringify({permission_mode:body.permissionMode,read_only:body.permissionMode==='view_only'})});return json(res,200,{ok:true,writes_enabled:false});
+    }
+    if(googleRoute&&req.method==='POST'&&googleRoute[2]==='verify')return json(res,200,await GOOGLE[googleRoute[1]].verify(user.id));
     if(req.method==="PATCH" && path==="/api/connections/canva/permissions") {
       const body=await readBody(req);
       if(!["view_only","view_and_take_action"].includes(body.permissionMode))return json(res,400,{error:"Invalid permission mode."});
@@ -2564,6 +2581,7 @@ module.exports = async function handler(req, res) {
       const siteUrl = absoluteSiteUrl(req);
       if (!siteUrl) return json(res,500,{error:"Site URL is not configured."});
 
+      if(GOOGLE_MANIFEST.isProvider(integrationKey))return json(res,200,await GOOGLE[integrationKey].start(user.id,siteUrl,safeReturnUrl(siteUrl,body.returnUrl||'/')));
       if(integrationKey==="canva")return json(res,200,await CANVA.start(user.id,siteUrl,safeReturnUrl(siteUrl,body.returnUrl||"/")));
       const redirectUri = `${siteUrl}/api/connections/oauth/callback`;
       const returnUrl = safeReturnUrl(siteUrl,body.returnUrl || "/");
@@ -2755,6 +2773,7 @@ module.exports = async function handler(req, res) {
       if (!integration) return json(res,404,{error:"Integration not found"});
       if (!integration.default_server_url) return json(res,400,{error:"This integration does not have a configured MCP endpoint yet."});
 
+      if(GOOGLE_MANIFEST.isProvider(integrationKey))return json(res,200,{ok:true,status:(await GOOGLE[integrationKey].row(user.id))?.status||'auth_required',authType:'oauth'});
       if(integrationKey==="canva")return json(res,200,{ok:true,status:(await CANVA.row(user.id))?.status||"auth_required",authType:"oauth"});
       if(integrationKey==="bmod_tools") {
         const existing=await readBmodRow(user.id);
@@ -2788,6 +2807,7 @@ module.exports = async function handler(req, res) {
     if (req.method === "POST" && path === "/api/connections/discover") {
       const body = await readBody(req);
       const integrationKey = String(body.integrationKey || "").trim();
+      if(GOOGLE_MANIFEST.isProvider(integrationKey))return json(res,200,{...await GOOGLE[integrationKey].verify(user.id),allowedTools:[]});
       if(integrationKey==="canva")return json(res,200,{...await CANVA.verify(user.id),allowedTools:[]});
       if(integrationKey==="bmod_tools") {
         try {return json(res,200,await testBmodConnection(user.id));}
@@ -2855,6 +2875,7 @@ module.exports = async function handler(req, res) {
     if (req.method === "DELETE" && path === "/api/connections") {
       const integrationKey = String(url.searchParams.get("integrationKey") || "").trim();
       if (!integrationKey) return json(res,400,{error:"integrationKey required"});
+      if(GOOGLE_MANIFEST.isProvider(integrationKey))return json(res,200,await GOOGLE[integrationKey].disconnect(user.id));
       if(integrationKey==="canva")return json(res,200,await CANVA.disconnect(user.id));
       if(integrationKey==="bmod_tools") {
         await bmodTransition(user.id,"disconnect");
