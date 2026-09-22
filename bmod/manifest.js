@@ -17,7 +17,7 @@ function add(name,family,scope,method,endpoint,fields={},options={}) {
   operations[name]={name,family,scopes:Array.isArray(scope)?scope:[scope],classification:'read',method,endpoint,fields,location:'query',...options};
 }
 add('get_location','Account','locations.readonly','GET','/locations/:locationId',{}, {location:'path'});
-add('search_contacts','Contacts','contacts.readonly','POST','/contacts/search',{query:str(false,75),limit:page.limit,page:integer(1,10000,1)},{location:'body',body:true,docs:doc('contacts/search-contacts-advanced')});
+add('search_contacts','Contacts','contacts.readonly','POST','/contacts/search',{query:str(false,75),limit:page.limit,page:integer(1,10000,1)},{location:'body',body:true,rename:{limit:'pageLimit'},docs:doc('contacts/search-contacts-advanced')});
 add('get_contact','Contacts','contacts.readonly','GET','/contacts/:contactId',{contactId:id()},{location:'token'});
 add('search_opportunities','Opportunities','opportunities.readonly','GET','/opportunities/search',{query:str(false,75),limit:page.limit,page:integer(1,10000,1),pipelineId:id(false),status:choice(['open','won','lost','abandoned','all'],'all')},{rename:{query:'q'},docs:doc('opportunities/search-opportunity')});
 add('list_pipelines','Pipelines','pipelines.readonly','GET','/opportunities/pipelines',{}, {docs:doc('opportunities/get-pipelines')});

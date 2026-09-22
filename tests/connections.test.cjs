@@ -36,7 +36,7 @@ function setup(overrides={}) {
       if(db.readFailure) return result({},db.readFailure);
       if(db.rejectOld && opts.headers.authorization==='Bearer access-old') return result({},401);
       if(u.pathname.startsWith('/funnels/')) {db.funnelRequests ||= [];db.funnelRequests.push(u);return result(db.funnelResponse ? db.funnelResponse(u) : {funnels:[],count:0});}
-      if(u.pathname==='/contacts/search') {assert.equal(opts.method,'POST');assert.equal(body.locationId,'location');assert.equal(body.page,1);return result({contacts:[]});}
+      if(u.pathname==='/contacts/search') {assert.equal(opts.method,'POST');assert.equal(body.locationId,'location');assert.equal(body.page,1);assert.equal(body.pageLimit,20);assert.equal('limit' in body,false);return result({contacts:[]});}
       if(u.pathname==='/opportunities/search') {assert.equal(opts.method,'GET');assert.equal(u.searchParams.get('locationId'),'location');return result({opportunities:[]});}
       if(u.pathname==='/blogs/site/all')return result({data:[]});
       if(u.pathname==='/emails/locations/location/templates')return result({items:[],total:0});

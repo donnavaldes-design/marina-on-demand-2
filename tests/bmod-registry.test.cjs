@@ -44,7 +44,8 @@ test('router rejects arbitrary operations, cross-account parameters and unsafe I
 test('critical request contracts use correct verbs, pagination and tenant identifiers',()=>{
   const make=(name,p={})=>r.requestFor(m.operations[name],r.validate(m.operations[name],p),'owned-location');
   const opp=make('search_opportunities',{query:'hello'});assert.equal(opp.method,'GET');assert.match(opp.path,/q=hello/);
-  const contact=make('search_contacts');assert.equal(contact.method,'POST');assert.equal(contact.body.locationId,'owned-location');assert.equal(contact.body.page,1);
+  const contact=make('search_contacts');assert.equal(contact.method,'POST');assert.equal(contact.body.locationId,'owned-location');assert.equal(contact.body.page,1);assert.equal(contact.body.pageLimit,20);assert.equal('limit' in contact.body,false);
+  const paged=make('search_contacts',{limit:50,page:2,query:'sample'});assert.equal(paged.body.pageLimit,50);assert.equal(paged.body.page,2);assert.equal(paged.body.query,'sample');
   const social=make('list_social_posts');assert.equal(social.body.limit,'20');assert.equal(social.body.skip,'0');assert.match(social.path,/owned-location/);
   const blog=make('list_blogs',{offset:5});assert.match(blog.path,/skip=5/);
   assert.match(make('list_product_collections').path,/altId=owned-location/);
