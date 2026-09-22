@@ -1005,6 +1005,24 @@ function inferInternalSkill(message) {
   return null;
 }
 
+function shouldAutoAction(message) {
+  const text=String(message||"").trim().toLowerCase();
+  if(!text)return false;
+
+  const patterns=[
+    /\b(create|add|set|make)\b.{0,24}\b(task|crm task)\b/,
+    /\b(schedule|book|add|create|set)\b.{0,24}\b(calendar|event|appointment|reminder)\b/,
+    /\b(send|schedule)\b.{0,20}\b(email|message|campaign)\b/,
+    /\b(publish|schedule|post)\b.{0,24}\b(blog|social|facebook|instagram|linkedin|post)\b/,
+    /\b(add|apply|remove)\b.{0,20}\b(tag|tags)\b.{0,30}\b(contact|lead|person)\b/,
+    /\b(update|move|mark|change)\b.{0,30}\b(opportunity|deal|pipeline)\b/,
+    /\b(create|add)\b.{0,24}\b(redirect|url redirect)\b/,
+    /\b(create|make|prepare)\b.{0,24}\b(canva design|design in canva)\b/
+  ];
+  return patterns.some(re=>re.test(text));
+}
+
+
 async function startSkillRun(userId, conversationId, skillKey, mode, inputSummary) {
   const rows = await sbRest("skill_runs?select=id,skill_key,status,created_at", {
     method: "POST",
@@ -3930,6 +3948,8 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
       const attachments = Array.isArray(body.attachments) ? body.attachments.slice(0, 5) : [];
       const requestedMode = String(body.mode || "coach").toLowerCase();
       let experienceMode = ["coach","create","action"].includes(requestedMode) ? requestedMode : "coach";
+      const autoActionRequested = experienceMode!=="action" && shouldAutoAction(message);
+      if(autoActionRequested) experienceMode="action";
 
       const requestedSkillKey = String(body.skillKey || "").trim();
       const inferredSkillKey = requestedSkillKey || inferInternalSkill(message);
