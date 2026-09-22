@@ -1468,9 +1468,9 @@ function readToolNameLooksSafe(name) {
 
 async function getConnectionsForUser(userId) {
   const rows = await sbRest(
-    `user_connections?user_id=eq.${encodeURIComponent(userId)}&select=id,integration_key,transport,server_url,tunnel_id,status,allowed_tools,discovered_tools,read_only,last_error,last_checked_at,updated_at`
+    `user_connections?user_id=eq.${encodeURIComponent(userId)}&select=id,integration_key,transport,server_url,tunnel_id,status,oauth_scope,allowed_tools,discovered_tools,read_only,last_error,last_checked_at,updated_at`
   );
-  return Array.isArray(rows) ? rows : [];
+  return (Array.isArray(rows) ? rows : []).map(c => c.integration_key === "bmod_tools" ? {...c,allowed_tools:bmodGrantedTools(c),needs_funnel_authorization:c.status === "connected" && !bmodHasFunnelScopes(c)} : c);
 }
 
 async function getConnectionSecret(userId, integrationKey) {
@@ -1516,28 +1516,30 @@ async function buildUserMcpTools(userId) {
 const BMOD_READ_TOOL = {
   type:"function",
   name:"bmod_read",
-  description:"Read live data from the user's connected BMOD Tools / HighLevel account. Use this instead of asking for screenshots when CRM data is relevant.",
+  description:"Read live data from the user's connected BMOD Tools / HighLevel account. Use this instead of asking for screenshots when CRM or funnel data is relevant. For funnels use funnel operations, never substitute workflows. Funnel pages return metadata only; this tool cannot edit or publish pages.",
   strict:true,
   parameters:{
     type:"object",
     properties:{
       operation:{
         type:"string",
-        enum:["search_contacts","search_opportunities","list_pipelines","list_workflows"],
+        enum:["search_contacts","search_opportunities","list_pipelines","list_workflows","list_funnels","latest_funnel","list_funnel_pages","count_funnel_pages"],
         description:"The BMOD Tools read operation to run."
       },
       query:{
         type:"string",
-        description:"Optional search text for contacts or opportunities. Use an empty string when no search term is needed."
+        description:"Optional search text for contacts, opportunities or funnel names. Use an empty string for the latest funnel across the account."
       },
       limit:{
         type:"integer",
         minimum:1,
         maximum:50,
         description:"Maximum records to return."
-      }
+      },
+      funnelId:{type:"string",description:"Funnel ID from list_funnels or latest_funnel, required for page operations. Otherwise empty string."},
+      offset:{type:"integer",minimum:0,description:"Pagination offset for list operations. Use 0 initially and for latest_funnel."}
     },
-    required:["operation","query","limit"],
+    required:["operation","query","limit","funnelId","offset"],
     additionalProperties:false
   }
 };
@@ -1560,6 +1562,15 @@ async function getConnectionRefreshSecret(userId, integrationKey) {
 }
 
 const BMOD_TOOL_NAMES = ["search_contacts","search_opportunities","list_pipelines","list_workflows"];
+const BMOD_FUNNEL_SCOPES = ["funnels/funnel.readonly","funnels/page.readonly","funnels/pagecount.readonly"];
+const BMOD_FUNNEL_TOOL_SCOPES = {list_funnels:BMOD_FUNNEL_SCOPES[0],latest_funnel:BMOD_FUNNEL_SCOPES[0],list_funnel_pages:BMOD_FUNNEL_SCOPES[1],count_funnel_pages:BMOD_FUNNEL_SCOPES[2]};
+function bmodScopes(c) { return new Set(String(c?.oauth_scope || "").split(/\s+/).filter(Boolean)); }
+function bmodHasFunnelScopes(c) { const scopes=bmodScopes(c);return BMOD_FUNNEL_SCOPES.every(s=>scopes.has(s)); }
+function bmodGrantedTools(c) {
+  if(!bmodMayRead(c)) return [];
+  const scopes=bmodScopes(c);
+  return [...BMOD_TOOL_NAMES,...Object.keys(BMOD_FUNNEL_TOOL_SCOPES).filter(name=>scopes.has(BMOD_FUNNEL_TOOL_SCOPES[name]))];
+}
 const BMOD_RECONNECT_ERROR = "HighLevel authorization is no longer valid. Please reconnect.";
 
 async function bmodTransition(userId, action, lease=null, data={}) {
@@ -1675,11 +1686,11 @@ async function testBmodConnection(userId) {
   if(!bmodMayRead(c)) throw new Error("BMOD Tools needs to be reconnected.");
   await highLevelApi(userId,`/opportunities/pipelines?locationId=${encodeURIComponent(c.provider_account_id)}`);
   await sbRest(`user_connections?user_id=eq.${encodeURIComponent(userId)}&integration_key=eq.bmod_tools&status=not.in.(disabled,disconnected)&updated_at=eq.${encodeURIComponent(c.updated_at)}`,{
-    method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"connected",oauth_provider:"highlevel",oauth_token_auth_method:"client_secret_post",allowed_tools:BMOD_TOOL_NAMES,last_error:null,last_checked_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"connected",oauth_provider:"highlevel",oauth_token_auth_method:"client_secret_post",allowed_tools:bmodGrantedTools(c),last_error:null,last_checked_at:new Date().toISOString(),updated_at:new Date().toISOString()})
   });
   const latest=await readBmodRow(userId);
   if(latest?.status!=="connected") throw new Error("Connection changed during verification. Please retry.");
-  return {ok:true,status:"connected",allowedTools:BMOD_TOOL_NAMES,discoveredTools:BMOD_TOOL_NAMES.map(name=>({name}))};
+  return {ok:true,status:"connected",allowedTools:bmodGrantedTools(latest),discoveredTools:bmodGrantedTools(latest).map(name=>({name}))};
 }
 
 async function completeBmodOAuth(st,code) {
@@ -1704,6 +1715,48 @@ async function executeBmodRead(userId,args) {
   const locationId = conn.provider_account_id;
   const query = String(args.query || "").slice(0,75);
   const limit = Math.max(1,Math.min(50,Number(args.limit || 20)));
+
+  const requiredScope=BMOD_FUNNEL_TOOL_SCOPES[args.operation];
+  if(requiredScope) {
+    if(!bmodScopes(conn).has(requiredScope)) return {error:"funnel_authorization_required",message:"Open Connections and choose Enable funnel access for BMOD Tools. Existing CRM access remains connected. No funnel data has been read."};
+    const offset=Math.max(0,Math.floor(Number(args.offset)||0));
+    const params=new URLSearchParams({locationId});
+    if(args.operation === "list_funnel_pages" || args.operation === "count_funnel_pages") {
+      const funnelId=String(args.funnelId || "").trim();
+      if(!funnelId) throw new Error("Choose a funnel ID from list_funnels or latest_funnel first.");
+      params.set("funnelId",funnelId);
+      if(args.operation === "count_funnel_pages") return highLevelApi(userId,`/funnels/page/count?${params}`);
+      params.set("limit",String(limit));params.set("offset",String(offset));
+      return highLevelApi(userId,`/funnels/page?${params}`);
+    }
+    params.set("type","funnel");
+    if(query) params.set("name",query);
+    const records=data=>Array.isArray(data?.funnels)?data.funnels:(data?.funnels? [data.funnels]:[]);
+    const metadata=f=>({_id:f._id || f.id,name:f.name,dateAdded:f.dateAdded,dateUpdated:f.dateUpdated,locationId:f.locationId,type:f.type,steps:f.steps});
+    if(args.operation === "list_funnels") {
+      params.set("limit",String(limit));params.set("offset",String(offset));
+      const data=await highLevelApi(userId,`/funnels/funnel/list?${params}`);
+      return {funnels:records(data).map(metadata),count:data?.count,offset,limit};
+    }
+    // HighLevel does not document a creation-date sort. Scan all pages before
+    // claiming a global latest result, and explicitly report bounded/incomplete scans.
+    const seen=new Map();let complete=false;
+    for(let page=0;page<20;page++) {
+      params.set("limit","50");params.set("offset",String(page*50));
+      const data=await highLevelApi(userId,`/funnels/funnel/list?${params}`);
+      const batch=records(data);
+      let added=0;
+      for(const f of batch) {const id=f._id || f.id;if(id && !seen.has(id)){seen.set(id,f);added++;}}
+      const count=Number(data?.count);
+      if((Number.isFinite(count) && data?.count != null && seen.size>=count) || (batch.length<50 && !(count>seen.size))) {complete=true;break;}
+      if(!added) break;
+    }
+    const funnels=[...seen.values()].filter(f=>!f.deleted);
+    const dated=funnels.filter(f=>Number.isFinite(Date.parse(f.dateAdded)));
+    dated.sort((a,b)=>Date.parse(b.dateAdded)-Date.parse(a.dateAdded));
+    const verified=complete && dated.length===funnels.length;
+    return {latest_funnel:verified && dated.length ? metadata(dated[0]):null,complete:verified,scanned:seen.size,message:verified?(dated.length?"Newest funnel by creation date across matching funnels.":"No matching funnels found."):"Unable to verify the latest funnel: pagination was incomplete or creation dates were missing. Do not claim a global latest result."};
+  }
 
   if (args.operation === "list_pipelines") {
     return highLevelApi(userId,`/opportunities/pipelines?locationId=${encodeURIComponent(locationId)}`);
@@ -2377,7 +2430,8 @@ const DEFAULT_HIGHLEVEL_SCOPES = [
   "contacts.readonly",
   "opportunities.readonly",
   "pipelines.readonly",
-  "workflows.readonly"
+  "workflows.readonly",
+  ...BMOD_FUNNEL_SCOPES
 ].join(" ");
 
 function getHighLevelScopes() {
@@ -2529,7 +2583,7 @@ module.exports = async function handler(req, res) {
 
       if(integrationKey==="bmod_tools") {
         const existing=await readBmodRow(user.id);
-        if(bmodMayRead(existing)) {
+        if(bmodMayRead(existing) && bmodHasFunnelScopes(existing)) {
           await testBmodConnection(user.id);
           return json(res,200,{ok:true,status:"connected"});
         }

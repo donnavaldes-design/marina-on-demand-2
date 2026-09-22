@@ -1,6 +1,6 @@
 # Marina On Demand connection audit
 
-Status as of 2026-09-22: database migration applied and verified; application patch tested locally but NOT deployed. Live end-to-end verification is pending authenticated app and publishing access.
+Status as of 2026-09-22 15:11 UTC: database migration applied and verified; application fix deployed to production in commit f364b6908872d76a534e96b81fdf536b054eeca2, deployment dpl_2dg5Qux8YMYH2yA74182j8JcYWYU, READY. Live end-to-end verification is pending authenticated app access. Runtime logs remain blocked by a 403.
 
 ## Production evidence
 
@@ -30,7 +30,7 @@ Applied to production Supabase:
 - The transaction saves both Vault secrets and expiry together, fences stale writes, and prevents an in-flight refresh from undoing an explicit disconnect.
 - No stored customer authorization, token, or status was changed persistently by the validation tests.
 
-Prepared in the application patch, NOT deployed:
+Deployed in the application patch:
 
 - Native HighLevel pipeline verification for BMOD Test connection.
 - Idempotent connection setup and OAuth start, plus removal of the redundant UI configure request.
@@ -52,9 +52,17 @@ Prepared in the application patch, NOT deployed:
 
 ## Remaining live work
 
-1. Publish this application commit through authenticated GitHub/Vercel access. The connected deploy tool is unavailable; no authenticated GitHub writer is currently available.
+1. Publishing completed through GitHub. Vercel confirmed production READY and the primary app alias points to the new deployment. Newer pre-existing Marina voice updates were preserved byte-for-byte.
 2. Obtain runtime logs through Vercel access for the Donna team. Current log requests return 403.
 3. Finish authenticated Marina browser access. The app offers email magic links; the browser remains signed out.
 4. Run the actual connect/read/refresh/reload/read cycle, checking Vault update timestamps, expiry advancement, persistent status, and secret-free runtime logs. If forcing expiry, change only the authorized test connection and restore it if refresh does not complete.
 
 Reference: HighLevel documents access tokens expiring after approximately 24 hours and refresh-token replacement on every refresh at https://marketplace.gohighlevel.com/docs/Authorization/OAuth2.0/index.html .
+
+## Funnel permission follow-up
+
+- Marketplace Auth settings show all five funnel-related scopes selected. The saved user authorization contains only the five original CRM scopes. Selecting Marketplace scopes alone did not upgrade the installed grant.
+- Original native bmod_read implemented contacts, opportunities, pipelines and workflows only. No funnel endpoint was called.
+- Added native funnel list/latest-created lookup, page metadata lookup and page count, with scope checks and account-location scoping. Latest-created lookup checks pagination completeness and creation dates before asserting a global result.
+- OAuth requests now include the three funnel read scopes. Connections offers Enable funnel access while retaining the current connected status. Tool availability is calculated from saved scopes, including after refresh. No page-content/layout write operation is implemented.
+- Automated suite: 24/24 passed, including funnel permission upgrade, expired-token funnel read, pagination, missing dates, and page scope checks. Real funnel lookup and live refresh cycle still require authenticated Marina access and the upgraded user grant.

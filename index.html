@@ -894,7 +894,7 @@ async function openConnectionsPage(){
               ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Connect Account</button>`
               :c.status==="auth_required"
                 ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Continue Secure Sign-In</button><button data-disconnect="${esc(i.integration_key)}">Cancel</button>`
-                :`<button data-test-connection="${esc(i.integration_key)}">Test connection</button><button data-disconnect="${esc(i.integration_key)}">Disconnect</button>`}
+                :`${c?.needs_funnel_authorization?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Enable funnel access</button>`:""}<button data-test-connection="${esc(i.integration_key)}">Test connection</button><button data-disconnect="${esc(i.integration_key)}">Disconnect</button>`}
           </div>
         </div>`;
       }).join("")}</div>
