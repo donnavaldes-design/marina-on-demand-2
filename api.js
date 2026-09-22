@@ -3364,6 +3364,56 @@ module.exports = async function handler(req, res) {
       return json(res, 200, { ok: true });
     }
 
+    if (req.method === "POST" && path === "/api/brand-brain/import") {
+      const body = await readBody(req);
+      const a = body?.attachment || {};
+      const storagePath = String(a.storagePath || "");
+      if (!storagePath.startsWith(`${user.id}/`)) return json(res, 403, { error:"Brand document does not belong to this account." });
+      if (Number(a.sizeBytes || 0) > 20971520) return json(res, 400, { error:"Brand documents must be 20 MB or smaller." });
+
+      const signedUrl = await createAttachmentSignedUrl(storagePath, 900);
+      const mimeType = String(a.mimeType || "application/octet-stream");
+      const inputContent = [{
+        type:"input_text",
+        text:"Read this brand document and extract the brand strategy it actually contains. Return only JSON. Do not guess missing details."
+      }];
+
+      if (isImageMime(mimeType)) inputContent.push({type:"input_image",image_url:signedUrl,detail:"high"});
+      else inputContent.push({type:"input_file",file_url:signedUrl});
+
+      const instructions = `Return ONLY valid JSON using any supported keys that are present:
+brand_positioning, brand_promise, target_audience, audience_identity, audience_pain_points, audience_desires, buyer_language, brand_voice, tone_traits, signature_phrases, words_to_use, words_to_avoid, differentiators, content_pillars, authority_receipts, emotional_drivers, common_objections, cta_style, visual_direction, movement_or_belief.
+
+Use arrays for pain points, desires, buyer language, tone traits, signature phrases, words to use, words to avoid, differentiators, content pillars, authority receipts, emotional drivers, and objections. Use concise strings for the other fields. Preserve distinctive wording from the document when useful. Omit unsupported keys.`;
+
+      const rr = await fetch("https://api.openai.com/v1/responses", {
+        method:"POST",
+        headers:{
+          Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,
+          "content-type":"application/json"
+        },
+        body:JSON.stringify({
+          model:process.env.OPENAI_MODEL || "gpt-5.6-terra",
+          reasoning:{effort:"medium"},
+          instructions,
+          input:[{role:"user",content:inputContent}]
+        })
+      });
+      const data = await rr.json();
+      if (!rr.ok) throw new Error(`OPENAI_${rr.status}: ${data.error?.message || JSON.stringify(data)}`);
+
+      const proposed = parseJsonObject(parseOpenAIText(data));
+      return json(res, 200, {
+        proposed,
+        attachment:{
+          storagePath,
+          fileName:String(a.fileName || "Brand document"),
+          mimeType,
+          sizeBytes:Number(a.sizeBytes || 0)
+        }
+      });
+    }
+
     if (req.method === "GET" && path === "/api/memory") {
       const memory = await getMemory(user.id);
       return json(res, 200, {
