@@ -105,6 +105,12 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .momentumPage{max-width:980px;margin:0 auto}.momentumPage h2{font-family:Georgia,serif;font-size:40px;margin:3px 0 8px}.momentumPage p{color:var(--muted);line-height:1.55}.momentumToolbar{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.momentumToolbar button{border:0;background:var(--accent);color:#fff;border-radius:12px;padding:10px 13px;font-weight:750;cursor:pointer}.momentumToolbar button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
 .winsList{display:grid;gap:9px;margin-top:12px}.winRow{background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px}.winRow strong{display:block}.winRow small{color:var(--muted)}
 .momentumBtn{width:100%;padding:10px 12px;margin:0 0 10px;border:1px solid rgba(10,186,181,.3);background:var(--accent-soft);color:var(--accent-strong);border-radius:12px;text-align:left;cursor:pointer;font-weight:750}
+.openLoopsBtn{width:100%;padding:10px 12px;margin:0 0 10px;border:1px solid rgba(201,163,175,.38);background:#fff;color:var(--ink);border-radius:12px;text-align:left;cursor:pointer;font-weight:750}.openLoopsBtn.hasAttention{background:var(--rose-soft);border-color:rgba(201,163,175,.58)}
+.openLoopsPage{max-width:980px;margin:0 auto}.openLoopsPage h2{font-family:Georgia,serif;font-size:40px;margin:4px 0 8px}.openLoopsPage>p{color:var(--muted);line-height:1.55}
+.loopSummary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.loopSummaryCard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}.loopSummaryCard small{display:block;text-transform:uppercase;letter-spacing:.08em;font-size:9px;color:var(--muted);font-weight:800;margin-bottom:7px}.loopSummaryCard strong{font-family:Georgia,serif;font-size:26px}
+.loopSection{margin:22px 0}.loopSectionHead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:10px}.loopSectionHead h3{font-family:Georgia,serif;font-size:24px;margin:2px 0 0}.loopList{display:grid;gap:9px}.loopItem{background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px}.loopItemTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.loopItem strong{display:block;font-size:13px}.loopItem p{font-size:11px;line-height:1.45;color:var(--muted);margin:6px 0 0}.loopMeta{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:5px}.loopActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.loopActions button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 9px;font-size:11px;cursor:pointer}.loopActions .approveLoop{background:var(--accent);color:#fff;border-color:var(--accent)}.loopActions .doneLoop{background:var(--accent-soft);color:var(--accent-strong);border-color:rgba(10,186,181,.28)}
+.attentionCard{background:linear-gradient(135deg,#fff 0%,var(--rose-soft) 100%);border:1px solid rgba(201,163,175,.42);border-radius:18px;padding:16px;margin:14px 0;display:flex;align-items:center;justify-content:space-between;gap:14px}.attentionCard strong{font-family:Georgia,serif;font-size:20px}.attentionCard span{display:block;color:var(--muted);font-size:12px;margin-top:4px}.attentionCard button{border:0;background:var(--dark);color:#fff;border-radius:11px;padding:9px 12px;cursor:pointer;font-weight:750;white-space:nowrap}
+
 
 
 .webSources{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
@@ -125,7 +131,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .chatMenu{position:fixed;z-index:90;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(43,21,15,.14);padding:6px;min-width:190px;max-width:260px}.chatMenu button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:11px;color:var(--ink)}.chatMenu button:hover{background:var(--accent-soft)}.chatMenu button.danger{color:#a83e33}.projectEmpty{font-size:10px;color:var(--muted);padding:6px 8px}
 
 @media(max-width:960px){.card{grid-template-columns:1fr;gap:18px}.loginVisual{min-height:280px}.dashboardHero{grid-template-columns:1fr 200px}}
-@media(max-width:860px){.settingGrid,.brainList,.businessEditGrid,.skillsBuilder,.skillLibraryGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.skillGrid{grid-template-columns:1fr}.momentumGrid,.winsPreview{grid-template-columns:1fr 1fr}.connectionGrid{grid-template-columns:1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
+@media(max-width:860px){.settingGrid,.brainList,.businessEditGrid,.skillsBuilder,.skillLibraryGrid,.loopSummary{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.skillGrid{grid-template-columns:1fr}.momentumGrid,.winsPreview{grid-template-columns:1fr 1fr}.connectionGrid{grid-template-columns:1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
 @media(max-width:560px){.center{padding:14px}.card{padding:16px;border-radius:22px}.card h1{font-size:42px}.field{flex-direction:column}.dashboardHero h2,.hub h2{font-size:32px}.focusCard strong{font-size:22px}.topBrand strong{font-size:14px}.topAvatar{width:34px;height:34px}.logo{font-size:28px}.brandPortrait{width:60px;height:60px;border-radius:14px}}</style>
 </head>
 <body>
@@ -164,6 +170,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
     <button id="newChat" class="new">+ New conversation</button>
     <button id="memoryBtn" class="memoryBtn" type="button">✦ My Brand Brain</button>
     <button id="skillsBtn" class="skillsBtn" type="button">◇ My Skills</button>
+    <button id="openLoopsBtn" class="openLoopsBtn" type="button">☑ Open Loops</button>
     <button id="momentumBtn" class="momentumBtn" type="button">↗ Momentum + Wins</button>
     <button id="connectionsBtn" class="connectionsBtn" type="button">⌘ Connections</button>
     <div class="sideSectionLabel">My Business</div>
@@ -318,6 +325,11 @@ qs("#skillsBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
   closeSidebarIfMobile();
   await openSkillsPage();
+});
+qs("#openLoopsBtn").addEventListener("click",async()=>{
+  if(state.loading)return;
+  closeSidebarIfMobile();
+  await openOpenLoopsPage();
 });
 qs("#momentumBtn").addEventListener("click",async()=>{
   if(state.loading)return;
@@ -1151,6 +1163,88 @@ async function openConnectionsPage(){
   }catch(e){qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Connections</h2><p>${esc(e.message)}</p></div>`}
 }
 
+async function openOpenLoopsPage(){
+  state.messages=[];state.conversationId="";renderThreads();
+  qs("#messages").innerHTML=`<div class="openLoopsPage"><div class="eyebrow">Open Loops</div><h2>What needs your attention.</h2><p>Approvals, your tasks, unfinished Action Runs, finished work, and assets Marina has ready for you.</p><div class="workspaceEmpty">Checking your open loops...</div></div>`;
+  try{
+    const j=await api("/api/open-loops");
+    const counts=j.counts||{}, approvals=j.approvals||[], tasks=j.tasks||[], runs=j.runs||[], completed=j.recent_completed||[], assets=j.ready_assets||[];
+    const btn=qs("#openLoopsBtn");
+    if(btn)btn.classList.toggle("hasAttention",Number(counts.attention_total||0)>0);
+
+    const empty=(text)=>`<div class="workspaceEmpty">${esc(text)}</div>`;
+    const approvalHtml=approvals.length?approvals.map(x=>`<div class="loopItem" data-loop-step="${esc(x.id)}">
+      <div class="loopItemTop"><div><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(x.external_system||"External action")} · needs approval</div></div></div>
+      ${x.description?`<p>${esc(x.description)}</p>`:""}
+      <div class="loopActions"><button class="approveLoop" data-loop-approve="approve">Approve</button><button data-loop-approve="reject">Reject</button></div>
+    </div>`).join(""):empty("Nothing is waiting for approval.");
+
+    const taskHtml=tasks.length?tasks.map(x=>`<div class="loopItem" data-loop-task="${esc(x.id)}">
+      <div class="loopItemTop"><div><strong>${esc(x.title)}</strong><div class="loopMeta">Your Move · internal Marina task</div></div></div>
+      ${x.description?`<p>${esc(x.description)}</p>`:""}
+      <div class="loopActions"><button class="doneLoop" data-loop-task-done>Mark Done ✓</button></div>
+    </div>`).join(""):empty("No Marina tasks are waiting on you.");
+
+    const runHtml=runs.length?runs.map(x=>`<div class="loopItem">
+      <div class="loopItemTop"><div><strong>${esc(x.objective||"Action Run")}</strong><div class="loopMeta">${esc(String(x.status||"").replace(/_/g," "))}</div></div></div>
+      ${x.summary?`<p>${esc(x.summary)}</p>`:""}
+      ${x.conversation_id?`<div class="loopActions"><button data-open-loop-chat="${esc(x.conversation_id)}">Open conversation</button></div>`:""}
+    </div>`).join(""):empty("No unfinished Action Runs.");
+
+    const completedHtml=completed.length?completed.slice(0,8).map(x=>`<div class="loopItem">
+      <div class="loopItemTop"><div><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(x.external_system||"Marina")} · completed</div></div></div>
+      ${x.result?.note?`<p>${esc(x.result.note)}</p>`:""}
+    </div>`).join(""):empty("Completed actions will show up here.");
+
+    const assetHtml=assets.length?assets.slice(0,8).map(x=>`<div class="loopItem">
+      <div class="loopItemTop"><div><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(workspaceLabel(x.section))} · ready to use</div></div></div>
+      <div class="loopActions"><button data-open-asset-section="${esc(x.section)}">Open workspace</button></div>
+    </div>`).join(""):empty("No recent Workspace assets yet.");
+
+    qs("#messages").innerHTML=`<div class="openLoopsPage">
+      <div class="eyebrow">Open Loops</div>
+      <h2>What needs your attention.</h2>
+      <p>Marina keeps the loose ends in one place so you do not have to remember what is waiting, what needs approval, and what is already done.</p>
+      <div class="loopSummary">
+        <div class="loopSummaryCard"><small>Needs approval</small><strong>${esc(counts.needs_approval||0)}</strong></div>
+        <div class="loopSummaryCard"><small>Your tasks</small><strong>${esc(counts.your_tasks||0)}</strong></div>
+        <div class="loopSummaryCard"><small>Open runs</small><strong>${esc(counts.open_runs||0)}</strong></div>
+        <div class="loopSummaryCard"><small>Ready assets</small><strong>${esc(counts.ready_assets||0)}</strong></div>
+      </div>
+
+      <div class="loopSection"><div class="loopSectionHead"><div><div class="eyebrow">Needs your approval</div><h3>Marina is waiting on you.</h3></div></div><div class="loopList">${approvalHtml}</div></div>
+      <div class="loopSection"><div class="loopSectionHead"><div><div class="eyebrow">Your tasks</div><h3>The moves only you can make.</h3></div></div><div class="loopList">${taskHtml}</div></div>
+      <div class="loopSection"><div class="loopSectionHead"><div><div class="eyebrow">Open Action Runs</div><h3>Work still in motion.</h3></div></div><div class="loopList">${runHtml}</div></div>
+      <div class="loopSection"><div class="loopSectionHead"><div><div class="eyebrow">Recently completed</div><h3>What Marina finished.</h3></div></div><div class="loopList">${completedHtml}</div></div>
+      <div class="loopSection"><div class="loopSectionHead"><div><div class="eyebrow">Ready to use</div><h3>Recent Workspace assets.</h3></div></div><div class="loopList">${assetHtml}</div></div>
+    </div>`;
+
+    qs("#messages").querySelectorAll("[data-loop-approve]").forEach(b=>b.onclick=async()=>{
+      const item=b.closest("[data-loop-step]");
+      if(!item)return;
+      b.disabled=true;
+      try{
+        const result=await api("/api/action-step-approval",{method:"POST",body:JSON.stringify({stepId:item.dataset.loopStep,decision:b.dataset.loopApprove})});
+        qs("#status").textContent=result.note||"Updated.";
+        await openOpenLoopsPage();
+      }catch(e){qs("#status").textContent=e.message;b.disabled=false}
+    });
+    qs("#messages").querySelectorAll("[data-loop-task-done]").forEach(b=>b.onclick=async()=>{
+      const item=b.closest("[data-loop-task]");
+      if(!item)return;
+      b.disabled=true;
+      try{
+        await api("/api/open-loops/task",{method:"PATCH",body:JSON.stringify({stepId:item.dataset.loopTask,done:true})});
+        await openOpenLoopsPage();
+      }catch(e){qs("#status").textContent=e.message;b.disabled=false}
+    });
+    qs("#messages").querySelectorAll("[data-open-loop-chat]").forEach(b=>b.onclick=()=>selectConversation(b.dataset.openLoopChat));
+    qs("#messages").querySelectorAll("[data-open-asset-section]").forEach(b=>b.onclick=()=>openWorkspace(b.dataset.openAssetSection));
+  }catch(e){
+    qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Open Loops</h2><p>${esc(e.message)}</p></div>`;
+  }
+}
+
 async function openMomentumPage(){
   state.messages=[];state.conversationId="";renderThreads();
   qs("#messages").innerHTML=`<div class="momentumPage"><div class="eyebrow">Momentum</div><h2>Your business is leaving receipts.</h2><p>Marina blends live CRM signals with the wins and activity you log yourself.</p><div class="workspaceEmpty">Loading momentum...</div></div>`;
@@ -1217,6 +1311,7 @@ async function renderDashboard(){
     qs("#messages").innerHTML=`<div class="dashboard">
       <div class="dashboardHero"><div><div class="eyebrow">Your Business, Remembered</div><h2>Marina knows where you left off.</h2><p>No starting over. No re-explaining your business every time. Here is the work in front of us.</p></div><div class="dashboardPortraitWrap"><img class="dashboardPortrait" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina portrait"></div></div>
       <div class="focusCard"><div><small>Today's Move</small><strong>${esc(j.todayMove||"Ask Marina for today's move.")}</strong></div><button id="todayMoveBtn">Work this with Marina →</button></div>
+      ${Number(j.openLoops?.counts?.attention_total||0)>0?`<div class="attentionCard"><div><strong>${esc(j.openLoops.counts.attention_total)} thing${Number(j.openLoops.counts.attention_total)===1?"":"s"} need your attention</strong><span>${esc(j.openLoops.counts.needs_approval||0)} approval · ${esc(j.openLoops.counts.your_tasks||0)} task · ${esc(j.openLoops.counts.open_runs||0)} open run</span></div><button id="dashboardOpenLoops">Open Loops →</button></div>`:""}
       ${assignment?`<div class="accountabilityCard"><small>Accountability Check</small><strong>${esc(assignment)}</strong><div class="checkinBtns"><button class="done" data-checkin="done">Done ✓</button><button data-checkin="partial">Partly</button><button data-checkin="not_done">Nope</button></div></div>`:""}
       <div class="businessGrid">${cards.map(([label,value])=>`<div class="bizCard"><small>${esc(label)}</small><strong>${esc(value||"Not set yet")}</strong></div>`).join("")}</div>
       <div class="momentumSection">
@@ -1236,6 +1331,7 @@ async function renderDashboard(){
       </div>
     </div>`;
     qs("#todayMoveBtn").onclick=()=>{resetWorkspace("coach");send("Based on what you remember about my business and my recent momentum, help me execute today's highest-leverage move. Keep me focused and give me the exact first steps.","coach")};
+    if(qs("#dashboardOpenLoops"))qs("#dashboardOpenLoops").onclick=openOpenLoopsPage;
     if(qs("#openMomentum"))qs("#openMomentum").onclick=openMomentumPage;
     qs("#messages").querySelectorAll("[data-checkin]").forEach(b=>b.onclick=()=>submitCheckin(b.dataset.checkin,assignment));
     qs("#messages").querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>openMode(b.dataset.mode));
