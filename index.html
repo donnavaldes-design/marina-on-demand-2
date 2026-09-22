@@ -213,7 +213,7 @@ import { marked } from "https://esm.sh/marked@15";
 import DOMPurify from "https://esm.sh/dompurify@3";
 
 const qs = s => document.querySelector(s);
-const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
+const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null, initialized:false };
 
 const config = await fetch("/api/config").then(r=>r.json());
 qs("#modelLabel").textContent = `Private Beta · ${config.build || "build"}`;
@@ -235,27 +235,64 @@ function closeSidebar(){document.body.classList.remove("sidebarOpen")}
 function closeSidebarIfMobile(){if(window.innerWidth<=860)closeSidebar()}
 window.addEventListener("resize",()=>{if(window.innerWidth>860)closeSidebar()});
 
-async function refreshSession(){
+async function refreshSession(forceHome=false){
   const {data} = await state.supabase.auth.getSession();
   state.session = data.session;
+
   if(state.session){
-    qs("#login").style.display="none"; qs("#app").style.display="grid";
+    qs("#login").style.display="none";
+    qs("#app").style.display="grid";
     qs("#userEmail").textContent=state.session.user.email || "";
-    await loadConversations(); await loadAdminStatus(); await loadSkills();
+
+    await loadConversations();
+    await loadAdminStatus();
+    await loadSkills();
+
     const qp=new URLSearchParams(window.location.search);
     if(qp.get("oauth")){
       const ok=qp.get("oauth")==="success";
       qs("#status").textContent=ok?"Account connected successfully.":(qp.get("message")||"Account connection was not completed.");
       history.replaceState({},document.title,window.location.pathname);
       await openConnectionsPage();
-    }else{
+    }else if(forceHome || !state.initialized){
       await renderDashboard();
     }
+
+    state.initialized=true;
   }else{
-    qs("#login").style.display="grid"; qs("#app").style.display="none";
+    state.initialized=false;
+    qs("#login").style.display="grid";
+    qs("#app").style.display="none";
   }
 }
-state.supabase.auth.onAuthStateChange((_e,s)=>{state.session=s; refreshSession()});
+
+state.supabase.auth.onAuthStateChange((event,s)=>{
+  state.session=s;
+
+  if(event==="SIGNED_OUT"){
+    state.initialized=false;
+    qs("#login").style.display="grid";
+    qs("#app").style.display="none";
+    return;
+  }
+
+  if(!s)return;
+
+  qs("#login").style.display="none";
+  qs("#app").style.display="grid";
+  qs("#userEmail").textContent=s.user?.email || "";
+
+  // Supabase refreshes access tokens periodically. That must never navigate
+  // the user away from an active chat, Workspace view, Connections, or any
+  // other screen. Refresh auth state silently and leave the UI exactly where it is.
+  if(event==="TOKEN_REFRESHED" || event==="USER_UPDATED" || event==="MFA_CHALLENGE_VERIFIED"){
+    return;
+  }
+
+  if(!state.initialized){
+    refreshSession();
+  }
+});
 await refreshSession();
 
 qs("#loginForm").addEventListener("submit", async e=>{
