@@ -1410,7 +1410,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
           if (call.name === "bmod_read") {
             result = await executeBmodRead(userId,args,{runId:run.id});
           } else if(call.name === "google_operation") {
-            result=await executeGoogleRead(userId,args);
+            result=await executeGoogleOperation(userId,args,{runId:run.id});
           } else if(call.name === "canva_operation") {
             result = await CANVA.execute(userId,args,{runId:run.id});
           } else {
@@ -1769,7 +1769,14 @@ async function buildUserMcpTools(userId) {
 
 const GOOGLE_MANIFEST=require('./google/manifest');
 const GOOGLE=Object.fromEntries(Object.keys(GOOGLE_MANIFEST.providers).map(key=>[key,require('./google/service').createService(key,{sbRest,sbRpc,getSecret:getConnectionSecret,getRefreshSecret:getConnectionRefreshSecret})]));
-async function executeGoogleRead(user,args){if(!GOOGLE_MANIFEST.isProvider(args.provider))throw Error('Unsupported Google provider.');return GOOGLE[args.provider].execute(user,args);}
+async function executeGoogleOperation(user,args,context={}){
+  if(!GOOGLE_MANIFEST.isProvider(args.provider))throw Error('Unsupported Google provider.');
+  return GOOGLE[args.provider].execute(user,args,{
+    ...context,
+    insertActionStep,
+    nextActionStepOrder
+  });
+}
 const CANVA_MANIFEST = require("./canva/manifest");
 const CANVA = require("./canva/service").createService({sbRest,sbRpc,getSecret:getConnectionSecret,getRefreshSecret:getConnectionRefreshSecret,insertActionStep,nextActionStepOrder});
 const BMOD_MANIFEST = require("./bmod/manifest");
@@ -2140,7 +2147,7 @@ ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext
       let result;
       try {
         if (call.name === "bmod_read") result = await executeBmodRead(userId,args);
-        else if(call.name === "google_operation") result=await executeGoogleRead(userId,args);
+        else if(call.name === "google_operation") result=await executeGoogleOperation(userId,args);
         else if(call.name === "canva_operation") result = await CANVA.execute(userId,args);
         else result = {ok:false,error:`Unsupported tool ${call.name}`};
       } catch(e) {
@@ -2760,7 +2767,9 @@ module.exports = async function handler(req, res) {
     const googleRoute=path.match(/^\/api\/connections\/(gmail|google_calendar|google_drive)\/(permissions|verify)$/);
     if(googleRoute&&req.method==='PATCH'&&googleRoute[2]==='permissions'){
       const body=await readBody(req);if(!['view_only','view_and_take_action'].includes(body.permissionMode))return json(res,400,{error:'Invalid permission mode.'});
-      await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${googleRoute[1]}`,{method:'PATCH',body:JSON.stringify({permission_mode:body.permissionMode,read_only:body.permissionMode==='view_only'})});return json(res,200,{ok:true,writes_enabled:false});
+      await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${googleRoute[1]}`,{method:'PATCH',body:JSON.stringify({permission_mode:body.permissionMode,read_only:body.permissionMode==='view_only',updated_at:new Date().toISOString()})});
+      const updated=(await getConnectionsForUser(user.id)).find(x=>x.integration_key===googleRoute[1]);
+      return json(res,200,{ok:true,writes_enabled:updated?.writes_enabled===true,connection:updated});
     }
     if(googleRoute&&req.method==='POST'&&googleRoute[2]==='verify')return json(res,200,await GOOGLE[googleRoute[1]].verify(user.id));
     if(req.method==="PATCH" && path==="/api/connections/canva/permissions") {
@@ -3340,6 +3349,17 @@ async function executeApprovedBmodStep(userId,step){
         const linked=await sbRest(`action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}&select=run_id&limit=1`);
         if(linked?.[0]?.run_id)await refreshActionRunStatus(user.id,linked[0].run_id);
         return json(res,200,canvaApproval);
+      }
+
+      if(decision==="approve"){
+        for(const providerKey of Object.keys(GOOGLE)){
+          const googleApproval=await GOOGLE[providerKey].approve(user.id,stepId,decision);
+          if(googleApproval){
+            const runId=googleApproval.run_id;
+            if(runId)await refreshActionRunStatus(user.id,runId);
+            return json(res,200,googleApproval);
+          }
+        }
       }
 
       const rows = await sbRest(
