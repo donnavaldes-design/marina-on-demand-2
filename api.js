@@ -1970,6 +1970,20 @@ async function discoverConnectedMcpTools(userId,integrationKey,serverUrl,accessT
   return {discovered,safe};
 }
 
+
+const DEFAULT_HIGHLEVEL_SCOPES = [
+  "locations.readonly",
+  "contacts.readonly",
+  "opportunities.readonly",
+  "pipelines.readonly",
+  "workflows.readonly"
+].join(" ");
+
+function getHighLevelScopes() {
+  const configured = String(process.env.HIGHLEVEL_SCOPES || "").trim();
+  return configured || DEFAULT_HIGHLEVEL_SCOPES;
+}
+
 module.exports = async function handler(req, res) {
   try {
     const url = new URL(req.url, "https://local.invalid");
@@ -1980,7 +1994,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "3.3.1-highlevel-oauth",
+        build: "3.3.2-highlevel-scopes",
         benchmarkEnabled: true,
       });
     }
@@ -2158,19 +2172,29 @@ module.exports = async function handler(req, res) {
           }])
         });
 
+        const highLevelScopes = getHighLevelScopes();
+
+        await sbRest(`connection_oauth_states?state=eq.${encodeURIComponent(state)}`,{
+          method:"PATCH",
+          headers:{Prefer:"return=minimal"},
+          body:JSON.stringify({scopes:highLevelScopes})
+        });
+
         const authUrl = new URL("https://marketplace.gohighlevel.com/oauth/chooselocation");
         authUrl.searchParams.set("response_type","code");
         authUrl.searchParams.set("client_id",clientId);
         authUrl.searchParams.set("redirect_uri",redirectUri);
         authUrl.searchParams.set("state",state);
         authUrl.searchParams.set("user_type","Location");
+        authUrl.searchParams.set("scope",highLevelScopes);
         authUrl.searchParams.set("code_challenge",challenge);
         authUrl.searchParams.set("code_challenge_method","S256");
 
         return json(res,200,{
           authorizeUrl:authUrl.toString(),
           status:"redirect",
-          provider:"highlevel"
+          provider:"highlevel",
+          scopes:highLevelScopes
         });
       }
 

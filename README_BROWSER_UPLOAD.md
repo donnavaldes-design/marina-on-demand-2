@@ -1,35 +1,28 @@
-# Marina On Demand 3.3.1 — HighLevel OAuth Adapter
+# Marina On Demand 3.3.2 — HighLevel Scopes Fix
 
 Upload all four flat files to the existing repository root.
 
 Build marker:
-3.3.1-highlevel-oauth
+3.3.2-highlevel-scopes
 
 Fix:
-BMOD Tools no longer uses generic MCP dynamic OAuth registration.
+HighLevel requires a non-empty OAuth `scope` parameter. The BMOD Tools adapter now sends scopes.
 
-BMOD Tools now uses the registered HighLevel developer app:
-- HIGHLEVEL_CLIENT_ID
-- HIGHLEVEL_CLIENT_SECRET
-- Authorization endpoint:
-  https://marketplace.gohighlevel.com/oauth/chooselocation
-- Token endpoint:
-  https://services.leadconnectorhq.com/oauth/token
-- user_type=Location
-- callback:
-  NEXT_PUBLIC_SITE_URL + /api/connections/oauth/callback
+Default test scopes:
+- locations.readonly
+- contacts.readonly
+- opportunities.readonly
+- pipelines.readonly
+- workflows.readonly
 
-Required Vercel environment variables:
+Optional Vercel environment variable:
+HIGHLEVEL_SCOPES
+
+If HIGHLEVEL_SCOPES is set, Marina uses that exact space-separated list instead of the default test scopes.
+
+Existing required variables:
 HIGHLEVEL_CLIENT_ID
 HIGHLEVEL_CLIENT_SECRET
 NEXT_PUBLIC_SITE_URL
 
-Expected customer flow:
-Connections → BMOD Tools → Continue Secure Sign-In
-→ HighLevel location selection / authorization
-→ callback to Marina
-→ token stored securely
-→ MCP tool discovery
-→ Connected
-
-Everything from 3.3.0 remains included.
+This build keeps write execution disabled while we validate the connection. After OAuth works, expand HIGHLEVEL_SCOPES and wire Marina's View + Take Action toggle / approval bridge.
