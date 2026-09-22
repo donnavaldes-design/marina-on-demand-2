@@ -213,7 +213,7 @@ import { marked } from "https://esm.sh/marked@15";
 import DOMPurify from "https://esm.sh/dompurify@3";
 
 const qs = s => document.querySelector(s);
-const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null, initialized:false };
+const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
 
 const config = await fetch("/api/config").then(r=>r.json());
 qs("#modelLabel").textContent = `Private Beta · ${config.build || "build"}`;
@@ -235,64 +235,27 @@ function closeSidebar(){document.body.classList.remove("sidebarOpen")}
 function closeSidebarIfMobile(){if(window.innerWidth<=860)closeSidebar()}
 window.addEventListener("resize",()=>{if(window.innerWidth>860)closeSidebar()});
 
-async function refreshSession(forceHome=false){
+async function refreshSession(){
   const {data} = await state.supabase.auth.getSession();
   state.session = data.session;
-
   if(state.session){
-    qs("#login").style.display="none";
-    qs("#app").style.display="grid";
+    qs("#login").style.display="none"; qs("#app").style.display="grid";
     qs("#userEmail").textContent=state.session.user.email || "";
-
-    await loadConversations();
-    await loadAdminStatus();
-    await loadSkills();
-
+    await loadConversations(); await loadAdminStatus(); await loadSkills();
     const qp=new URLSearchParams(window.location.search);
     if(qp.get("oauth")){
       const ok=qp.get("oauth")==="success";
       qs("#status").textContent=ok?"Account connected successfully.":(qp.get("message")||"Account connection was not completed.");
       history.replaceState({},document.title,window.location.pathname);
       await openConnectionsPage();
-    }else if(forceHome || !state.initialized){
+    }else{
       await renderDashboard();
     }
-
-    state.initialized=true;
   }else{
-    state.initialized=false;
-    qs("#login").style.display="grid";
-    qs("#app").style.display="none";
+    qs("#login").style.display="grid"; qs("#app").style.display="none";
   }
 }
-
-state.supabase.auth.onAuthStateChange((event,s)=>{
-  state.session=s;
-
-  if(event==="SIGNED_OUT"){
-    state.initialized=false;
-    qs("#login").style.display="grid";
-    qs("#app").style.display="none";
-    return;
-  }
-
-  if(!s)return;
-
-  qs("#login").style.display="none";
-  qs("#app").style.display="grid";
-  qs("#userEmail").textContent=s.user?.email || "";
-
-  // Supabase refreshes access tokens periodically. That must never navigate
-  // the user away from an active chat, Workspace view, Connections, or any
-  // other screen. Refresh auth state silently and leave the UI exactly where it is.
-  if(event==="TOKEN_REFRESHED" || event==="USER_UPDATED" || event==="MFA_CHALLENGE_VERIFIED"){
-    return;
-  }
-
-  if(!state.initialized){
-    refreshSession();
-  }
-});
+state.supabase.auth.onAuthStateChange((_e,s)=>{state.session=s; refreshSession()});
 await refreshSession();
 
 qs("#loginForm").addEventListener("submit", async e=>{
@@ -877,11 +840,14 @@ function connectionStatusLabel(c,integration){
 async function configureConnection(key){
   try{
     qs("#status").textContent="Opening secure sign-in...";
+    const prep=await api("/api/connections",{
+      method:"POST",
+      body:JSON.stringify({integrationKey:key})
+    });
     const j=await api("/api/connections/oauth/start",{
       method:"POST",
       body:JSON.stringify({integrationKey:key,returnUrl:window.location.origin+"/"})
     });
-    if(j.status==="connected"){await openConnectionsPage();return;}
     if(!j.authorizeUrl)throw new Error("The provider did not return a secure sign-in URL.");
     window.location.href=j.authorizeUrl;
   }catch(e){
@@ -891,7 +857,7 @@ async function configureConnection(key){
 }
 async function testConnection(key){
   try{
-    qs("#status").textContent="Testing connection...";
+    qs("#status").textContent="Testing MCP connection...";
     const j=await api("/api/connections/discover",{method:"POST",body:JSON.stringify({integrationKey:key})});
     qs("#status").textContent=j.status==="connected"?`Connected. ${j.allowedTools.length} read-only tools ready.`:"Connection reached, but no read-only tools were auto-approved.";
     await openConnectionsPage();
@@ -907,51 +873,11 @@ async function disconnectConnection(key){
   }catch(e){qs("#status").textContent=e.message}
 }
 
-function bmodNeedsPermissions(c){
-  return !!c && (c.reauthorization_required===true || (c.missing_scopes||[]).length>0 || !Array.isArray(c.operations));
-}
-function bmodControlsMarkup(c){
-  const connected=!!c && !["disconnected","disabled","auth_required","error"].includes(c.status);
-  return `<div class="connectionTools"><label>Connection permission <select data-bmod-permission-mode ${!c?'disabled':''}>
-    <option value="view_only" ${c?.permission_mode!=="view_and_take_action"?"selected":""}>View Only</option>
-    <option value="view_and_take_action" ${c?.permission_mode==="view_and_take_action"?"selected":""}>View + Take Action</option>
-    </select></label><p>View Only allows reads. Actions require individual Action Mode approval; execution is currently disabled.</p>
-    ${connected && bmodNeedsPermissions(c)?`<p>Additional permissions are needed for this mode. Your existing connection remains active.</p><button class="primaryConnect" data-connect="bmod_tools">Update permissions</button>`:""}
-    <div class="connectionActions"><button data-bmod-verify ${connected?'':'disabled'}>Verify reads + refresh</button></div>
-    <div data-bmod-result role="status" aria-live="polite"></div></div>`;
-}
-function bmodVerificationMarkup(j){
-  const names={search_contacts:"Contacts",search_opportunities:"Opportunities",list_pipelines:"Pipelines",list_workflows:"Workflows",list_funnels:"Funnels",list_blogs:"Blogs",list_email_templates:"Email templates",list_products:"Products"};
-  const label=s=>s==="passed"?"Passed":s==="missing_permission"?"Update permissions required":"Failed";
-  const rows=Object.entries(names).map(([operation,name])=>`<tr><th scope="row">${name}</th>${["before_refresh","after_refresh"].map(phase=>`<td>${label((j.checks||[]).find(c=>c.operation===operation&&c.phase===phase)?.status)}</td>`).join("")}</tr>`).join("");
-  return `<p><strong>Token refresh: ${label(j.refresh)}.</strong> Connection: ${esc(j.status||"unknown")}.</p><table><thead><tr><th>Capability</th><th>Before refresh</th><th>After refresh</th></tr></thead><tbody>${rows}</tbody></table><p>This check reads data only. Reload Marina and run it again to check persistence.</p>`;
-}
-async function verifyBmodReadCycle(button){
-  button.disabled=true;
-  const result=button.closest(".connectionCard").querySelector("[data-bmod-result]");
-  result.textContent="Checking reads, refreshing authorization, then repeating reads...";
-  try{const j=await api("/api/connections/bmod/verify",{method:"POST",body:"{}"});result.innerHTML=bmodVerificationMarkup(j);}
-  catch(e){result.textContent=e.message;}finally{button.disabled=false;}
-}
-function bmodCapabilitiesMarkup(c){
-  if(!c || !Array.isArray(c.operations))return `<p>Capability details are not available yet. Update permissions to synchronize your access.</p>`;
-  const families=[...new Set(c.operations.map(o=>o.family))];
-  return `<div class="connectionTools"><details open><summary>Granted capabilities</summary>${families.map(f=>{
-    const ops=c.operations.filter(o=>o.family===f),reads=ops.filter(o=>o.classification==="read"),ready=reads.filter(o=>o.status==="available").length;
-    const scopes=[...new Set(ops.flatMap(o=>o.required_scopes||[]))].filter(scope=>(c.granted_scopes||[]).includes(scope));
-    return `<details><summary><strong>${esc(f)}</strong>: ${ready}/${reads.length} reads granted</summary><p>${reads.filter(o=>o.status==="available").map(o=>esc(o.name.replaceAll("_"," "))).join(", ")||"No reads granted yet."}</p>${ready<reads.length?"<p>Update permissions to enable additional reads.</p>":""}<p>Granted permissions: ${scopes.map(esc).join(", ")||"None"}</p></details>`;
-  }).join("")}</details></div>`;
-}
-async function updateBmodPermissionMode(mode){
-  try{await api("/api/connections/bmod/permissions",{method:"PATCH",body:JSON.stringify({permissionMode:mode})});await openConnectionsPage();}
-  catch(e){qs("#status").textContent=e.message;await openConnectionsPage();}
-}
-
 async function openConnectionsPage(){
   state.messages=[];state.conversationId="";renderThreads();
   qs("#messages").innerHTML=`<div class="connectionsPage"><div class="eyebrow">Connections</div><h2>Give Marina eyes on the business.</h2><p>Connect trusted MCP servers so Marina can work from live business data instead of screenshots.</p><div class="workspaceEmpty">Loading connections...</div></div>`;
   try{
-    const j=await api("/api/connections",{cache:"no-store"});
+    const j=await api("/api/connections");
     const list=j.integrations||[];
     qs("#messages").innerHTML=`<div class="connectionsPage">
       <div class="eyebrow">Connections</div>
@@ -964,22 +890,19 @@ async function openConnectionsPage(){
           <div class="connectionTop"><div><div class="connectionIcon">${esc(i.icon||"⌘")}</div><div class="connectionTitle">${esc(i.display_name)}</div><div class="connectionSub">${esc(i.subtitle||"")}</div></div><span class="connectionStatus ${esc(c?.status||"")}">${esc(status)}</span></div>
           <div class="connectionDesc">${esc(i.description||"")}</div>
           ${c?.last_error?`<div class="actionStepDesc" style="color:#a83e33">${esc(c.last_error)}</div>`:""}
-          ${i.integration_key==="bmod_tools"?bmodControlsMarkup(c)+bmodCapabilitiesMarkup(c):""}
-          ${i.integration_key!=="bmod_tools" && tools.length?`<div class="connectionTools"><strong>Approved read tools:</strong> ${tools.map(esc).join(", ")}</div>`:""}
+          ${tools.length?`<div class="connectionTools"><strong>Approved read tools:</strong> ${tools.map(esc).join(", ")}</div>`:""}
           <div class="connectionActions">
             ${i.status==="coming_soon"?`<button disabled>Coming soon</button>`:
               (!c||["disconnected","disabled","error"].includes(c.status))
               ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Connect Account</button>`
               :c.status==="auth_required"
                 ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Continue Secure Sign-In</button><button data-disconnect="${esc(i.integration_key)}">Cancel</button>`
-                :`${i.integration_key!=="bmod_tools" && c?.reauthorization_required?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Update permissions</button>`:""}<button data-test-connection="${esc(i.integration_key)}">Test connection</button><button data-disconnect="${esc(i.integration_key)}">Disconnect</button>`}
+                :`<button data-test-connection="${esc(i.integration_key)}">Test connection</button><button data-disconnect="${esc(i.integration_key)}">Disconnect</button>`}
           </div>
         </div>`;
       }).join("")}</div>
       <div class="securityNote"><strong>Security:</strong> Connection endpoints are preconfigured server-side. Marina only auto-enables tools whose names clearly look read-only, such as get, list, search, read, fetch or view. Account authorization is handled separately from the MCP URL, and credentials are never displayed back in the browser.</div>
     </div>`;
-    qs("#messages").querySelectorAll("[data-bmod-verify]").forEach(b=>b.onclick=()=>verifyBmodReadCycle(b));
-    qs("#messages").querySelectorAll("[data-bmod-permission-mode]").forEach(s=>s.onchange=()=>updateBmodPermissionMode(s.value));
     qs("#messages").querySelectorAll("[data-connect]").forEach(b=>b.onclick=()=>configureConnection(b.dataset.connect));
     qs("#messages").querySelectorAll("[data-test-connection]").forEach(b=>b.onclick=()=>testConnection(b.dataset.testConnection));
     qs("#messages").querySelectorAll("[data-disconnect]").forEach(b=>b.onclick=()=>disconnectConnection(b.dataset.disconnect));
