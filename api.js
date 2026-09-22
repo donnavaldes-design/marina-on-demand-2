@@ -1543,10 +1543,8 @@ const BMOD_READ_TOOL = {
 };
 
 async function getBmodConnection(userId) {
-  const rows = await sbRest(
-    `user_connections?user_id=eq.${encodeURIComponent(userId)}&integration_key=eq.bmod_tools&status=eq.connected&select=id,status,provider_account_id,token_expires_at,oauth_scope,last_error&limit=1`
-  );
-  return Array.isArray(rows) ? rows[0] || null : null;
+  const c=await readBmodRow(userId);
+  return bmodMayRead(c) ? c : null;
 }
 
 async function getConnectionRefreshSecret(userId, integrationKey) {
@@ -1561,100 +1559,142 @@ async function getConnectionRefreshSecret(userId, integrationKey) {
   }
 }
 
-async function refreshHighLevelAccessToken(userId) {
-  const refreshToken = await getConnectionRefreshSecret(userId,"bmod_tools");
-  if (!refreshToken) throw new Error("BMOD Tools needs to be reconnected.");
+const BMOD_TOOL_NAMES = ["search_contacts","search_opportunities","list_pipelines","list_workflows"];
+const BMOD_RECONNECT_ERROR = "HighLevel authorization is no longer valid. Please reconnect.";
 
-  const clientId = String(process.env.HIGHLEVEL_CLIENT_ID || "").trim();
-  const clientSecret = String(process.env.HIGHLEVEL_CLIENT_SECRET || "").trim();
-  if (!clientId || !clientSecret) throw new Error("HighLevel OAuth credentials are missing.");
+async function bmodTransition(userId, action, lease=null, data={}) {
+  return sbRpc("bmod_token_transition", {p_user_id:userId,p_action:action,p_lease:lease,p_data:data});
+}
 
-  const params = new URLSearchParams({
-    client_id:clientId,
-    client_secret:clientSecret,
-    grant_type:"refresh_token",
-    refresh_token:refreshToken,
-    user_type:"Location",
-  });
+async function readBmodRow(userId) {
+  const rows = await sbRest(`user_connections?user_id=eq.${encodeURIComponent(userId)}&integration_key=eq.bmod_tools&select=*&limit=1`);
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
 
-  const {response,data,text} = await fetchJsonMaybe("https://services.leadconnectorhq.com/oauth/token",{
-    method:"POST",
-    headers:{
-      "accept":"application/json",
-      "content-type":"application/x-www-form-urlencoded",
-      "version":"v3",
-    },
-    body:params.toString()
-  });
+function bmodMayRead(c) {
+  // Recover only legacy records that retained a completed authorization.
+  return !!c && (c.status === "connected" ||
+    (["auth_required","error","configured"].includes(c.status) && !c.oauth_provider &&
+     !!c.oauth_connected_at && !!c.provider_account_id && !!c.vault_secret_id && !!c.refresh_vault_secret_id));
+}
 
-  if (!response.ok || !data?.access_token) {
-    throw new Error(`HighLevel token refresh failed (${response.status}): ${data?.message || data?.error_description || data?.error || text.slice(0,300)}`);
+async function saveBmodTokens(userId, lease, data) {
+  if (!data.access_token || !data.refresh_token || !(Number(data.expires_in)>0))
+    throw new Error("HighLevel returned an incomplete token response. Please retry later.");
+  // Retry the SAME returned pair on a storage failure, never reuse the old refresh token.
+  for (let attempt=0; attempt<3; attempt++) {
+    try {
+      if (!await bmodTransition(userId,"save",lease,data))
+        throw new Error("Connection changed while saving authorization. Please retry.");
+      return;
+    } catch(e) {
+      if (attempt===2) throw new Error("Unable to persist HighLevel authorization. Please retry later.");
+      await new Promise(resolve=>setTimeout(resolve,100*(attempt+1)));
+    }
   }
+}
 
-  await sbRpc("store_connection_secret",{
-    p_user_id:userId,
-    p_integration_key:"bmod_tools",
-    p_secret:String(data.access_token),
-  });
-  if (data.refresh_token) {
-    await sbRpc("store_connection_refresh_secret",{
-      p_user_id:userId,
-      p_integration_key:"bmod_tools",
-      p_secret:String(data.refresh_token),
+async function refreshHighLevelAccessToken(userId, rejectedToken=null) {
+  const lease = require("crypto").randomUUID();
+  let acquired=false;
+  for(let attempt=0;attempt<30;attempt++) {
+    const current=await readBmodRow(userId);
+    if (!bmodMayRead(current)) throw new Error("BMOD Tools needs to be reconnected.");
+    const currentToken=await getConnectionSecret(userId,"bmod_tools");
+    const expiry=Date.parse(current.token_expires_at || "");
+    if (currentToken && expiry>Date.now()+5*60*1000 && (!rejectedToken || currentToken!==rejectedToken)) return currentToken;
+    acquired=await bmodTransition(userId,"claim",lease);
+    if(acquired) break;
+    await new Promise(resolve=>setTimeout(resolve,200));
+  }
+  if(!acquired) throw new Error("BMOD Tools is refreshing authorization. Please retry shortly.");
+  try {
+    // Re-read after acquiring the database lease. Another instance may have rotated it.
+    const current=await readBmodRow(userId);
+    if (!bmodMayRead(current)) throw new Error("BMOD Tools needs to be reconnected.");
+    const currentToken=await getConnectionSecret(userId,"bmod_tools");
+    if(currentToken && Date.parse(current.token_expires_at || "")>Date.now()+5*60*1000 && (!rejectedToken || currentToken!==rejectedToken)) return currentToken;
+    const refreshToken=await getConnectionRefreshSecret(userId,"bmod_tools");
+    if(!refreshToken) throw new Error("HighLevel refresh credential is unavailable. Please retry later.");
+    const clientId=String(process.env.HIGHLEVEL_CLIENT_ID || "").trim();
+    const clientSecret=String(process.env.HIGHLEVEL_CLIENT_SECRET || "").trim();
+    if(!clientId || !clientSecret) throw new Error("HighLevel OAuth credentials are missing.");
+    const params=new URLSearchParams({client_id:clientId,client_secret:clientSecret,grant_type:"refresh_token",refresh_token:refreshToken,user_type:"Location"});
+    const {response,data}=await fetchJsonMaybe("https://services.leadconnectorhq.com/oauth/token",{
+      method:"POST",headers:{accept:"application/json","content-type":"application/x-www-form-urlencoded",version:"v3"},
+      body:params.toString(),signal:AbortSignal.timeout(15000)
     });
+    if(!response.ok) {
+      if((response.status===400 || response.status===401) && data?.error==="invalid_grant") {
+        await bmodTransition(userId,"revoke",lease);
+        throw new Error(BMOD_RECONNECT_ERROR);
+      }
+      console.warn("bmod_oauth_refresh_unavailable",{status:response.status});
+      throw new Error(`HighLevel token refresh temporarily unavailable (${response.status}). Please retry later.`);
+    }
+    await saveBmodTokens(userId,lease,{...data,mode:"refresh"});
+    console.info("bmod_oauth_refresh_succeeded");
+    return String(data.access_token);
+  } finally {
+    await bmodTransition(userId,"release",lease).catch(()=>{});
   }
-
-  const expiresAt = Number(data.expires_in)>0
-    ? new Date(Date.now()+Number(data.expires_in)*1000).toISOString()
-    : null;
-
-  await sbRest(`user_connections?user_id=eq.${encodeURIComponent(userId)}&integration_key=eq.bmod_tools`,{
-    method:"PATCH",
-    headers:{Prefer:"return=minimal"},
-    body:JSON.stringify({
-      token_expires_at:expiresAt,
-      oauth_scope:String(data.scope || ""),
-      last_error:null,
-      updated_at:new Date().toISOString(),
-    })
-  });
-
-  return String(data.access_token);
 }
 
 async function getHighLevelAccessToken(userId) {
-  const rows = await sbRest(
-    `user_connections?user_id=eq.${encodeURIComponent(userId)}&integration_key=eq.bmod_tools&select=token_expires_at&limit=1`
-  );
-  const c = Array.isArray(rows) ? rows[0] : null;
-  const expires = c?.token_expires_at ? new Date(c.token_expires_at).getTime() : 0;
-  if (expires && expires < Date.now()+5*60*1000) {
-    return refreshHighLevelAccessToken(userId);
-  }
-  const token = await getConnectionSecret(userId,"bmod_tools");
-  if (!token) return refreshHighLevelAccessToken(userId);
-  return token;
+  const c=await readBmodRow(userId);
+  if(!bmodMayRead(c)) throw new Error("BMOD Tools needs to be reconnected.");
+  const expires=Date.parse(c.token_expires_at || "");
+  if(!Number.isFinite(expires) || expires<Date.now()+5*60*1000) return refreshHighLevelAccessToken(userId);
+  const token=await getConnectionSecret(userId,"bmod_tools");
+  return token || refreshHighLevelAccessToken(userId);
 }
 
 async function highLevelApi(userId, path, {method="GET",body=null}={}) {
-  const token = await getHighLevelAccessToken(userId);
-  const r = await fetch(`https://services.leadconnectorhq.com${path}`,{
-    method,
-    headers:{
-      "accept":"application/json",
-      "content-type":"application/json",
-      "authorization":`Bearer ${token}`,
-      "version":"v3",
-    },
-    body:body == null ? undefined : JSON.stringify(body),
-  });
-  const text = await r.text();
-  let data = null;
-  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-  if (!r.ok) {
-    throw new Error(`BMOD Tools API ${r.status}: ${typeof data==="string" ? data.slice(0,500) : (data?.message || JSON.stringify(data)).slice(0,500)}`);
+  let token=await getHighLevelAccessToken(userId);
+  for(let attempt=0;attempt<2;attempt++) {
+    const r=await fetch(`https://services.leadconnectorhq.com${path}`,{
+      method,headers:{accept:"application/json","content-type":"application/json",authorization:`Bearer ${token}`,version:"v3"},
+      body:body==null ? undefined : JSON.stringify(body),signal:AbortSignal.timeout(15000)
+    });
+    if(r.status===401 && attempt===0) {
+      await r.text();
+      token=await refreshHighLevelAccessToken(userId,token);
+      continue;
+    }
+    const text=await r.text();
+    let data=null;
+    try {data=text ? JSON.parse(text) : null;} catch {data=text;}
+    // A permission error or provider outage does not revoke the OAuth grant.
+    if(!r.ok) throw new Error(`BMOD Tools API request failed (${r.status}). Please retry or check account permissions.`);
+    return data;
   }
-  return data;
+}
+
+async function testBmodConnection(userId) {
+  const c=await readBmodRow(userId);
+  if(!bmodMayRead(c)) throw new Error("BMOD Tools needs to be reconnected.");
+  await highLevelApi(userId,`/opportunities/pipelines?locationId=${encodeURIComponent(c.provider_account_id)}`);
+  await sbRest(`user_connections?user_id=eq.${encodeURIComponent(userId)}&integration_key=eq.bmod_tools&status=not.in.(disabled,disconnected)&updated_at=eq.${encodeURIComponent(c.updated_at)}`,{
+    method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"connected",oauth_provider:"highlevel",oauth_token_auth_method:"client_secret_post",allowed_tools:BMOD_TOOL_NAMES,last_error:null,last_checked_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+  });
+  const latest=await readBmodRow(userId);
+  if(latest?.status!=="connected") throw new Error("Connection changed during verification. Please retry.");
+  return {ok:true,status:"connected",allowedTools:BMOD_TOOL_NAMES,discoveredTools:BMOD_TOOL_NAMES.map(name=>({name}))};
+}
+
+async function completeBmodOAuth(st,code) {
+  const lease=require("crypto").randomUUID();
+  if(!await bmodTransition(st.user_id,"claim",lease)) throw new Error("Connection is busy or was disconnected. Please try again.");
+  try {
+    if(Date.parse(st.expires_at)<Date.now()) throw new Error("OAuth session expired. Please try again.");
+    const token=await exchangeOAuthCode(st,code);
+    const locationId=String(token.locationId || token.location_id || "");
+    if(!locationId) throw new Error("HighLevel did not return a sub-account location ID.");
+    await saveBmodTokens(st.user_id,lease,{...token,mode:"callback",location_id:locationId,client_id:st.client_id,client_secret:st.client_secret,scope:token.scope || st.scopes});
+  } finally {await bmodTransition(st.user_id,"release",lease).catch(()=>{});}
+  // Persist authorization before testing API availability. A temporary API failure
+  // must not discard a successful grant or its newly rotated refresh token.
+  try {await testBmodConnection(st.user_id);} catch { /* Test connection can retry. */ }
 }
 
 async function executeBmodRead(userId,args) {
@@ -2236,6 +2276,7 @@ async function exchangeOAuthCode(stateRow, code) {
           "version":"v3",
         },
         body:params.toString(),
+        signal:AbortSignal.timeout(15000),
       }
     );
 
@@ -2374,6 +2415,17 @@ module.exports = async function handler(req, res) {
         res.statusCode=302; res.setHeader("Location",`${fallback}?oauth=error&message=${encodeURIComponent("OAuth session expired. Please try connecting again.")}`); return res.end();
       }
       const returnUrl = safeReturnUrl(absoluteSiteUrl(req) || process.env.NEXT_PUBLIC_SITE_URL, st.return_url || "/");
+      if(st.integration_key==="bmod_tools") {
+        const claimed=await sbRest(`connection_oauth_states?state=eq.${encodeURIComponent(state)}`,{method:"DELETE",headers:{Prefer:"return=representation"}});
+        let ok=false;
+        if(Array.isArray(claimed) && claimed.length && !oauthError && code) {
+          try {await completeBmodOAuth(st,code);ok=true;} catch {console.warn("bmod_oauth_callback_failed");}
+        }
+        res.statusCode=302;
+        res.setHeader("Location",`${returnUrl.split("?")[0]}?oauth=${ok?"success":"error"}&connection=bmod_tools`);
+        return res.end();
+      }
+
       if (oauthError || !code) {
         await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.${encodeURIComponent(st.integration_key)}`,{
           method:"PATCH",headers:{Prefer:"return=minimal"},
@@ -2393,48 +2445,7 @@ module.exports = async function handler(req, res) {
         const expiresAt = Number(token.expires_in)>0 ? new Date(Date.now()+Number(token.expires_in)*1000).toISOString() : null;
         let providerAccountId = String(token.locationId || token.location_id || "");
 
-        if (st.integration_key === "bmod_tools") {
-          if (!providerAccountId) throw new Error("HighLevel connected, but no sub-account location ID was returned.");
-
-          // Verify the OAuth token against the native HighLevel API.
-          const testUrl = `https://services.leadconnectorhq.com/opportunities/pipelines?locationId=${encodeURIComponent(providerAccountId)}`;
-          const testResp = await fetch(testUrl,{
-            headers:{
-              "accept":"application/json",
-              "authorization":`Bearer ${String(token.access_token)}`,
-              "version":"v3",
-            }
-          });
-          const testText = await testResp.text();
-          if (!testResp.ok) {
-            throw new Error(`HighLevel connection verification failed (${testResp.status}): ${testText.slice(0,400)}`);
-          }
-
-          await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.bmod_tools`,{
-            method:"PATCH",headers:{Prefer:"return=minimal"},
-            body:JSON.stringify({
-              status:"connected",
-              provider_account_id:providerAccountId,
-              discovered_tools:[
-                {name:"search_contacts",description:"Search contacts"},
-                {name:"search_opportunities",description:"Search opportunities"},
-                {name:"list_pipelines",description:"List pipelines"},
-                {name:"list_workflows",description:"List workflows"}
-              ],
-              allowed_tools:["search_contacts","search_opportunities","list_pipelines","list_workflows"],
-              oauth_client_id:st.client_id,
-              oauth_authorization_endpoint:st.authorization_endpoint,
-              oauth_token_endpoint:st.token_endpoint,
-              oauth_registration_endpoint:null,
-              oauth_scope:String(token.scope || st.scopes || ""),
-              oauth_connected_at:new Date().toISOString(),
-              token_expires_at:expiresAt,
-              last_error:null,
-              last_checked_at:new Date().toISOString(),
-              updated_at:new Date().toISOString(),
-            })
-          });
-        } else {
+        {
           const connRows = await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.${encodeURIComponent(st.integration_key)}&select=server_url&limit=1`);
           const conn = Array.isArray(connRows) ? connRows[0] : null;
           if (!conn?.server_url) throw new Error("Connection endpoint missing after OAuth.");
@@ -2480,6 +2491,10 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === "GET" && path === "/api/connections") {
+      const bmod=await readBmodRow(user.id);
+      if(bmod && bmod.status!=="connected" && bmodMayRead(bmod)) {
+        try {await testBmodConnection(user.id);} catch {console.warn("bmod_legacy_verification_pending");}
+      }
       const [catalog, connections] = await Promise.all([
         sbRest(`integration_catalog?customer_visible=eq.true&select=integration_key,display_name,subtitle,description,provider,icon,connection_type,status,read_only_default,auth_type,setup_note&order=display_name.asc`),
         getConnectionsForUser(user.id),
@@ -2512,9 +2527,20 @@ module.exports = async function handler(req, res) {
         return json(res,404,{error:"Integration endpoint not configured."});
       }
 
+      if(integrationKey==="bmod_tools") {
+        const existing=await readBmodRow(user.id);
+        if(bmodMayRead(existing)) {
+          await testBmodConnection(user.id);
+          return json(res,200,{ok:true,status:"connected"});
+        }
+        if(existing) await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.bmod_tools&status=in.(disabled,disconnected,auth_required,error,configured)`,{
+          method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"auth_required",last_error:null,updated_at:new Date().toISOString()})
+        });
+      }
+
       await sbRest("user_connections?on_conflict=user_id,integration_key",{
         method:"POST",
-        headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+        headers:{Prefer:integrationKey==="bmod_tools"?"resolution=ignore-duplicates,return=minimal":"resolution=merge-duplicates,return=minimal"},
         body:JSON.stringify([{
           user_id:user.id,
           integration_key:integrationKey,
@@ -2680,6 +2706,11 @@ module.exports = async function handler(req, res) {
       if (!integration) return json(res,404,{error:"Integration not found"});
       if (!integration.default_server_url) return json(res,400,{error:"This integration does not have a configured MCP endpoint yet."});
 
+      if(integrationKey==="bmod_tools") {
+        const existing=await readBmodRow(user.id);
+        if(existing) return json(res,200,{ok:true,status:existing.status,authType:"oauth"});
+      }
+
       await sbRest("user_connections?on_conflict=user_id,integration_key",{
         method:"POST",
         headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
@@ -2707,6 +2738,10 @@ module.exports = async function handler(req, res) {
     if (req.method === "POST" && path === "/api/connections/discover") {
       const body = await readBody(req);
       const integrationKey = String(body.integrationKey || "").trim();
+      if(integrationKey==="bmod_tools") {
+        try {return json(res,200,await testBmodConnection(user.id));}
+        catch(e) {return json(res,503,{error:e.message});}
+      }
       const rows = await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${encodeURIComponent(integrationKey)}&select=integration_key,transport,server_url,tunnel_id,status&limit=1`);
       const c = Array.isArray(rows) ? rows[0] : null;
       if (!c) return json(res,404,{error:"Connection is not configured."});
@@ -2769,6 +2804,10 @@ module.exports = async function handler(req, res) {
     if (req.method === "DELETE" && path === "/api/connections") {
       const integrationKey = String(url.searchParams.get("integrationKey") || "").trim();
       if (!integrationKey) return json(res,400,{error:"integrationKey required"});
+      if(integrationKey==="bmod_tools") {
+        await bmodTransition(user.id,"disconnect");
+        return json(res,200,{ok:true});
+      }
       await sbRest(`user_connections?user_id=eq.${encodeURIComponent(user.id)}&integration_key=eq.${encodeURIComponent(integrationKey)}`,{
         method:"PATCH",
         headers:{Prefer:"return=minimal"},

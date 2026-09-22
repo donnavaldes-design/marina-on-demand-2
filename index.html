@@ -840,14 +840,11 @@ function connectionStatusLabel(c,integration){
 async function configureConnection(key){
   try{
     qs("#status").textContent="Opening secure sign-in...";
-    const prep=await api("/api/connections",{
-      method:"POST",
-      body:JSON.stringify({integrationKey:key})
-    });
     const j=await api("/api/connections/oauth/start",{
       method:"POST",
       body:JSON.stringify({integrationKey:key,returnUrl:window.location.origin+"/"})
     });
+    if(j.status==="connected"){await openConnectionsPage();return;}
     if(!j.authorizeUrl)throw new Error("The provider did not return a secure sign-in URL.");
     window.location.href=j.authorizeUrl;
   }catch(e){
@@ -857,7 +854,7 @@ async function configureConnection(key){
 }
 async function testConnection(key){
   try{
-    qs("#status").textContent="Testing MCP connection...";
+    qs("#status").textContent="Testing connection...";
     const j=await api("/api/connections/discover",{method:"POST",body:JSON.stringify({integrationKey:key})});
     qs("#status").textContent=j.status==="connected"?`Connected. ${j.allowedTools.length} read-only tools ready.`:"Connection reached, but no read-only tools were auto-approved.";
     await openConnectionsPage();
