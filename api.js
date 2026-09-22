@@ -1958,7 +1958,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "3.2.0-secure-oauth",
+        build: "3.3.0-chat-projects",
         benchmarkEnabled: true,
       });
     }
@@ -2319,7 +2319,7 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "GET" && path === "/api/conversations") {
       const rows = await sbRest(
-        `conversations?user_id=eq.${encodeURIComponent(user.id)}&select=id,title,created_at,updated_at&order=updated_at.desc&limit=40`
+        `conversations?user_id=eq.${encodeURIComponent(user.id)}&select=id,title,project_id,created_at,updated_at&order=updated_at.desc&limit=40`
       );
       return json(res, 200, { conversations: rows || [] });
     }
@@ -2418,6 +2418,100 @@ module.exports = async function handler(req, res) {
       if (!(await hasAccess(user.id, email))) return json(res, 403, { error: "Your Marina On Demand access is inactive." });
       const skills = await listUserSkills();
       return json(res, 200, { skills });
+    }
+
+
+    if (req.method === "GET" && path === "/api/chat-projects") {
+      const rows = await sbRest(
+        `chat_projects?user_id=eq.${encodeURIComponent(user.id)}&select=id,name,description,created_at,updated_at&order=updated_at.desc`
+      );
+      return json(res,200,{projects:Array.isArray(rows)?rows:[]});
+    }
+
+    if (req.method === "POST" && path === "/api/chat-projects") {
+      const body = await readBody(req);
+      const name = String(body.name || "").trim();
+      if (!name) return json(res,400,{error:"Project name required"});
+      const rows = await sbRest("chat_projects?select=id,name,description,created_at,updated_at",{
+        method:"POST",
+        headers:{Prefer:"return=representation"},
+        body:JSON.stringify([{
+          user_id:user.id,
+          name:name.slice(0,120),
+          description:String(body.description || "").slice(0,500) || null,
+          updated_at:new Date().toISOString(),
+        }])
+      });
+      return json(res,200,{project:rows?.[0] || null});
+    }
+
+    if (req.method === "PATCH" && path.startsWith("/api/chat-projects/")) {
+      const id = path.split("/").pop();
+      const body = await readBody(req);
+      const patch = {updated_at:new Date().toISOString()};
+      if (body.name != null) {
+        const name = String(body.name || "").trim();
+        if (!name) return json(res,400,{error:"Project name required"});
+        patch.name = name.slice(0,120);
+      }
+      if (body.description != null) patch.description = String(body.description || "").slice(0,500) || null;
+
+      await sbRest(`chat_projects?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user.id)}`,{
+        method:"PATCH",
+        headers:{Prefer:"return=minimal"},
+        body:JSON.stringify(patch)
+      });
+      return json(res,200,{ok:true});
+    }
+
+    if (req.method === "DELETE" && path.startsWith("/api/chat-projects/")) {
+      const id = path.split("/").pop();
+      await sbRest(`conversations?user_id=eq.${encodeURIComponent(user.id)}&project_id=eq.${encodeURIComponent(id)}`,{
+        method:"PATCH",
+        headers:{Prefer:"return=minimal"},
+        body:JSON.stringify({project_id:null,updated_at:new Date().toISOString()})
+      });
+      await sbRest(`chat_projects?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user.id)}`,{
+        method:"DELETE"
+      });
+      return json(res,200,{ok:true});
+    }
+
+    if (req.method === "PATCH" && path.startsWith("/api/conversations/")) {
+      const id = path.split("/").pop();
+      const body = await readBody(req);
+      const patch = {updated_at:new Date().toISOString()};
+
+      if (Object.prototype.hasOwnProperty.call(body,"projectId")) {
+        if (body.projectId) {
+          const projects = await sbRest(
+            `chat_projects?id=eq.${encodeURIComponent(body.projectId)}&user_id=eq.${encodeURIComponent(user.id)}&select=id&limit=1`
+          );
+          if (!Array.isArray(projects) || !projects[0]) return json(res,404,{error:"Project not found"});
+          patch.project_id = body.projectId;
+        } else {
+          patch.project_id = null;
+        }
+      }
+
+      if (body.title != null) {
+        patch.title = String(body.title || "").trim().slice(0,180) || "Untitled chat";
+      }
+
+      await sbRest(`conversations?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user.id)}`,{
+        method:"PATCH",
+        headers:{Prefer:"return=minimal"},
+        body:JSON.stringify(patch)
+      });
+      return json(res,200,{ok:true});
+    }
+
+    if (req.method === "DELETE" && path.startsWith("/api/conversations/")) {
+      const id = path.split("/").pop();
+      await sbRest(`conversations?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user.id)}`,{
+        method:"DELETE"
+      });
+      return json(res,200,{ok:true});
     }
 
     if (req.method === "GET" && path === "/api/dashboard") {

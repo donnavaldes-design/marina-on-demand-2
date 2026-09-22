@@ -109,6 +109,12 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .connectionsPage{max-width:980px;margin:0 auto}.connectionsPage h2{font-family:Georgia,serif;font-size:40px;margin:4px 0 8px}.connectionsPage>p{color:var(--muted);line-height:1.55}
 .connectionGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.connectionCard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px}.connectionTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.connectionIcon{font-size:24px}.connectionTitle{font-family:Georgia,serif;font-size:20px;margin-top:5px}.connectionSub{font-size:11px;color:var(--muted);margin-top:3px}.connectionDesc{font-size:12px;line-height:1.5;color:var(--muted);margin-top:10px}.connectionStatus{font-size:9px;text-transform:uppercase;letter-spacing:.08em;border:1px solid var(--line);border-radius:999px;padding:4px 7px;white-space:nowrap}.connectionStatus.connected{color:#08756f;border-color:rgba(10,186,181,.35);background:var(--accent-soft)}.connectionStatus.error{color:#a83e33;background:#fff8f6}.connectionStatus.configured{color:#8b6a33}.connectionActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}.connectionActions button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-size:11px;cursor:pointer}.connectionActions button.primaryConnect{background:var(--accent);color:#fff;border-color:var(--accent)}.connectionTools{font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5}.securityNote{margin-top:18px;border:1px solid rgba(10,186,181,.25);background:var(--accent-soft);padding:13px;border-radius:14px;font-size:12px;line-height:1.5;color:#4f5e5b}
 
+
+.projectPanel{margin:6px 0 10px}.projectPanelHeader{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}.projectPanelHeader strong{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.projectAdd{border:0;background:transparent;color:var(--accent-strong);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px}
+.projectRow{display:flex;align-items:center;gap:4px;margin-bottom:2px}.projectOpen{flex:1;border:0;background:transparent;text-align:left;padding:7px 8px;border-radius:9px;cursor:pointer;font-size:11px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.projectOpen.active{background:var(--accent-soft);font-weight:800}.projectMenu{border:0;background:transparent;cursor:pointer;color:var(--muted);padding:4px 6px;border-radius:8px}
+.chatRow{display:flex;align-items:center;gap:3px}.chatRow .thread{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chatMenuBtn{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:4px 6px;border-radius:8px}.chatMenuBtn:hover,.projectMenu:hover{background:#fff}
+.chatMenu{position:fixed;z-index:90;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(43,21,15,.14);padding:6px;min-width:190px;max-width:260px}.chatMenu button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:11px;color:var(--ink)}.chatMenu button:hover{background:var(--accent-soft)}.chatMenu button.danger{color:#a83e33}.projectEmpty{font-size:10px;color:var(--muted);padding:6px 8px}
+
 @media(max-width:960px){.card{grid-template-columns:1fr;gap:18px}.loginVisual{min-height:280px}.dashboardHero{grid-template-columns:1fr 200px}}
 @media(max-width:860px){.settingGrid,.brainList,.businessEditGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.skillGrid{grid-template-columns:1fr}.momentumGrid,.winsPreview{grid-template-columns:1fr 1fr}.connectionGrid{grid-template-columns:1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
 @media(max-width:560px){.center{padding:14px}.card{padding:16px;border-radius:22px}.card h1{font-size:42px}.field{flex-direction:column}.dashboardHero h2,.hub h2{font-size:32px}.focusCard strong{font-size:22px}.topBrand strong{font-size:14px}.topAvatar{width:34px;height:34px}.logo{font-size:28px}.brandPortrait{width:60px;height:60px;border-radius:14px}}</style>
@@ -161,6 +167,11 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
       <button data-workspace="assets">My Assets</button>
     </div>
     <button id="controlBtn" class="controlBtn" type="button">⚙ Marina Control Room</button>
+    <div class="sideSectionLabel">Projects</div>
+    <div class="projectPanel">
+      <div class="projectPanelHeader"><strong>Chat folders</strong><button id="addProjectBtn" class="projectAdd" type="button" aria-label="Create project">＋</button></div>
+      <div id="projects"></div>
+    </div>
     <div class="sideSectionLabel">Conversations</div>
     <div id="threads" class="threads"></div>
     <div class="sidefoot"><span id="userEmail"></span><br><button id="signOut" style="border:0;background:transparent;padding:8px 0;color:inherit;cursor:pointer">Sign out</button></div>
@@ -202,7 +213,7 @@ import { marked } from "https://esm.sh/marked@15";
 import DOMPurify from "https://esm.sh/dompurify@3";
 
 const qs = s => document.querySelector(s);
-const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
+const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
 
 const config = await fetch("/api/config").then(r=>r.json());
 qs("#modelLabel").textContent = `Private Beta · ${config.build || "build"}`;
@@ -274,6 +285,7 @@ qs("#momentumBtn").addEventListener("click",async()=>{
   closeSidebarIfMobile();
   await openMomentumPage();
 });
+qs("#addProjectBtn").addEventListener("click",createProject);
 qs("#connectionsBtn").addEventListener("click",async()=>{
   if(state.loading)return;
   closeSidebarIfMobile();
@@ -1037,14 +1049,179 @@ function renderActionHub(){
 
 async function loadConversations(){
   try{
-    const j=await api("/api/conversations");
-    state.conversations=j.conversations||[]; renderThreads();
+    const [chats,projects]=await Promise.all([
+      api("/api/conversations"),
+      api("/api/chat-projects")
+    ]);
+    state.conversations=chats.conversations||[];
+    state.chatProjects=projects.projects||[];
+    renderProjects();
+    renderThreads();
   }catch(e){qs("#status").textContent=e.message}
 }
-function renderThreads(){
-  qs("#threads").innerHTML=state.conversations.map(c=>`<button class="thread ${c.id===state.conversationId?"active":""}" data-id="${c.id}">${esc(c.title||"Conversation")}</button>`).join("");
-  qs("#threads").querySelectorAll("button").forEach(b=>b.onclick=()=>selectConversation(b.dataset.id));
+
+function renderProjects(){
+  const root=qs("#projects");
+  if(!root)return;
+
+  const all=`<div class="projectRow"><button class="projectOpen ${state.activeProjectId===null?"active":""}" data-project-open="">All Chats</button></div>`;
+  const rows=(state.chatProjects||[]).map(p=>`
+    <div class="projectRow">
+      <button class="projectOpen ${state.activeProjectId===p.id?"active":""}" data-project-open="${esc(p.id)}">${esc(p.name)}</button>
+      <button class="projectMenu" type="button" data-project-menu="${esc(p.id)}" aria-label="Project options">•••</button>
+    </div>`).join("");
+
+  root.innerHTML=all+rows;
+  root.querySelectorAll("[data-project-open]").forEach(b=>b.onclick=()=>{
+    state.activeProjectId=b.dataset.projectOpen||null;
+    renderProjects();
+    renderThreads();
+  });
+  root.querySelectorAll("[data-project-menu]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    openProjectMenu(e,b.dataset.projectMenu);
+  });
 }
+
+async function createProject(){
+  const name=prompt("Project name");
+  if(!name||!name.trim())return;
+  try{
+    const j=await api("/api/chat-projects",{method:"POST",body:JSON.stringify({name:name.trim()})});
+    await loadConversations();
+    if(j.project?.id){
+      state.activeProjectId=j.project.id;
+      renderProjects();renderThreads();
+    }
+  }catch(e){qs("#status").textContent=e.message}
+}
+
+function closeChatMenus(){
+  document.querySelectorAll(".chatMenu").forEach(x=>x.remove());
+}
+
+function placeMenu(menu,e){
+  document.body.appendChild(menu);
+  const rect=e.target.getBoundingClientRect();
+  const w=menu.offsetWidth||210,h=menu.offsetHeight||180;
+  menu.style.left=Math.max(8,Math.min(rect.right-w,window.innerWidth-w-8))+"px";
+  menu.style.top=Math.max(8,Math.min(rect.bottom+4,window.innerHeight-h-8))+"px";
+}
+
+function openProjectMenu(e,id){
+  closeChatMenus();
+  const p=(state.chatProjects||[]).find(x=>x.id===id);
+  if(!p)return;
+  const menu=document.createElement("div");
+  menu.className="chatMenu";
+  menu.innerHTML=`<button data-act="rename">Rename project</button><button class="danger" data-act="delete">Delete project</button>`;
+  placeMenu(menu,e);
+
+  menu.querySelector('[data-act="rename"]').onclick=async()=>{
+    const name=prompt("Project name",p.name);
+    if(name&&name.trim()){
+      await api(`/api/chat-projects/${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify({name:name.trim()})});
+      await loadConversations();
+    }
+    menu.remove();
+  };
+
+  menu.querySelector('[data-act="delete"]').onclick=async()=>{
+    if(confirm(`Delete project "${p.name}"? The chats inside it will move back to All Chats.`)){
+      await api(`/api/chat-projects/${encodeURIComponent(id)}`,{method:"DELETE"});
+      if(state.activeProjectId===id)state.activeProjectId=null;
+      await loadConversations();
+    }
+    menu.remove();
+  };
+}
+
+function renderThreads(){
+  const root=qs("#threads");
+  if(!root)return;
+  const chats=(state.conversations||[]).filter(c=>state.activeProjectId===null||c.project_id===state.activeProjectId);
+
+  if(!chats.length){
+    root.innerHTML=`<div class="projectEmpty">No chats here yet.</div>`;
+    return;
+  }
+
+  root.innerHTML=chats.map(c=>`
+    <div class="chatRow">
+      <button class="thread ${c.id===state.conversationId?"active":""}" data-id="${esc(c.id)}">${esc(c.title||"Conversation")}</button>
+      <button class="chatMenuBtn" type="button" data-chat-menu="${esc(c.id)}" aria-label="Chat options">•••</button>
+    </div>`).join("");
+
+  root.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>selectConversation(b.dataset.id));
+  root.querySelectorAll("[data-chat-menu]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    openChatMenu(e,b.dataset.chatMenu);
+  });
+}
+
+function openChatMenu(e,id){
+  closeChatMenus();
+  const c=(state.conversations||[]).find(x=>x.id===id);
+  if(!c)return;
+
+  const menu=document.createElement("div");
+  menu.className="chatMenu";
+
+  const moves=(state.chatProjects||[])
+    .filter(p=>p.id!==c.project_id)
+    .map(p=>`<button data-move="${esc(p.id)}">Move to ${esc(p.name)}</button>`)
+    .join("");
+
+  menu.innerHTML=`
+    <button data-act="rename">Rename chat</button>
+    ${moves}
+    ${c.project_id?`<button data-move="">Move to All Chats</button>`:""}
+    <button class="danger" data-act="delete">Delete chat</button>`;
+
+  placeMenu(menu,e);
+
+  menu.querySelector('[data-act="rename"]').onclick=async()=>{
+    const title=prompt("Chat title",c.title||"");
+    if(title&&title.trim()){
+      await api(`/api/conversations/${encodeURIComponent(id)}`,{
+        method:"PATCH",
+        body:JSON.stringify({title:title.trim()})
+      });
+      await loadConversations();
+    }
+    menu.remove();
+  };
+
+  menu.querySelectorAll("[data-move]").forEach(b=>b.onclick=async()=>{
+    await api(`/api/conversations/${encodeURIComponent(id)}`,{
+      method:"PATCH",
+      body:JSON.stringify({projectId:b.dataset.move||null})
+    });
+    await loadConversations();
+    menu.remove();
+  });
+
+  menu.querySelector('[data-act="delete"]').onclick=async()=>{
+    if(confirm("Delete this chat permanently? This cannot be undone.")){
+      await api(`/api/conversations/${encodeURIComponent(id)}`,{method:"DELETE"});
+      if(state.conversationId===id){
+        state.conversationId="";
+        state.messages=[];
+        state.selectedSkill=null;
+        renderWelcome();
+      }
+      await loadConversations();
+    }
+    menu.remove();
+  };
+}
+
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".chatMenu")&&!e.target.closest(".chatMenuBtn")&&!e.target.closest(".projectMenu")){
+    closeChatMenus();
+  }
+});
+
 async function selectConversation(id){
   state.workspaceSection=null;qs("#workspaceNav").querySelectorAll("button").forEach(b=>b.classList.remove("active"));
   closeSidebarIfMobile();
