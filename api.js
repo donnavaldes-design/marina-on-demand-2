@@ -1750,7 +1750,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "3.1.0-connections-mcp",
+        build: "3.1.1-preloaded-connections",
         benchmarkEnabled: true,
       });
     }
@@ -1767,7 +1767,7 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "GET" && path === "/api/connections") {
       const [catalog, connections] = await Promise.all([
-        sbRest(`integration_catalog?customer_visible=eq.true&select=integration_key,display_name,subtitle,description,provider,icon,connection_type,status,read_only_default&order=display_name.asc`),
+        sbRest(`integration_catalog?customer_visible=eq.true&select=integration_key,display_name,subtitle,description,provider,icon,connection_type,status,read_only_default,auth_type,setup_note&order=display_name.asc`),
         getConnectionsForUser(user.id),
       ]);
       const byKey = {};
@@ -1783,16 +1783,13 @@ module.exports = async function handler(req, res) {
     if (req.method === "POST" && path === "/api/connections") {
       const body = await readBody(req);
       const integrationKey = String(body.integrationKey || "").trim();
-      const transport = body.transport === "tunnel" ? "tunnel" : "http";
-      const serverUrl = String(body.serverUrl || "").trim() || null;
-      const tunnelId = String(body.tunnelId || "").trim() || null;
-      const authToken = String(body.authorizationToken || "").trim();
 
-      const cat = await sbRest(`integration_catalog?integration_key=eq.${encodeURIComponent(integrationKey)}&customer_visible=eq.true&select=integration_key,status,read_only_default&limit=1`);
-      if (!Array.isArray(cat) || !cat[0]) return json(res,404,{error:"Integration not found"});
-      if (cat[0].status === "coming_soon") return json(res,400,{error:"This integration is not available yet."});
-      if (transport === "http" && !/^https:\/\//i.test(serverUrl || "")) return json(res,400,{error:"A secure https:// MCP URL is required."});
-      if (transport === "tunnel" && !tunnelId) return json(res,400,{error:"Tunnel ID required."});
+      const cat = await sbRest(
+        `integration_catalog?integration_key=eq.${encodeURIComponent(integrationKey)}&customer_visible=eq.true&select=integration_key,status,read_only_default,default_server_url,auth_type,setup_note&limit=1`
+      );
+      const integration = Array.isArray(cat) ? cat[0] : null;
+      if (!integration) return json(res,404,{error:"Integration not found"});
+      if (!integration.default_server_url) return json(res,400,{error:"This integration does not have a configured MCP endpoint yet."});
 
       await sbRest("user_connections?on_conflict=user_id,integration_key",{
         method:"POST",
@@ -1800,25 +1797,22 @@ module.exports = async function handler(req, res) {
         body:JSON.stringify([{
           user_id:user.id,
           integration_key:integrationKey,
-          transport,
-          server_url:transport==="http"?serverUrl:null,
-          tunnel_id:transport==="tunnel"?tunnelId:null,
-          status:"configured",
+          transport:"http",
+          server_url:integration.default_server_url,
+          tunnel_id:null,
+          status:"auth_required",
           read_only:true,
-          last_error:null,
+          last_error:"Secure account sign-in is required before Marina can access this connection.",
           updated_at:new Date().toISOString(),
         }])
       });
 
-      if (authToken) {
-        await sbRpc("store_connection_secret",{
-          p_user_id:user.id,
-          p_integration_key:integrationKey,
-          p_secret:authToken,
-        });
-      }
-
-      return json(res,200,{ok:true,status:"configured"});
+      return json(res,200,{
+        ok:true,
+        status:"auth_required",
+        authType:integration.auth_type || "oauth",
+        message:"Endpoint configured. Secure account sign-in is required."
+      });
     }
 
     if (req.method === "POST" && path === "/api/connections/discover") {

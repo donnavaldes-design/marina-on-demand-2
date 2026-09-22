@@ -812,30 +812,24 @@ async function logActivityQuick(){
 function connectionStatusLabel(c,integration){
   if(integration.status==="coming_soon")return"Coming Soon";
   if(!c||c.status==="disconnected"||c.status==="disabled")return"Not Connected";
+  if(c.status==="auth_required")return"Sign-In Required";
   return String(c.status||"").replace(/_/g," ");
 }
 
 async function configureConnection(key){
-  const transport=(prompt("Connection type: type HTTP for an MCP URL, or TUNNEL for an OpenAI Secure MCP Tunnel.","HTTP")||"HTTP").trim().toLowerCase()==="tunnel"?"tunnel":"http";
-  let serverUrl="",tunnelId="";
-  if(transport==="http"){
-    serverUrl=prompt("Paste the trusted remote MCP URL. It must start with https://","")||"";
-    if(!serverUrl)return;
-  }else{
-    tunnelId=prompt("Paste the OpenAI Secure MCP tunnel ID.","")||"";
-    if(!tunnelId)return;
-  }
-  const token=prompt("Authorization token if this MCP server requires one. Leave blank if it does not. This token is stored in Supabase Vault and is never shown back to you.","")||"";
   try{
-    qs("#status").textContent="Saving secure connection...";
-    await api("/api/connections",{method:"POST",body:JSON.stringify({integrationKey:key,transport,serverUrl,tunnelId,authorizationToken:token})});
-    qs("#status").textContent="Discovering read-only tools...";
-    const j=await api("/api/connections/discover",{method:"POST",body:JSON.stringify({integrationKey:key})});
-    qs("#status").textContent=j.status==="connected"?`Connected. ${j.allowedTools.length} read-only tools approved.`:"Configured. Review connection details.";
+    qs("#status").textContent="Preparing secure connection...";
+    const j=await api("/api/connections",{
+      method:"POST",
+      body:JSON.stringify({integrationKey:key})
+    });
+    qs("#status").textContent=j.message||"Secure sign-in required.";
     await openConnectionsPage();
-  }catch(e){qs("#status").textContent=e.message;await openConnectionsPage()}
+  }catch(e){
+    qs("#status").textContent=e.message;
+    await openConnectionsPage();
+  }
 }
-
 async function testConnection(key){
   try{
     qs("#status").textContent="Testing MCP connection...";
@@ -863,7 +857,7 @@ async function openConnectionsPage(){
     qs("#messages").innerHTML=`<div class="connectionsPage">
       <div class="eyebrow">Connections</div>
       <h2>Give Marina eyes on the business.</h2>
-      <p>BMOD Tools is Marina's customer-facing name for HighLevel. This release connects approved MCP servers in <strong>read-only mode</strong>. Writes still go through Action Mode approvals.</p>
+      <p>Choose an account and connect it. Marina already knows the official connection endpoint behind the scenes, so customers never need to find or paste an MCP URL. Connections begin in <strong>read-only mode</strong>; future write actions stay behind Action Mode approval.</p>
       <div class="connectionGrid">${list.map(i=>{
         const c=i.connection, status=connectionStatusLabel(c,i);
         const tools=Array.isArray(c?.allowed_tools)?c.allowed_tools:[];
@@ -875,12 +869,14 @@ async function openConnectionsPage(){
           <div class="connectionActions">
             ${i.status==="coming_soon"?`<button disabled>Coming soon</button>`:
               (!c||["disconnected","disabled","error"].includes(c.status))
-              ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Connect MCP</button>`
-              :`<button data-test-connection="${esc(i.integration_key)}">Test / rediscover</button><button data-disconnect="${esc(i.integration_key)}">Disconnect</button>`}
+              ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Connect Account</button>`
+              :c.status==="auth_required"
+                ?`<button class="primaryConnect" data-connect="${esc(i.integration_key)}">Continue Secure Sign-In</button><button data-disconnect="${esc(i.integration_key)}">Cancel</button>`
+                :`<button data-test-connection="${esc(i.integration_key)}">Test connection</button><button data-disconnect="${esc(i.integration_key)}">Disconnect</button>`}
           </div>
         </div>`;
       }).join("")}</div>
-      <div class="securityNote"><strong>Security:</strong> Marina only auto-enables tools whose names clearly look read-only, such as get, list, search, read, fetch or view. Authorization tokens are stored in Supabase Vault and are never returned to the browser. Remote MCP servers should only be connected if you trust them.</div>
+      <div class="securityNote"><strong>Security:</strong> Connection endpoints are preconfigured server-side. Marina only auto-enables tools whose names clearly look read-only, such as get, list, search, read, fetch or view. Account authorization is handled separately from the MCP URL, and credentials are never displayed back in the browser.</div>
     </div>`;
     qs("#messages").querySelectorAll("[data-connect]").forEach(b=>b.onclick=()=>configureConnection(b.dataset.connect));
     qs("#messages").querySelectorAll("[data-test-connection]").forEach(b=>b.onclick=()=>testConnection(b.dataset.testConnection));

@@ -1,35 +1,33 @@
-# Marina On Demand 3.1.0 — Connections + MCP
+# Marina On Demand 3.1.1 — Preloaded Connections
 
 Flat browser-upload build. No folders.
 
-Upload these four files to the ROOT of the existing GitHub repository and replace the current files:
+Upload these four files to the ROOT of the existing GitHub repository:
 - api.js
 - index.html
 - vercel.json
 - README_BROWSER_UPLOAD.md
 
 Build marker:
-3.1.0-connections-mcp
+3.1.1-preloaded-connections
 
-New customer-facing Connections area:
-- BMOD Tools — HighLevel CRM + Automation
-- Meta Ads
-- Gmail (coming soon)
-- Google Drive (coming soon)
-- Canva (coming soon)
+Customer-facing connection endpoints are now preloaded server-side:
+- BMOD Tools / HighLevel: https://services.leadconnectorhq.com/mcp/openai/v2/
+- Meta Ads: https://mcp.facebook.com/ads
+- Canva: https://mcp.canva.com/mcp
+- Google Drive: https://drivemcp.googleapis.com/mcp/v1
+- Gmail: https://gmailmcp.googleapis.com/mcp/v1
+- Google Calendar: https://calendarmcp.googleapis.com/mcp/v1
 
-MCP support:
-- Connect a trusted remote MCP server via HTTPS URL or OpenAI Secure MCP tunnel ID.
-- Optional authorization token is stored in Supabase Vault.
-- The token is never returned to the browser.
-- Connection discovery reads the MCP server's tool list.
-- Marina auto-approves only clearly read-only tool names such as get/list/search/read/fetch/find/view.
-- Connected read-only MCP tools are injected into Marina's Responses API requests.
-- Coach Me, Create With Me, Skills, and Action Mode can use connected read-only MCP data.
-- No MCP write tools execute in this release.
-- Write actions remain routed through Marina Action Mode approval.
+UX changes:
+- Customers no longer paste MCP URLs.
+- Button language is Connect Account, not Connect MCP.
+- Known integrations use their catalog endpoint automatically.
+- Connection state becomes Sign-In Required until OAuth is completed.
+- Do not mark a provider Connected merely because the endpoint is known.
+- Read-only discovery remains the safety default.
 
-Important:
-An ordinary website URL or API endpoint is not automatically an MCP server. Use a remote MCP endpoint that supports Streamable HTTP or HTTP/SSE, or an OpenAI Secure MCP tunnel.
+Next wiring step:
+Implement provider OAuth sign-in/callback/token refresh. OpenAI Responses API requires the app to provide the user's OAuth access token with authenticated MCP requests.
 
-Everything from 3.0.1 remains included.
+Everything from 3.1.0 remains included.
