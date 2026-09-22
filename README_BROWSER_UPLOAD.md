@@ -1,4 +1,4 @@
-# Marina On Demand 2.8.0 — Real Action Engine
+# Marina On Demand 2.9.0 — Skill Engine
 
 Flat browser-upload build. No folders.
 
@@ -10,32 +10,26 @@ Upload these four files to the ROOT of the existing GitHub repository and replac
 - README_BROWSER_UPLOAD.md
 
 Build marker:
-2.8.0-action-engine
+2.9.0-skill-engine
 
-Action Mode is now an actual controlled execution engine.
+Claude-sourced Marina skills activated:
+- Engineer the Demand
+- Pinterest Pin Strategist
+- Build My Newsletter System
+- Secret Podcast Builder
+- DM Conversation Auditor (internal Seven Layers quality-control skill)
 
-What Marina can execute internally:
-- Create finished business assets
-- Save them automatically into the correct Marina Workspace section
-- Build campaigns, content, offers, DM flows, goals and reusable assets
-- Create concrete user tasks only when the human must do something
-- Track every Action Run and its steps
+Behavior:
+- User-facing skills appear in Create With Me as branded skill cards.
+- Skill definitions live in Supabase, not hard-coded into the global Marina prompt.
+- Skills route into the same Marina brain, memory, Workspace and Action Engine.
+- Action skills can build and save finished assets into Workspace.
+- DM auditing can auto-route internally without teaching a separate Seven Layers lesson.
+- Skill runs are tracked in Supabase for later analytics and tuning.
+- Marina OS and canonical Method Library remain higher authority than skill-specific workflows.
 
-External side effects:
-- External actions are NEVER silently executed
-- Marina can queue proposed actions for systems like HighLevel, Gmail, Canva, Meta, etc.
-- User can Approve or Reject each proposed action
-- Approved actions remain clearly marked as waiting for a connected executor
-- No email, post, CRM edit, automation change, scheduling action, purchase, or other external side effect is claimed unless a future connected executor actually performs it
-
-This build is the foundation for:
-- HighLevel execution tools
-- Email tools
-- Canva creation
-- publishing/scheduling
-- future Agents API migration for long-running work
-
-All previous features are preserved:
+All previous features preserved:
+- Real Action Engine
 - Marina Workspace
 - Owner-only Control Room
 - Live Brain

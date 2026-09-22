@@ -64,6 +64,8 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .saveDialogActions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 
 
+
+.skillSection{margin-top:26px}.skillSectionHead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:12px}.skillSectionHead h3{font-family:Georgia,serif;font-size:24px;margin:3px 0 0}.skillGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.skillCard{border:1px solid var(--line);background:linear-gradient(180deg,#fff 0%,#fbfffe 100%);border-radius:17px;padding:15px;text-align:left;cursor:pointer}.skillCard:hover{border-color:rgba(10,186,181,.36);box-shadow:0 10px 26px rgba(43,21,15,.05)}.skillCard strong{display:block;font-family:Georgia,serif;font-size:17px;margin-bottom:5px}.skillCard span{display:block;font-size:12px;line-height:1.45;color:var(--muted)}.skillBadge{display:inline-block!important;width:auto!important;margin-top:9px;padding:3px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent-strong)!important;font-size:9px!important;text-transform:uppercase;letter-spacing:.08em;font-weight:800}.activeSkillBar{max-width:860px;margin:0 auto 10px;padding:8px 11px;border:1px solid rgba(10,186,181,.3);background:var(--accent-soft);border-radius:12px;font-size:11px;color:#42615e;display:flex;align-items:center;justify-content:space-between;gap:10px}.activeSkillBar button{border:0;background:transparent;color:var(--accent-strong);font-weight:800;cursor:pointer}
 .actionRunCard{margin-top:14px;border:1px solid rgba(10,186,181,.28);background:linear-gradient(180deg,#ffffff 0%,#f3fffe 100%);border-radius:16px;padding:14px}
 .actionRunHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
 .actionRunHead strong{font-family:Georgia,serif;font-size:17px}
@@ -87,7 +89,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .actionModeNote{border:1px solid rgba(10,186,181,.25);background:var(--accent-soft);padding:11px 13px;border-radius:13px;margin-top:12px;font-size:12px;color:#4f5e5b;line-height:1.45}
 
 @media(max-width:960px){.card{grid-template-columns:1fr;gap:18px}.loginVisual{min-height:280px}.dashboardHero{grid-template-columns:1fr 200px}}
-@media(max-width:860px){.settingGrid,.brainList,.businessEditGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
+@media(max-width:860px){.settingGrid,.brainList,.businessEditGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.skillGrid{grid-template-columns:1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
 @media(max-width:560px){.center{padding:14px}.card{padding:16px;border-radius:22px}.card h1{font-size:42px}.field{flex-direction:column}.dashboardHero h2,.hub h2{font-size:32px}.focusCard strong{font-size:22px}.topBrand strong{font-size:14px}.topAvatar{width:34px;height:34px}.logo{font-size:28px}.brandPortrait{width:60px;height:60px;border-radius:14px}}</style>
 </head>
 <body>
@@ -177,7 +179,7 @@ import { marked } from "https://esm.sh/marked@15";
 import DOMPurify from "https://esm.sh/dompurify@3";
 
 const qs = s => document.querySelector(s);
-const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets" };
+const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
 
 const config = await fetch("/api/config").then(r=>r.json());
 qs("#modelLabel").textContent = `Private Beta · ${config.build || "build"}`;
@@ -205,7 +207,7 @@ async function refreshSession(){
   if(state.session){
     qs("#login").style.display="none"; qs("#app").style.display="grid";
     qs("#userEmail").textContent=state.session.user.email || "";
-    await loadConversations(); await loadAdminStatus(); await renderDashboard();
+    await loadConversations(); await loadAdminStatus(); await loadSkills(); await renderDashboard();
   }else{
     qs("#login").style.display="grid"; qs("#app").style.display="none";
   }
@@ -229,7 +231,7 @@ qs("#menuBtn").addEventListener("click",openSidebar);
 qs("#closeSidebar").addEventListener("click",closeSidebar);
 qs("#mobileOverlay").addEventListener("click",closeSidebar);
 qs("#homeBtn").addEventListener("click",async()=>{if(state.loading)return;state.workspaceSection=null;qs("#workspaceNav").querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();await renderDashboard()});
-qs("#newChat").addEventListener("click",()=>{state.workspaceSection=null;qs("#workspaceNav").querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();state.conversationId="";state.messages=[];state.pendingFiles=[];state.mode="coach";renderPending();renderWelcome();renderThreads()});
+qs("#newChat").addEventListener("click",()=>{state.workspaceSection=null;qs("#workspaceNav").querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();state.selectedSkill=null;state.conversationId="";state.messages=[];state.pendingFiles=[];state.mode="coach";renderPending();renderWelcome();renderThreads()});
 qs("#memoryBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
   closeSidebarIfMobile();
@@ -771,8 +773,37 @@ function renderModeBar(){
 function wireModeBar(){
   qs("#messages").querySelectorAll("[data-switch-mode]").forEach(b=>b.onclick=()=>openMode(b.dataset.switchMode));
 }
+
+async function loadSkills(){
+  try{
+    const j=await api("/api/skills");
+    state.skills=j.skills||[];
+  }catch(e){state.skills=[]}
+}
+function skillLaunchPrompt(skill){
+  const prompts={
+    "engineer-demand":"Engineer demand from my real business and life. Start by using what you already know about my brand and ask me only for the missing receipt or context you need.",
+    "pinterest-strategist":"Build a Pinterest strategy from my content. Use what you know about my brand and ask me for the source content and destination URL if they are not already available.",
+    "newsletter-system":"Build my permanent newsletter system using what you remember about my brand, audience and offers. Interview me only for the missing pieces.",
+    "secret-podcast":"Build my Secret Podcast system in my actual brand voice. Use my saved brand and offer context first, then ask only what you still need."
+  };
+  return prompts[skill.skill_key]||`Use the ${skill.display_name} skill on my business.`;
+}
+function renderSkillCards(){
+  if(!state.skills.length)return"";
+  return `<div class="skillSection"><div class="skillSectionHead"><div><div class="eyebrow">Marina Skills</div><h3>Use one of Marina's specialized systems.</h3></div></div><div class="skillGrid">${state.skills.map(skill=>`<button class="skillCard" data-skill-key="${esc(skill.skill_key)}"><strong>${esc(skill.display_name)}</strong><span>${esc(skill.description)}</span><span class="skillBadge">${skill.default_mode==="action"?"Build + Save":"Guided System"}</span></button>`).join("")}<button class="skillCard" data-dm-audit><strong>Audit My DMs</strong><span>Paste or upload a conversation and Marina will find the primary leak, explain why it happened, and give you the next move.</span><span class="skillBadge">Internal Audit</span></button></div></div>`;
+}
+function activateSkill(skillKey){
+  const skill=state.skills.find(s=>s.skill_key===skillKey);if(!skill)return;
+  resetWorkspace(skill.default_mode||"create");state.selectedSkill=skill;qs("#input").placeholder=`Ask Marina · ${skill.display_name}`;send(skillLaunchPrompt(skill),skill.default_mode||"create",skill.skill_key);
+}
+function renderActiveSkillBar(){
+  if(!state.selectedSkill)return"";
+  return `<div class="activeSkillBar"><span>Using <strong>${esc(state.selectedSkill.display_name)}</strong></span><button type="button" data-clear-skill>Exit skill</button></div>`;
+}
+function wireActiveSkillBar(){qs("#messages").querySelectorAll("[data-clear-skill]").forEach(b=>b.onclick=()=>{state.selectedSkill=null;setMode(state.mode);renderWelcome()})}
 function renderCreateHub(){
-  qs("#messages").innerHTML=renderModeBar()+`<div class="hub"><div class="eyebrow">Create With Me</div><h2>Don't explain it. Build it.</h2><p>Choose a starting point or tell Marina exactly what you need in the box below.</p><div class="hubGrid">
+  qs("#messages").innerHTML=renderModeBar()+renderActiveSkillBar()+`<div class="hub"><div class="eyebrow">Create With Me</div><h2>Don't explain it. Build it.</h2><p>Choose a starting point, use one of Marina's specialized skills, or tell Marina exactly what you need below.</p><div class="hubGrid">
     ${[
       ["Build my week","Build my 7-day content and conversion plan around my current offer and goal."],
       ["Write today's content","Write today's highest-leverage piece of content for my current goal, including hook, body, CTA and suggested format."],
@@ -781,8 +812,11 @@ function renderCreateHub(){
       ["Build a live","Create a 20-minute weekly live that naturally leads to my current offer."],
       ["Build the funnel","Build the simplest conversion path for my current offer, including page sections, CTA and follow-up."]
     ].map(([title,prompt])=>`<button class="hubBtn" data-create="${esc(prompt)}"><strong>${esc(title)}</strong><span>Marina will use what she already remembers about your business.</span></button>`).join("")}
-  </div></div>`;
-  wireModeBar();qs("#messages").querySelectorAll("[data-create]").forEach(b=>b.onclick=()=>send(b.dataset.create,"create"));
+  </div>${renderSkillCards()}</div>`;
+  wireModeBar();wireActiveSkillBar();
+  qs("#messages").querySelectorAll("[data-create]").forEach(b=>b.onclick=()=>send(b.dataset.create,"create"));
+  qs("#messages").querySelectorAll("[data-skill-key]").forEach(b=>b.onclick=()=>activateSkill(b.dataset.skillKey));
+  qs("#messages").querySelectorAll("[data-dm-audit]").forEach(b=>b.onclick=()=>{state.selectedSkill=null;resetWorkspace("coach");qs("#input").placeholder="Paste or upload the DM conversation to audit...";qs("#input").value="Audit my DM conversation and show me the primary leak. ";qs("#input").focus()});
 }
 function renderActionHub(){
   qs("#messages").innerHTML=renderModeBar()+`<div class="hub"><div class="eyebrow">Action Mode ⚡ <span class="betaPill">Beta</span></div><h2>Give Marina the outcome. She'll build the work.</h2><p>Action Mode now creates real Workspace assets, tracks the execution run, assigns only the tasks you personally need to do, and queues outside-app actions for approval instead of pretending they happened.</p><div class="actionModeNote"><strong>What Marina can do now:</strong> create and save campaigns, content, offers, DM flows, goals and other business assets automatically. External actions like sending emails, changing HighLevel or publishing content are safely queued until that system is connected and you approve the action.</div><div class="actionCallout"><strong>Try this:</strong><p>“I need to sell 10 of my $97 workshop this month. Take the lead and build everything you can for this week.”</p></div><div class="hubGrid">
@@ -807,13 +841,16 @@ async function selectConversation(id){
   closeSidebarIfMobile();
   state.conversationId=id;
   const j=await api(`/api/messages?conversationId=${encodeURIComponent(id)}`);
-  state.messages=j.messages||[]; renderMessages(); renderThreads();
+  state.messages=j.messages||[];
+  const lastSkill=[...state.messages].reverse().find(m=>m.skill_key)?.skill_key||null;
+  state.selectedSkill=lastSkill ? state.skills.find(s=>s.skill_key===lastSkill)||null : null;
+  renderMessages(); renderThreads();
 }
 function renderWelcome(){
   if(state.messages.length){renderMessages();return}
   if(state.mode==="create")return renderCreateHub();
   if(state.mode==="action")return renderActionHub();
-  qs("#messages").innerHTML=renderModeBar()+`<div class="welcome">
+  qs("#messages").innerHTML=renderModeBar()+renderActiveSkillBar()+`<div class="welcome">
     <h2 class="brand">What are we fixing today?</h2>
     <p>Bring me the messy caption, the vague offer, the dead DMs, the Reel that got views but no buyers, or the thing you keep overthinking.</p>
     <div class="quick">
@@ -824,7 +861,7 @@ function renderWelcome(){
         "Build my warm lead follow-up plan"
       ].map(x=>`<button data-p="${esc(x)}">${esc(x)}</button>`).join("")}
     </div></div>`;
-  wireModeBar();qs("#messages").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>send(b.dataset.p,"coach"));
+  wireModeBar();wireActiveSkillBar();qs("#messages").querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>send(b.dataset.p,"coach"));
 }
 
 function actionStepStatusLabel(step){
@@ -885,7 +922,7 @@ function wireActionRuns(){
 
 function renderMessages(){
   if(!state.messages.length){renderWelcome();return}
-  qs("#messages").innerHTML=renderModeBar()+state.messages.map(m=>{
+  qs("#messages").innerHTML=renderModeBar()+renderActiveSkillBar()+state.messages.map(m=>{
     const atts=(m.attachments||[]).map(a=>{
       const img=(a.mime_type||"").startsWith("image/") && a.signed_url
         ? `<img src="${esc(a.signed_url)}" alt="${esc(a.file_name)}">`
@@ -907,6 +944,7 @@ function renderMessages(){
     </div>`;
   }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Working...</div></div>`:"");
   wireModeBar();
+  wireActiveSkillBar();
   qs("#messages").querySelectorAll("[data-feedback-for]").forEach(box=>{
     box.querySelectorAll("[data-rating]").forEach(btn=>btn.onclick=async()=>{
       try{
@@ -921,9 +959,10 @@ function renderMessages(){
   wireActionRuns();
   qs("#messages").scrollTop=qs("#messages").scrollHeight;
 }
-async function send(prefill, forcedMode){
+async function send(prefill, forcedMode, forcedSkillKey){
   const input=qs("#input");
   if(forcedMode)setMode(forcedMode);
+  const activeSkillKey=forcedSkillKey || state.selectedSkill?.skill_key || null;
   const value=String(prefill ?? input.value).trim();
   if((!value&&!state.pendingFiles.length)||state.loading)return;
 
@@ -957,12 +996,14 @@ async function send(prefill, forcedMode){
         message:value,
         conversationId:state.conversationId||undefined,
         attachments,
-        mode:state.mode
+        mode:state.mode,
+        skillKey:activeSkillKey
       })
     });
 
     state.conversationId=j.conversationId;
-    state.messages.push({id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null});
+    if(j.skillKey){state.selectedSkill=state.skills.find(s=>s.skill_key===j.skillKey)||state.selectedSkill}
+    state.messages.push({id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null,skill_key:j.skillKey||null});
     await loadConversations();
     qs("#status").textContent="";
   }catch(e){
