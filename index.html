@@ -1451,7 +1451,7 @@ function renderCreateHub(){
   qs("#messages").querySelectorAll("[data-dm-audit]").forEach(b=>b.onclick=()=>{state.selectedSkill=null;resetWorkspace("coach");qs("#input").placeholder="Paste or upload the DM conversation to audit...";qs("#input").value="Audit my DM conversation and show me the primary leak. ";qs("#input").focus()});
 }
 function renderActionHub(){
-  qs("#messages").innerHTML=renderModeBar()+`<div class="hub"><div class="eyebrow">Action Mode ⚡ <span class="betaPill">Beta</span></div><h2>Give Marina the outcome. She'll build the work.</h2><p>Action Mode now creates real Workspace assets, tracks the execution run, assigns only the tasks you personally need to do, and queues outside-app actions for approval instead of pretending they happened.</p><div class="actionModeNote"><strong>What Marina can do now:</strong> create and save campaigns, content, offers, DM flows, goals and other business assets automatically. External actions like sending emails, changing HighLevel or publishing content are safely queued until that system is connected and you approve the action.</div><div class="actionCallout"><strong>Try this:</strong><p>“I need to sell 10 of my $97 workshop this month. Take the lead and build everything you can for this week.”</p></div><div class="hubGrid">
+  qs("#messages").innerHTML=renderModeBar()+`<div class="hub"><div class="eyebrow">Action Mode ⚡ <span class="betaPill">Beta</span></div><h2>Give Marina the outcome. She'll build the work.</h2><p>Action Mode now creates real Workspace assets, tracks the execution run, assigns only the tasks you personally need to do, and queues outside-app actions for approval instead of pretending they happened.</p><div class="actionModeNote"><strong>What Marina can do now:</strong> create and save campaigns, content, offers, DM flows, goals and other business assets automatically. Supported BMOD Tools and Canva actions are prepared first, shown to you for approval, and executed only after you approve. Other connected actions stay safely queued until their execution bridge is available.</div><div class="actionCallout"><strong>Try this:</strong><p>“I need to sell 10 of my $97 workshop this month. Take the lead and build everything you can for this week.”</p></div><div class="hubGrid">
     <button class="hubBtn" data-action="Take my current goal and run a real 7-day execution sprint. Build and save the finished content, CTAs, campaign plan and follow-up assets you can complete internally. Create only the human tasks I truly need to do, and queue any external-system actions for approval."><strong>Run my 7-day sprint</strong><span>Creates and saves the work, not just the plan.</span></button>
     <button class="hubBtn" data-action="Use what you remember about my business to identify my single biggest conversion bottleneck. Take the lead on fixing it. Build and save every internal asset needed, create my exact next tasks, and queue any external actions for approval."><strong>Fix my biggest bottleneck</strong><span>Diagnose, build, save, and queue.</span></button>
   </div></div>`;
@@ -1662,12 +1662,14 @@ function renderWelcome(){
 }
 
 function actionStepStatusLabel(step){
-  if(step.external_system==="Canva"&&step.status==="completed")return step.result?.verified?"Created · Verified":"Created · Verification pending";
-  if(step.external_system==="Canva"&&step.approval_status==="approved")return "Approved · Check result";
   if(step.step_type==="workspace_asset"&&step.status==="completed")return"Created";
+  if(step.step_type==="external_action"&&step.status==="executing")return"Executing…";
+  if(step.step_type==="external_action"&&step.status==="completed")return"Completed ✓";
+  if(step.step_type==="external_action"&&step.status==="unknown")return"Check Result";
+  if(step.step_type==="external_action"&&step.status==="failed")return"Needs Attention";
   if(step.step_type==="external_action"&&step.approval_status==="pending")return"Needs Approval";
-  if(step.step_type==="external_action"&&step.approval_status==="approved")return"Approved · Needs Connection";
   if(step.step_type==="external_action"&&step.approval_status==="rejected")return"Rejected";
+  if(step.step_type==="external_action"&&step.approval_status==="approved")return"Approved";
   if(step.step_type==="user_task")return"Your Move";
   return String(step.status||"").replace(/_/g," ");
 }
@@ -1686,8 +1688,11 @@ function renderActionRun(run){
         <div class="actionStepTop"><div><div class="actionStepTitle">${esc(step.title)}</div><div class="actionStepMeta">${esc(actionStepStatusLabel(step))}${step.workspace_section?` · ${esc(workspaceLabel(step.workspace_section))}`:""}${step.external_system?` · ${esc(step.external_system)}`:""}</div></div></div>
         ${step.description?`<div class="actionStepDesc">${esc(step.description)}</div>`:""}
         ${step.step_type==="external_action"&&step.approval_status==="pending"?`<div class="actionStepButtons"><button class="approve" data-action-approve="approve">Approve</button><button class="reject" data-action-approve="reject">Reject</button></div>`:""}
-        ${step.external_system==="Canva"&&step.result?.note?`<div class="actionStepDesc">${esc(step.result.note)}${step.result.verified&&/^https:\/\/(www\.)?canva\.com\//.test(step.result.edit_url||"")?` <a href="${esc(step.result.edit_url)}" target="_blank" rel="noopener noreferrer">Open design in Canva</a>`:""}</div>`:""}
-        ${step.external_system!=="Canva"&&step.step_type==="external_action"&&step.approval_status==="approved"?`<div class="actionStepDesc"><strong>Approved.</strong> Waiting for this external system to be connected to Marina's executor.</div>`:""}
+        ${step.step_type==="external_action"&&step.result?.note?`<div class="actionStepDesc"><strong>${step.status==="completed"?"Receipt: ":""}</strong>${esc(step.result.note)}
+          ${step.external_system==="Canva"&&step.result.verified&&/^https:\/\/(www\.)?canva\.com\//.test(step.result.edit_url||"")?` <a href="${esc(step.result.edit_url)}" target="_blank" rel="noopener noreferrer">Open design in Canva</a>`:""}
+          ${step.external_system==="BMOD Tools"&&step.result?.receipt?.url&&/^https:\/\//.test(step.result.receipt.url)?` <a href="${esc(step.result.receipt.url)}" target="_blank" rel="noopener noreferrer">Open result</a>`:""}
+        </div>`:""}
+        ${step.step_type==="external_action"&&step.status==="completed"&&step.executed_at?`<div class="actionStepMeta">Executed ${esc(formatDate(step.executed_at))}</div>`:""}
       </div>`).join("")}</div>
   </div>`;
 }
