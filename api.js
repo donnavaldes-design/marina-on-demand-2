@@ -1333,7 +1333,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
         let result;
         try {
           if (call.name === "bmod_read") {
-            result = await executeBmodRead(userId,args);
+            result = await executeBmodRead(userId,args,{runId:run.id});
           } else if(call.name === "google_operation") {
             result=await executeGoogleRead(userId,args);
           } else if(call.name === "canva_operation") {
@@ -1887,7 +1887,7 @@ async function completeBmodOAuth(st,code) {
   try {await testBmodConnection(st.user_id);} catch { /* Test connection can retry. */ }
 }
 
-async function executeBmodRead(userId,args) {
+async function executeBmodRead(userId,args,context={}) {
   const conn=await getBmodConnection(userId);
   if(!conn?.provider_account_id) throw new Error("BMOD Tools is not connected to a HighLevel sub-account.");
   let parameters={};
@@ -1895,11 +1895,31 @@ async function executeBmodRead(userId,args) {
     if(typeof args.parameters_json!=="string" || args.parameters_json.length>50000) throw new Error("Invalid BMOD parameters.");
     try {parameters=JSON.parse(args.parameters_json);} catch {throw new Error("BMOD parameters must be valid JSON.");}
   } else {
-    // Compatibility for existing saved tool calls; new calls use discovered schemas.
     const op=BMOD_MANIFEST.operations[args.operation];
     for(const key of ["query","limit","offset","funnelId"]) if(op?.fields[key] && args[key]!==undefined && args[key]!=="") parameters[key]=args[key];
   }
-  return BMOD_ROUTER.execute({connection:conn,operation:args.operation,parameters,call:(path,options)=>highLevelApi(userId,path,options)});
+
+  const result=await BMOD_ROUTER.execute({connection:conn,operation:args.operation,parameters,call:(path,options)=>highLevelApi(userId,path,options)});
+
+  if(result?.status==="approval_bridge_required" && context.runId){
+    const op=BMOD_MANIFEST.operations[args.operation];
+    const step=await insertActionStep({
+      user_id:userId,
+      run_id:context.runId,
+      step_order:await nextActionStepOrder(context.runId),
+      step_type:"external_action",
+      title:`BMOD Tools: ${String(args.operation||"action").replaceAll("_"," ")}`,
+      description:`Execute the validated BMOD Tools action after your approval.`,
+      status:"needs_approval",
+      external_system:"BMOD Tools",
+      proposed_action:{operation:args.operation,parameters:result.parameters||parameters},
+      approval_status:"pending",
+      result:{note:"Awaiting approval. Nothing has been changed yet."}
+    });
+    return {status:"approval_required",executed:false,step_id:step?.id||null,operation:args.operation,parameters:result.parameters||parameters,message:"Validated and queued for approval. Nothing has been changed yet."};
+  }
+
+  return result;
 }
 
 async function buildNativeBusinessTools(userId) {
@@ -3167,6 +3187,68 @@ module.exports = async function handler(req, res) {
       return json(res, 200, { run });
     }
 
+
+function safeExternalReceipt(data){
+  if(!data||typeof data!=="object") return {};
+  const keys=["id","_id","contactId","opportunityId","name","title","status","url","urlSlug","slug","type"];
+  const out={};
+  for(const key of keys){
+    const value=data[key] ?? data?.contact?.[key] ?? data?.opportunity?.[key] ?? data?.task?.[key] ?? data?.post?.[key] ?? data?.template?.[key];
+    if(["string","number","boolean"].includes(typeof value)) out[key]=value;
+  }
+  return out;
+}
+
+async function executeApprovedBmodStep(userId,step){
+  const conn=await getBmodConnection(userId);
+  if(!conn) return {handled:true,ok:false,note:"BMOD Tools is not connected. Reconnect it and prepare a new action."};
+  if((conn.permission_mode||"view_only")!=="view_and_take_action") return {handled:true,ok:false,note:"BMOD Tools is currently View Only. Switch it to View + Take Action, then prepare a new action."};
+
+  const proposal=step?.proposed_action||{};
+  const operation=String(proposal.operation||"");
+  const parameters=proposal.parameters && typeof proposal.parameters==="object" && !Array.isArray(proposal.parameters) ? proposal.parameters : {};
+  const op=BMOD_MANIFEST.operations[operation];
+  if(!op || op.classification!=="write") return {handled:true,ok:false,note:"This BMOD Tools action is not executable. Prepare it again in Action Mode."};
+
+  const executionKey=crypto.randomUUID();
+  const claimed=await sbRest(
+    `action_steps?id=eq.${encodeURIComponent(step.id)}&user_id=eq.${encodeURIComponent(userId)}&approval_status=eq.pending&status=in.(needs_approval,blocked)`,
+    {method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify({approval_status:"approved",status:"executing",execution_key:executionKey,updated_at:new Date().toISOString()})}
+  );
+  if(!claimed?.length) return {handled:true,ok:false,note:"This approval has already been handled or is being processed."};
+
+  let values,request;
+  try{
+    values=BMOD_ROUTER.validate(op,parameters);
+    const granted=BMOD_MANIFEST.parseScopes(conn.oauth_scope);
+    const missing=op.scopes.filter(scope=>!granted.has(scope));
+    if(missing.length) throw new Error("Update BMOD Tools permissions before preparing this action again.");
+    request=BMOD_ROUTER.requestFor(op,values,conn.provider_account_id);
+  }catch(e){
+    const note=e instanceof Error?e.message:String(e);
+    await sbRest(`action_steps?id=eq.${encodeURIComponent(step.id)}&user_id=eq.${encodeURIComponent(userId)}`,{
+      method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"failed",result:{note},executed_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    });
+    return {handled:true,ok:false,approved:true,note};
+  }
+
+  try{
+    const data=await highLevelApi(userId,request.path,{method:request.method,body:request.body,requiredScopes:op.scopes});
+    const receipt=safeExternalReceipt(data);
+    const result={note:"BMOD Tools action completed.",operation,receipt};
+    await sbRest(`action_steps?id=eq.${encodeURIComponent(step.id)}&user_id=eq.${encodeURIComponent(userId)}`,{
+      method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"completed",result,executed_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    });
+    return {handled:true,ok:true,approved:true,note:result.note,result};
+  }catch(e){
+    const result={note:"BMOD Tools could not confirm completion. Check BMOD Tools before retrying so the action is not duplicated."};
+    await sbRest(`action_steps?id=eq.${encodeURIComponent(step.id)}&user_id=eq.${encodeURIComponent(userId)}`,{
+      method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"unknown",result,executed_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    });
+    return {handled:true,ok:false,approved:true,note:result.note,result};
+  }
+}
+
     if (req.method === "POST" && path === "/api/action-step-approval") {
       const body = await readBody(req);
       const stepId = String(body.stepId || "");
@@ -3178,32 +3260,41 @@ module.exports = async function handler(req, res) {
 
       const canvaApproval=await CANVA.approve(user.id,stepId,decision);
       if(canvaApproval)return json(res,200,canvaApproval);
+
       const rows = await sbRest(
-        `action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}&step_type=eq.external_action&select=id,run_id,approval_status,status&limit=1`
+        `action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}&step_type=eq.external_action&select=id,run_id,approval_status,status,external_system,proposed_action,result&limit=1`
       );
       const step = Array.isArray(rows) ? rows[0] : null;
       if (!step) return json(res, 404, { error: "Action step not found" });
 
-      const approved = decision === "approve";
-      await sbRest(`action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}`, {
+      if(decision==="reject"){
+        if(step.approval_status!=="pending") return json(res,200,{ok:false,approved:false,note:"This approval has already been handled."});
+        await sbRest(`action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}&approval_status=eq.pending`,{
+          method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({approval_status:"rejected",status:"blocked",result:{note:"Rejected. Nothing was executed."},updated_at:new Date().toISOString()})
+        });
+        return json(res,200,{ok:true,approved:false,note:"Rejected. Nothing was executed."});
+      }
+
+      if(String(step.external_system||"").toLowerCase()==="bmod tools"){
+        const result=await executeApprovedBmodStep(user.id,step);
+        return json(res,200,result);
+      }
+
+      await sbRest(`action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}&approval_status=eq.pending`, {
         method: "PATCH",
         headers: { Prefer: "return=minimal" },
         body: JSON.stringify({
-          approval_status: approved ? "approved" : "rejected",
-          status: approved ? "blocked" : "blocked",
-          result: approved
-            ? { note: "Approved by user. Waiting for a connected external executor." }
-            : { note: "Rejected by user. Nothing was executed." },
-          updated_at: new Date().toISOString(),
+          approval_status:"approved",
+          status:"blocked",
+          result:{note:"Approved, but this connector does not yet have an execution bridge."},
+          updated_at:new Date().toISOString(),
         }),
       });
 
       return json(res, 200, {
-        ok: true,
-        approved,
-        note: approved
-          ? "Approved. This action is queued but cannot execute until the external system is connected."
-          : "Rejected. Nothing was executed.",
+        ok:false,
+        approved:true,
+        note:"Approved, but this connector does not yet have an execution bridge.",
       });
     }
 
