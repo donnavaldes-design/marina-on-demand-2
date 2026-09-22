@@ -1,28 +1,34 @@
-# Marina On Demand 3.3.3 — HighLevel Token v3 Fix
+# Marina On Demand 3.4.0 — BMOD Native HighLevel API
 
-Upload all four flat files to the existing repository root.
+Upload all four flat files to the repository root.
 
 Build marker:
-3.3.3-highlevel-token-v3
+3.4.0-bmod-native-api
 
-Fixes HighLevel 422 Unprocessable Entity during OAuth token exchange.
+Major change:
+BMOD Tools no longer uses HighLevel's MCP server after OAuth.
 
-Changes:
-- HighLevel token exchange now matches current documented v3 contract exactly.
-- Adds required `Version: v3` request header.
-- Sends form-urlencoded:
-  client_id
-  client_secret
-  grant_type=authorization_code
-  code
-  user_type=Location
-  redirect_uri
-- Removes PKCE fields from the HighLevel authorization flow.
-- Improves error detail returned from HighLevel if exchange still fails.
+Why:
+The HighLevel Marketplace OAuth token successfully exchanged, but HighLevel MCP tool discovery returned HTTP 424. Marina now uses the native HighLevel API directly with the same OAuth token.
 
-Required Vercel env vars:
-HIGHLEVEL_CLIENT_ID
-HIGHLEVEL_CLIENT_SECRET
-NEXT_PUBLIC_SITE_URL
+Connection verification:
+- OAuth token exchange
+- capture HighLevel locationId
+- verify token by listing pipelines with native HighLevel API
+- mark BMOD Tools Connected only after verification succeeds
 
-Everything from 3.3.2 remains included.
+Live read tools now available to Marina:
+- Search contacts
+- Search opportunities
+- List pipelines
+- List workflows
+
+These can be used in Coach Me, Create With Me, and Action Mode.
+
+Current safety:
+- BMOD native tools are READ-ONLY.
+- Writes still queue through Action Mode rather than executing.
+- Token refresh is supported using the stored HighLevel refresh token.
+
+This removes HighLevel MCP as a dependency for BMOD Tools.
+Other integrations may continue using MCP.

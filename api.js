@@ -1027,7 +1027,7 @@ async function finalizeActionRun(userId, runId, summary, failed = false) {
   return status;
 }
 
-async function runActionAgent(message, history, memory, attachments, workspaceContext, userId, conversationId, skillDefinition = null, coachingContext = null, mcpTools = []) {
+async function runActionAgent(message, history, memory, attachments, workspaceContext, userId, conversationId, skillDefinition = null, coachingContext = null, mcpTools = [], nativeTools = []) {
   const routed = routeMessage(message);
   const liveBrain = await getLiveBrainContext(routed.route);
   const run = await createActionRun(userId, conversationId, message);
@@ -1119,7 +1119,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
         reasoning: { effort: "medium" },
         instructions: actionInstructions,
         input,
-        tools: [...ACTION_TOOLS, WEB_SEARCH_TOOL, ...mcpTools],
+        tools: [...ACTION_TOOLS, BMOD_READ_TOOL, WEB_SEARCH_TOOL, ...mcpTools],
         tool_choice: "auto",
         include: ["web_search_call.action.sources"],
         parallel_tool_calls: false,
@@ -1146,13 +1146,17 @@ You are not merely planning. You are operating inside Marina's controlled execut
 
         let result;
         try {
-          result = await executeActionTool({
-            name: call.name,
-            args,
-            userId,
-            conversationId,
-            runId: run.id,
-          });
+          if (call.name === "bmod_read") {
+            result = await executeBmodRead(userId,args);
+          } else {
+            result = await executeActionTool({
+              name: call.name,
+              args,
+              userId,
+              conversationId,
+              runId: run.id,
+            });
+          }
         } catch (e) {
           result = {
             ok: false,
@@ -1178,7 +1182,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
           reasoning: { effort: "medium" },
           previous_response_id: response.id,
           input: outputs,
-          tools: [...ACTION_TOOLS, WEB_SEARCH_TOOL, ...mcpTools],
+          tools: [...ACTION_TOOLS, BMOD_READ_TOOL, WEB_SEARCH_TOOL, ...mcpTools],
           tool_choice: "auto",
           include: ["web_search_call.action.sources"],
           parallel_tool_calls: false,
@@ -1404,6 +1408,7 @@ async function buildUserMcpTools(userId) {
   const rows = await getConnectionsForUser(userId);
   const tools = [];
   for (const row of rows) {
+    if (row.integration_key === "bmod_tools") continue;
     if (row.status !== "connected" || row.read_only !== true) continue;
     const allowed = Array.isArray(row.allowed_tools) ? row.allowed_tools.filter(Boolean) : [];
     if (!allowed.length) continue;
@@ -1426,15 +1431,210 @@ async function buildUserMcpTools(userId) {
   return tools;
 }
 
+
+const BMOD_READ_TOOL = {
+  type:"function",
+  name:"bmod_read",
+  description:"Read live data from the user's connected BMOD Tools / HighLevel account. Use this instead of asking for screenshots when CRM data is relevant.",
+  strict:true,
+  parameters:{
+    type:"object",
+    properties:{
+      operation:{
+        type:"string",
+        enum:["search_contacts","search_opportunities","list_pipelines","list_workflows"],
+        description:"The BMOD Tools read operation to run."
+      },
+      query:{
+        type:"string",
+        description:"Optional search text for contacts or opportunities. Use an empty string when no search term is needed."
+      },
+      limit:{
+        type:"integer",
+        minimum:1,
+        maximum:50,
+        description:"Maximum records to return."
+      }
+    },
+    required:["operation","query","limit"],
+    additionalProperties:false
+  }
+};
+
+async function getBmodConnection(userId) {
+  const rows = await sbRest(
+    `user_connections?user_id=eq.${encodeURIComponent(userId)}&integration_key=eq.bmod_tools&status=eq.connected&select=id,status,provider_account_id,token_expires_at,oauth_scope,last_error&limit=1`
+  );
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
+async function getConnectionRefreshSecret(userId, integrationKey) {
+  try {
+    const value = await sbRpc("get_connection_refresh_secret", {
+      p_user_id:userId,
+      p_integration_key:integrationKey,
+    });
+    return typeof value === "string" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+async function refreshHighLevelAccessToken(userId) {
+  const refreshToken = await getConnectionRefreshSecret(userId,"bmod_tools");
+  if (!refreshToken) throw new Error("BMOD Tools needs to be reconnected.");
+
+  const clientId = String(process.env.HIGHLEVEL_CLIENT_ID || "").trim();
+  const clientSecret = String(process.env.HIGHLEVEL_CLIENT_SECRET || "").trim();
+  if (!clientId || !clientSecret) throw new Error("HighLevel OAuth credentials are missing.");
+
+  const params = new URLSearchParams({
+    client_id:clientId,
+    client_secret:clientSecret,
+    grant_type:"refresh_token",
+    refresh_token:refreshToken,
+    user_type:"Location",
+  });
+
+  const {response,data,text} = await fetchJsonMaybe("https://services.leadconnectorhq.com/oauth/token",{
+    method:"POST",
+    headers:{
+      "accept":"application/json",
+      "content-type":"application/x-www-form-urlencoded",
+      "version":"v3",
+    },
+    body:params.toString()
+  });
+
+  if (!response.ok || !data?.access_token) {
+    throw new Error(`HighLevel token refresh failed (${response.status}): ${data?.message || data?.error_description || data?.error || text.slice(0,300)}`);
+  }
+
+  await sbRpc("store_connection_secret",{
+    p_user_id:userId,
+    p_integration_key:"bmod_tools",
+    p_secret:String(data.access_token),
+  });
+  if (data.refresh_token) {
+    await sbRpc("store_connection_refresh_secret",{
+      p_user_id:userId,
+      p_integration_key:"bmod_tools",
+      p_secret:String(data.refresh_token),
+    });
+  }
+
+  const expiresAt = Number(data.expires_in)>0
+    ? new Date(Date.now()+Number(data.expires_in)*1000).toISOString()
+    : null;
+
+  await sbRest(`user_connections?user_id=eq.${encodeURIComponent(userId)}&integration_key=eq.bmod_tools`,{
+    method:"PATCH",
+    headers:{Prefer:"return=minimal"},
+    body:JSON.stringify({
+      token_expires_at:expiresAt,
+      oauth_scope:String(data.scope || ""),
+      last_error:null,
+      updated_at:new Date().toISOString(),
+    })
+  });
+
+  return String(data.access_token);
+}
+
+async function getHighLevelAccessToken(userId) {
+  const rows = await sbRest(
+    `user_connections?user_id=eq.${encodeURIComponent(userId)}&integration_key=eq.bmod_tools&select=token_expires_at&limit=1`
+  );
+  const c = Array.isArray(rows) ? rows[0] : null;
+  const expires = c?.token_expires_at ? new Date(c.token_expires_at).getTime() : 0;
+  if (expires && expires < Date.now()+5*60*1000) {
+    return refreshHighLevelAccessToken(userId);
+  }
+  const token = await getConnectionSecret(userId,"bmod_tools");
+  if (!token) return refreshHighLevelAccessToken(userId);
+  return token;
+}
+
+async function highLevelApi(userId, path, {method="GET",body=null}={}) {
+  const token = await getHighLevelAccessToken(userId);
+  const r = await fetch(`https://services.leadconnectorhq.com${path}`,{
+    method,
+    headers:{
+      "accept":"application/json",
+      "content-type":"application/json",
+      "authorization":`Bearer ${token}`,
+      "version":"v3",
+    },
+    body:body == null ? undefined : JSON.stringify(body),
+  });
+  const text = await r.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (!r.ok) {
+    throw new Error(`BMOD Tools API ${r.status}: ${typeof data==="string" ? data.slice(0,500) : (data?.message || JSON.stringify(data)).slice(0,500)}`);
+  }
+  return data;
+}
+
+async function executeBmodRead(userId,args) {
+  const conn = await getBmodConnection(userId);
+  if (!conn?.provider_account_id) throw new Error("BMOD Tools is not connected to a HighLevel sub-account.");
+
+  const locationId = conn.provider_account_id;
+  const query = String(args.query || "").slice(0,75);
+  const limit = Math.max(1,Math.min(50,Number(args.limit || 20)));
+
+  if (args.operation === "list_pipelines") {
+    return highLevelApi(userId,`/opportunities/pipelines?locationId=${encodeURIComponent(locationId)}`);
+  }
+
+  if (args.operation === "list_workflows") {
+    return highLevelApi(userId,`/workflows/?locationId=${encodeURIComponent(locationId)}`);
+  }
+
+  if (args.operation === "search_opportunities") {
+    return highLevelApi(userId,"/opportunities/search",{
+      method:"POST",
+      body:{
+        locationId,
+        query,
+        limit,
+        page:0,
+        searchAfter:[],
+        additionalDetails:{notes:false,tasks:false,calendarEvents:false}
+      }
+    });
+  }
+
+  if (args.operation === "search_contacts") {
+    return highLevelApi(userId,"/contacts/search",{
+      method:"POST",
+      body:{
+        locationId,
+        query,
+        limit,
+        page:0
+      }
+    });
+  }
+
+  throw new Error("Unsupported BMOD Tools read operation.");
+}
+
+async function buildNativeBusinessTools(userId) {
+  const bmod = await getBmodConnection(userId);
+  return bmod ? [BMOD_READ_TOOL] : [];
+}
+
 const CONNECTION_RULES = `
 CONNECTED BUSINESS TOOLS:
-- You may have read-only MCP connections such as BMOD Tools (HighLevel) or Meta Ads.
+- BMOD Tools uses Marina's native HighLevel API connection. Other providers may use MCP.
 - When the user asks about their connected CRM, pipeline, leads, workflows, ads, campaign performance, or other connected business data, use the relevant connected tool instead of asking for screenshots.
 - Never claim a connection exists unless a connected tool is actually available in this request.
 - Current MCP connections in this release are READ-ONLY. Do not claim you changed, sent, enrolled, paused, published, deleted, or updated anything through MCP.
 - If a write action is needed, build the work and queue it through Marina Action Mode approval instead.
 `;
-async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach", workspaceContext = [], skillDefinition = null, coachingContext = null, mcpTools = []) {
+async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach", workspaceContext = [], skillDefinition = null, coachingContext = null, mcpTools = [], nativeTools = [], userId = null) {
   const routed = routeMessage(message);
   const liveBrain = await getLiveBrainContext(routed.route);
   const memoryText = memory
@@ -1527,7 +1727,7 @@ ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext
 
   input.push({ role: "user", content: userContent });
 
-  const r = await fetch("https://api.openai.com/v1/responses", {
+  let response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -1538,20 +1738,71 @@ ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext
       reasoning: { effort: "medium" },
       instructions,
       input,
-      tools: [WEB_SEARCH_TOOL, ...mcpTools],
+      tools: [WEB_SEARCH_TOOL, ...mcpTools, ...nativeTools],
       tool_choice: shouldForceWebSearch(message) ? "required" : "auto",
       include: ["web_search_call.action.sources"],
+      parallel_tool_calls:false,
     }),
+  }).then(async r => {
+    const data = await r.json();
+    if (!r.ok) throw new Error(`OPENAI_${r.status}: ${data.error?.message || JSON.stringify(data)}`);
+    return data;
   });
-  const data = await r.json();
-  if (!r.ok) throw new Error(`OPENAI_${r.status}: ${data.error?.message || JSON.stringify(data)}`);
+
+  let loops = 0;
+  while (loops < 6) {
+    loops += 1;
+    const calls = (response.output || []).filter(x=>x.type==="function_call");
+    if (!calls.length) break;
+    const outputs = [];
+
+    for (const call of calls) {
+      let args = {};
+      try { args = JSON.parse(call.arguments || "{}"); } catch {}
+      let result;
+      try {
+        if (call.name === "bmod_read") result = await executeBmodRead(userId,args);
+        else result = {ok:false,error:`Unsupported tool ${call.name}`};
+      } catch(e) {
+        result = {ok:false,error:e instanceof Error?e.message:String(e)};
+      }
+      outputs.push({
+        type:"function_call_output",
+        call_id:call.call_id,
+        output:JSON.stringify(result),
+      });
+    }
+
+    response = await fetch("https://api.openai.com/v1/responses",{
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,
+        "content-type":"application/json",
+      },
+      body:JSON.stringify({
+        model:process.env.OPENAI_MODEL || "gpt-5.6-terra",
+        reasoning:{effort:"medium"},
+        previous_response_id:response.id,
+        input:outputs,
+        tools:[WEB_SEARCH_TOOL,...mcpTools,...nativeTools],
+        tool_choice:"auto",
+        include:["web_search_call.action.sources"],
+        parallel_tool_calls:false,
+      })
+    }).then(async r=>{
+      const data=await r.json();
+      if(!r.ok)throw new Error(`OPENAI_${r.status}: ${data.error?.message || JSON.stringify(data)}`);
+      return data;
+    });
+  }
+
   return {
-    answer: parseOpenAIText(data) || "I hit a blank response. Try that once more.",
-    responseId: data.id || null,
-    model: data.model || process.env.OPENAI_MODEL || "gpt-5.6-terra",
-    usage: data.usage || null,
+    answer: parseOpenAIText(response) || "I hit a blank response. Try that once more.",
+    responseId: response.id || null,
+    model: response.model || process.env.OPENAI_MODEL || "gpt-5.6-terra",
+    usage: response.usage || null,
     route: routed.route,
-    webSources: extractWebSources(data),
+    webSources: extractWebSources(response),
   };
 }
 
@@ -2022,7 +2273,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "3.3.3-highlevel-token-v3",
+        build: "3.4.0-bmod-native-api",
         benchmarkEnabled: true,
       });
     }
@@ -2059,30 +2310,75 @@ module.exports = async function handler(req, res) {
         if (st.client_secret) await sbRpc("store_connection_client_secret",{p_user_id:st.user_id,p_integration_key:st.integration_key,p_secret:String(st.client_secret)});
 
         const expiresAt = Number(token.expires_in)>0 ? new Date(Date.now()+Number(token.expires_in)*1000).toISOString() : null;
-        const connRows = await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.${encodeURIComponent(st.integration_key)}&select=server_url&limit=1`);
-        const conn = Array.isArray(connRows) ? connRows[0] : null;
-        if (!conn?.server_url) throw new Error("Connection endpoint missing after OAuth.");
+        let providerAccountId = String(token.locationId || token.location_id || "");
 
-        const discovered = await discoverConnectedMcpTools(st.user_id,st.integration_key,conn.server_url,String(token.access_token));
+        if (st.integration_key === "bmod_tools") {
+          if (!providerAccountId) throw new Error("HighLevel connected, but no sub-account location ID was returned.");
 
-        await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.${encodeURIComponent(st.integration_key)}`,{
-          method:"PATCH",headers:{Prefer:"return=minimal"},
-          body:JSON.stringify({
-            status:"connected",
-            discovered_tools:discovered.discovered,
-            allowed_tools:discovered.safe,
-            oauth_client_id:st.client_id,
-            oauth_authorization_endpoint:st.authorization_endpoint,
-            oauth_token_endpoint:st.token_endpoint,
-            oauth_registration_endpoint:st.registration_endpoint,
-            oauth_scope:String(token.scope || st.scopes || ""),
-            oauth_connected_at:new Date().toISOString(),
-            token_expires_at:expiresAt,
-            last_error:null,
-            last_checked_at:new Date().toISOString(),
-            updated_at:new Date().toISOString(),
-          })
-        });
+          // Verify the OAuth token against the native HighLevel API.
+          const testUrl = `https://services.leadconnectorhq.com/opportunities/pipelines?locationId=${encodeURIComponent(providerAccountId)}`;
+          const testResp = await fetch(testUrl,{
+            headers:{
+              "accept":"application/json",
+              "authorization":`Bearer ${String(token.access_token)}`,
+              "version":"v3",
+            }
+          });
+          const testText = await testResp.text();
+          if (!testResp.ok) {
+            throw new Error(`HighLevel connection verification failed (${testResp.status}): ${testText.slice(0,400)}`);
+          }
+
+          await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.bmod_tools`,{
+            method:"PATCH",headers:{Prefer:"return=minimal"},
+            body:JSON.stringify({
+              status:"connected",
+              provider_account_id:providerAccountId,
+              discovered_tools:[
+                {name:"search_contacts",description:"Search contacts"},
+                {name:"search_opportunities",description:"Search opportunities"},
+                {name:"list_pipelines",description:"List pipelines"},
+                {name:"list_workflows",description:"List workflows"}
+              ],
+              allowed_tools:["search_contacts","search_opportunities","list_pipelines","list_workflows"],
+              oauth_client_id:st.client_id,
+              oauth_authorization_endpoint:st.authorization_endpoint,
+              oauth_token_endpoint:st.token_endpoint,
+              oauth_registration_endpoint:null,
+              oauth_scope:String(token.scope || st.scopes || ""),
+              oauth_connected_at:new Date().toISOString(),
+              token_expires_at:expiresAt,
+              last_error:null,
+              last_checked_at:new Date().toISOString(),
+              updated_at:new Date().toISOString(),
+            })
+          });
+        } else {
+          const connRows = await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.${encodeURIComponent(st.integration_key)}&select=server_url&limit=1`);
+          const conn = Array.isArray(connRows) ? connRows[0] : null;
+          if (!conn?.server_url) throw new Error("Connection endpoint missing after OAuth.");
+
+          const discovered = await discoverConnectedMcpTools(st.user_id,st.integration_key,conn.server_url,String(token.access_token));
+
+          await sbRest(`user_connections?user_id=eq.${encodeURIComponent(st.user_id)}&integration_key=eq.${encodeURIComponent(st.integration_key)}`,{
+            method:"PATCH",headers:{Prefer:"return=minimal"},
+            body:JSON.stringify({
+              status:"connected",
+              discovered_tools:discovered.discovered,
+              allowed_tools:discovered.safe,
+              oauth_client_id:st.client_id,
+              oauth_authorization_endpoint:st.authorization_endpoint,
+              oauth_token_endpoint:st.token_endpoint,
+              oauth_registration_endpoint:st.registration_endpoint,
+              oauth_scope:String(token.scope || st.scopes || ""),
+              oauth_connected_at:new Date().toISOString(),
+              token_expires_at:expiresAt,
+              last_error:null,
+              last_checked_at:new Date().toISOString(),
+              updated_at:new Date().toISOString(),
+            })
+          });
+        }
         await sbRest(`connection_oauth_states?state=eq.${encodeURIComponent(state)}`,{method:"DELETE"});
         res.statusCode=302; res.setHeader("Location",`${returnUrl.split("?")[0]}?oauth=success&connection=${encodeURIComponent(st.integration_key)}`); return res.end();
       } catch(e) {
@@ -3116,11 +3412,12 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      const [memory, workspaceContext, coachingContext, mcpTools] = await Promise.all([
+      const [memory, workspaceContext, coachingContext, mcpTools, nativeTools] = await Promise.all([
         getMemory(user.id),
         getWorkspaceContext(user.id),
         getCoachingContext(user.id),
         buildUserMcpTools(user.id),
+        buildNativeBusinessTools(user.id),
       ]);
 
       const skillRun = skillDefinition
@@ -3130,8 +3427,8 @@ module.exports = async function handler(req, res) {
       let ai;
       try {
         ai = experienceMode === "action"
-          ? await runActionAgent(message, history, memory, attachments, workspaceContext, user.id, conversationId, skillDefinition, coachingContext, mcpTools)
-          : await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext, skillDefinition, coachingContext, mcpTools);
+          ? await runActionAgent(message, history, memory, attachments, workspaceContext, user.id, conversationId, skillDefinition, coachingContext, mcpTools, nativeTools)
+          : await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext, skillDefinition, coachingContext, mcpTools, nativeTools, user.id);
         if (skillRun?.id) await finishSkillRun(user.id, skillRun.id, ai.answer, false);
       } catch (e) {
         if (skillRun?.id) await finishSkillRun(user.id, skillRun.id, e instanceof Error ? e.message : String(e), true);
