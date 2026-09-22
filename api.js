@@ -1883,6 +1883,40 @@ async function registerDynamicMcpClient(oauth, redirectUri) {
 }
 
 async function exchangeOAuthCode(stateRow, code) {
+  // HighLevel has a strict v3 token contract. Match it exactly.
+  if (stateRow.integration_key === "bmod_tools") {
+    const params = new URLSearchParams({
+      client_id:String(stateRow.client_id || ""),
+      client_secret:String(stateRow.client_secret || ""),
+      grant_type:"authorization_code",
+      code:String(code || ""),
+      user_type:"Location",
+      redirect_uri:String(stateRow.redirect_uri || ""),
+    });
+
+    const {response,data,text} = await fetchJsonMaybe(
+      "https://services.leadconnectorhq.com/oauth/token",
+      {
+        method:"POST",
+        headers:{
+          "accept":"application/json",
+          "content-type":"application/x-www-form-urlencoded",
+          "version":"v3",
+        },
+        body:params.toString(),
+      }
+    );
+
+    if (!response.ok || !data?.access_token) {
+      const detail = data
+        ? (data.message || data.error_description || data.error || JSON.stringify(data))
+        : text.slice(0,500);
+      throw new Error(`HighLevel token exchange failed (${response.status}): ${detail}`);
+    }
+    return data;
+  }
+
+  // Generic OAuth exchange for other MCP providers.
   const params = new URLSearchParams({
     grant_type:"authorization_code",
     code,
@@ -1900,7 +1934,6 @@ async function exchangeOAuthCode(stateRow, code) {
   };
 
   const method = String(stateRow.token_auth_method || "none");
-
   if (stateRow.client_secret) {
     if (method === "client_secret_basic") {
       headers.authorization = `Basic ${Buffer.from(
@@ -1909,11 +1942,6 @@ async function exchangeOAuthCode(stateRow, code) {
     } else {
       params.set("client_secret",stateRow.client_secret);
     }
-  }
-
-  // HighLevel expects user_type for location-level installs.
-  if (stateRow.integration_key === "bmod_tools") {
-    params.set("user_type","Location");
   }
 
   const {response,data,text} = await fetchJsonMaybe(stateRow.token_endpoint,{
@@ -1994,7 +2022,7 @@ module.exports = async function handler(req, res) {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
         supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
         model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        build: "3.3.2-highlevel-scopes",
+        build: "3.3.3-highlevel-token-v3",
         benchmarkEnabled: true,
       });
     }
@@ -2187,9 +2215,6 @@ module.exports = async function handler(req, res) {
         authUrl.searchParams.set("state",state);
         authUrl.searchParams.set("user_type","Location");
         authUrl.searchParams.set("scope",highLevelScopes);
-        authUrl.searchParams.set("code_challenge",challenge);
-        authUrl.searchParams.set("code_challenge_method","S256");
-
         return json(res,200,{
           authorizeUrl:authUrl.toString(),
           status:"redirect",
