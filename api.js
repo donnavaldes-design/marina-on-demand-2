@@ -1209,6 +1209,39 @@ async function getActionRun(userId, runId) {
   return { ...run, steps: Array.isArray(steps) ? steps : [] };
 }
 
+async function getOpenLoopsSummary(userId){
+  const [approvals,tasks,runs,recentCompleted,recentAssets]=await Promise.all([
+    sbRest(`action_steps?user_id=eq.${encodeURIComponent(userId)}&step_type=eq.external_action&approval_status=eq.pending&select=id,run_id,title,description,status,external_system,proposed_action,result,created_at,updated_at&order=created_at.asc&limit=30`),
+    sbRest(`action_steps?user_id=eq.${encodeURIComponent(userId)}&step_type=eq.user_task&status=eq.planned&select=id,run_id,title,description,status,created_at,updated_at&order=created_at.asc&limit=30`),
+    sbRest(`action_runs?user_id=eq.${encodeURIComponent(userId)}&status=in.(running,needs_approval,needs_attention)&select=id,conversation_id,objective,status,summary,created_at,updated_at&order=updated_at.desc&limit=20`),
+    sbRest(`action_steps?user_id=eq.${encodeURIComponent(userId)}&status=eq.completed&select=id,run_id,title,description,external_system,result,executed_at,updated_at&order=updated_at.desc&limit=12`),
+    sbRest(`workspace_items?user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=id,section,title,pinned,source_conversation_id,updated_at&order=updated_at.desc&limit=12`)
+  ]);
+
+  const approvalRows=Array.isArray(approvals)?approvals:[];
+  const taskRows=Array.isArray(tasks)?tasks:[];
+  const runRows=Array.isArray(runs)?runs:[];
+  const completedRows=Array.isArray(recentCompleted)?recentCompleted:[];
+  const assetRows=Array.isArray(recentAssets)?recentAssets:[];
+
+  return {
+    counts:{
+      needs_approval:approvalRows.length,
+      your_tasks:taskRows.length,
+      open_runs:runRows.length,
+      recent_completed:completedRows.length,
+      ready_assets:assetRows.length,
+      attention_total:approvalRows.length+taskRows.length+runRows.length
+    },
+    approvals:approvalRows,
+    tasks:taskRows,
+    runs:runRows,
+    recent_completed:completedRows,
+    ready_assets:assetRows
+  };
+}
+
+
 async function finalizeActionRun(userId, runId, summary, failed = false) {
   const steps = await sbRest(
     `action_steps?run_id=eq.${encodeURIComponent(runId)}&user_id=eq.${encodeURIComponent(userId)}&select=status,approval_status`
@@ -3503,9 +3536,10 @@ async function executeApprovedBmodStep(userId,step){
     }
 
     if (req.method === "GET" && path === "/api/dashboard") {
-      const [memory, momentum] = await Promise.all([
+      const [memory, momentum, openLoops] = await Promise.all([
         getMemory(user.id),
-        getMomentumSummary(user.id)
+        getMomentumSummary(user.id),
+        getOpenLoopsSummary(user.id)
       ]);
       const m = memorySnapshot(memory);
       const todayMove = m.last_assignment
@@ -3516,11 +3550,39 @@ async function executeApprovedBmodStep(userId,step){
       return json(res, 200, {
         memory: m,
         momentum,
+        openLoops:{counts:openLoops.counts},
         todayMove,
         modes: ["coach","create","action"]
       });
     }
 
+
+    if (req.method === "GET" && path === "/api/open-loops") {
+      const openLoops=await getOpenLoopsSummary(user.id);
+      return json(res,200,openLoops);
+    }
+
+    if (req.method === "PATCH" && path === "/api/open-loops/task") {
+      const body=await readBody(req);
+      const stepId=String(body.stepId||"");
+      const done=body.done===true;
+      if(!stepId)return json(res,400,{error:"stepId required"});
+      const rows=await sbRest(
+        `action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}&step_type=eq.user_task&select=id,run_id,status&limit=1`
+      );
+      const step=Array.isArray(rows)?rows[0]:null;
+      if(!step)return json(res,404,{error:"Task not found"});
+      await sbRest(
+        `action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}`,
+        {method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({
+          status:done?"completed":"planned",
+          result:done?{note:"Marked done by user."}:{},
+          updated_at:new Date().toISOString()
+        })}
+      );
+      await refreshActionRunStatus(user.id,step.run_id);
+      return json(res,200,{ok:true,status:done?"completed":"planned"});
+    }
 
     if (req.method === "GET" && path === "/api/momentum") {
       const [memory, momentum, bmod] = await Promise.all([
