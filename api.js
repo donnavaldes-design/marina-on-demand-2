@@ -1249,7 +1249,7 @@ function zonedParts(date,timeZone){
   const parts=new Intl.DateTimeFormat("en-US",{
     timeZone,
     year:"numeric",month:"2-digit",day:"2-digit",
-    weekday:"short",hour:"2-digit",hour12:false
+    weekday:"short",hour:"2-digit",hour12:false,hourCycle:"h23"
   }).formatToParts(date);
   const get=t=>parts.find(p=>p.type===t)?.value||"";
   const weekdayMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
