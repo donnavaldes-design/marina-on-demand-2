@@ -1212,20 +1212,27 @@ async function getActionRun(userId, runId) {
 async function getOpenLoopsSummary(userId){
   const [approvals,tasks,runs,recentCompleted,recentAssets]=await Promise.all([
     sbRest(`action_steps?user_id=eq.${encodeURIComponent(userId)}&step_type=eq.external_action&approval_status=eq.pending&select=id,run_id,title,description,status,external_system,proposed_action,result,created_at,updated_at&order=created_at.asc&limit=30`),
-    sbRest(`action_steps?user_id=eq.${encodeURIComponent(userId)}&step_type=eq.user_task&status=eq.planned&select=id,run_id,title,description,status,created_at,updated_at&order=created_at.asc&limit=30`),
+    sbRest(`action_steps?user_id=eq.${encodeURIComponent(userId)}&step_type=eq.user_task&status=eq.planned&select=id,run_id,title,description,status,result,created_at,updated_at&order=created_at.asc&limit=30`),
     sbRest(`action_runs?user_id=eq.${encodeURIComponent(userId)}&status=in.(running,needs_approval,needs_attention)&select=id,conversation_id,objective,status,summary,created_at,updated_at&order=updated_at.desc&limit=20`),
     sbRest(`action_steps?user_id=eq.${encodeURIComponent(userId)}&status=eq.completed&select=id,run_id,title,description,external_system,result,executed_at,updated_at&order=updated_at.desc&limit=12`),
     sbRest(`workspace_items?user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=id,section,title,pinned,source_conversation_id,updated_at&order=updated_at.desc&limit=12`)
   ]);
 
   const approvalRows=Array.isArray(approvals)?approvals:[];
-  const taskRows=Array.isArray(tasks)?tasks:[];
+  const allTasks=Array.isArray(tasks)?tasks:[];
+  const snoozedTasks=allTasks.filter(x=>Date.parse(x.result?.snoozed_until)>Date.now());
+  const taskRows=allTasks.filter(x=>!snoozedTasks.includes(x));
   const runRows=Array.isArray(runs)?runs:[];
   const completedRows=Array.isArray(recentCompleted)?recentCompleted:[];
   const assetRows=Array.isArray(recentAssets)?recentAssets:[];
 
+  const runIds=[...new Set([...approvalRows,...allTasks].map(x=>x.run_id).filter(Boolean))];
+  const linkedRuns=runIds.length?await sbRest(`action_runs?user_id=eq.${encodeURIComponent(userId)}&id=in.(${runIds.map(encodeURIComponent).join(",")})&select=id,conversation_id`):[];
+  const conversations=new Map((Array.isArray(linkedRuns)?linkedRuns:[]).map(x=>[x.id,x.conversation_id]));
+  const withChat=x=>({...x,conversation_id:conversations.get(x.run_id)||null});
   return {
     counts:{
+      snoozed_tasks:snoozedTasks.length,
       needs_approval:approvalRows.length,
       your_tasks:taskRows.length,
       open_runs:runRows.length,
@@ -1233,8 +1240,9 @@ async function getOpenLoopsSummary(userId){
       ready_assets:assetRows.length,
       attention_total:approvalRows.length+taskRows.length+runRows.length
     },
-    approvals:approvalRows,
-    tasks:taskRows,
+    approvals:approvalRows.map(withChat),
+    tasks:taskRows.map(withChat),
+    snoozed_tasks:snoozedTasks.map(withChat),
     runs:runRows,
     recent_completed:completedRows,
     ready_assets:assetRows
@@ -3822,17 +3830,23 @@ async function executeApprovedBmodStep(userId,step){
       const body=await readBody(req);
       const stepId=String(body.stepId||"");
       const done=body.done===true;
+      if(typeof body.done!=="boolean" && typeof body.snooze!=="boolean")return json(res,400,{error:"done or snooze required"});
       if(!stepId)return json(res,400,{error:"stepId required"});
       const rows=await sbRest(
-        `action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}&step_type=eq.user_task&select=id,run_id,status&limit=1`
+        `action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}&step_type=eq.user_task&select=id,run_id,status,result&limit=1`
       );
       const step=Array.isArray(rows)?rows[0]:null;
       if(!step)return json(res,404,{error:"Task not found"});
+      if(typeof body.snooze==="boolean" && step.status!=="planned")return json(res,409,{error:"Only open tasks can be snoozed"});
+      const taskResult={...(step.result||{})};
+      if(body.snooze===true)taskResult.snoozed_until=new Date(Date.now()+86400000).toISOString();
+      else delete taskResult.snoozed_until;
+      if(done)taskResult.note="Marked done by user.";
       await sbRest(
         `action_steps?id=eq.${encodeURIComponent(stepId)}&user_id=eq.${encodeURIComponent(user.id)}`,
         {method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({
           status:done?"completed":"planned",
-          result:done?{note:"Marked done by user."}:{},
+          result:taskResult,
           updated_at:new Date().toISOString()
         })}
       );

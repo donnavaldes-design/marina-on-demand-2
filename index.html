@@ -136,7 +136,9 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 
 @media(max-width:960px){.card{grid-template-columns:1fr;gap:18px}.loginVisual{min-height:280px}.dashboardHero{grid-template-columns:1fr 200px}}
 @media(max-width:860px){.settingGrid,.brainList,.businessEditGrid,.skillsBuilder,.skillLibraryGrid,.loopSummary,.briefGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.skillGrid{grid-template-columns:1fr}.momentumGrid,.winsPreview{grid-template-columns:1fr 1fr}.connectionGrid{grid-template-columns:1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
-@media(max-width:560px){.center{padding:14px}.card{padding:16px;border-radius:22px}.card h1{font-size:42px}.field{flex-direction:column}.dashboardHero h2,.hub h2{font-size:32px}.focusCard strong{font-size:22px}.topBrand strong{font-size:14px}.topAvatar{width:34px;height:34px}.logo{font-size:28px}.brandPortrait{width:60px;height:60px;border-radius:14px}}</style>
+@media(max-width:560px){.center{padding:14px}.card{padding:16px;border-radius:22px}.card h1{font-size:42px}.field{flex-direction:column}.dashboardHero h2,.hub h2{font-size:32px}.focusCard strong{font-size:22px}.topBrand strong{font-size:14px}.topAvatar{width:34px;height:34px}.logo{font-size:28px}.brandPortrait{width:60px;height:60px;border-radius:14px}}
+#briefAllLoops{margin-top:14px}#briefAllLoops summary{cursor:pointer;font-weight:700;padding:12px 0}#briefAllLoops h4{margin-bottom:10px}#briefOpenLoops p{line-height:1.5}#briefLoopStatus{margin-top:10px;font-size:13px} .loopItem{overflow-wrap:anywhere}
+</style>
 </head>
 <body>
 <div id="login" class="center">
@@ -175,7 +177,6 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
     <button id="memoryBtn" class="memoryBtn" type="button">✦ My Brand Brain</button>
     <button id="skillsBtn" class="skillsBtn" type="button">◇ My Skills</button>
     <button id="dailyBriefBtn" class="dailyBriefBtn" type="button">☀ Daily Brief</button>
-    <button id="openLoopsBtn" class="openLoopsBtn" type="button">☑ Open Loops</button>
     <button id="momentumBtn" class="momentumBtn" type="button">↗ Momentum + Wins</button>
     <button id="connectionsBtn" class="connectionsBtn" type="button">⌘ Connections</button>
     <div class="sideSectionLabel">My Business</div>
@@ -335,11 +336,6 @@ qs("#dailyBriefBtn").addEventListener("click",async()=>{
   if(state.loading)return;
   closeSidebarIfMobile();
   await openDailyBrief();
-});
-qs("#openLoopsBtn").addEventListener("click",async()=>{
-  if(state.loading)return;
-  closeSidebarIfMobile();
-  await openOpenLoopsPage();
 });
 qs("#momentumBtn").addEventListener("click",async()=>{
   if(state.loading)return;
@@ -1178,7 +1174,7 @@ async function openConnectionsPage(){
   }catch(e){qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Connections</h2><p>${esc(e.message)}</p></div>`}
 }
 
-async function openDailyBrief(){
+async function openDailyBrief(options={}){
   state.messages=[];state.conversationId="";renderThreads();
   qs("#messages").innerHTML=`<div class="dailyBriefPage"><div class="eyebrow">Daily Brief</div><h2>What needs your attention today.</h2><p>Marina is checking the business before you start reacting to it.</p><div class="workspaceEmpty">Building your brief...</div></div>`;
   try{
@@ -1194,10 +1190,6 @@ async function openDailyBrief(){
     const eventHtml=events.length?events.map(e=>`<div class="briefItem"><strong>${esc(e.summary||"Busy")}</strong><span>${esc(e.start?formatDate(e.start):"Time unavailable")}${e.location?` · ${esc(e.location)}`:""}</span></div>`).join(""):`<div class="briefItem"><span>${cal.connected?"No calendar events in the next 24 hours.":"Google Calendar is not connected."}</span></div>`;
 
     const emailHtml=emails.length?emails.map(e=>`<div class="briefItem"><strong>${esc(e.subject||"(no subject)")}</strong><span>${esc(e.from||"Unknown sender")}${e.snippet?` · ${esc(e.snippet)}`:""}</span></div>`).join(""):`<div class="briefItem"><span>${gmail.connected?"No recent unread Gmail messages surfaced.":"Gmail is not connected."}</span></div>`;
-
-    const approvalHtml=(loops.approvals||[]).slice(0,4).map(x=>`<div class="briefItem"><strong>${esc(x.title)}</strong><span>${esc(x.external_system||"External action")} · waiting for approval</span></div>`).join("");
-    const taskHtml=(loops.tasks||[]).slice(0,4).map(x=>`<div class="briefItem"><strong>${esc(x.title)}</strong><span>Your Move${x.description?` · ${esc(x.description)}`:""}</span></div>`).join("");
-    const loopsHtml=(approvalHtml+taskHtml)||`<div class="briefItem"><span>No approvals or Marina tasks are waiting on you.</span></div>`;
 
     const winsHtml=wins.length?wins.map(w=>`<div class="briefItem"><strong>${esc(w.title)}</strong><span>${esc(winTypeLabel(w.win_type))} · ${esc(formatDate(w.occurred_on))}</span></div>`).join(""):`<div class="briefItem"><span>No recent saved wins yet.</span></div>`;
 
@@ -1218,6 +1210,7 @@ async function openDailyBrief(){
         <button id="briefRefresh" class="secondary">Refresh</button>
       </div>
 
+      ${renderBriefLoops(loops,options.expandLoops===true)}
       <div class="briefSchedule">
         <h3>Scheduled Marina</h3>
         <p>Have Marina build a fresh in-app Daily Brief automatically each morning. This creates the brief in the background; it does not send email or push notifications yet.</p>
@@ -1258,12 +1251,6 @@ async function openDailyBrief(){
 
       <div class="briefGrid">
         <div class="briefCard">
-          <h3>Needs your attention</h3>
-          <div class="briefList">${loopsHtml}</div>
-          <div class="loopMeta" style="margin-top:10px">${esc(counts.needs_approval||0)} approval · ${esc(counts.your_tasks||0)} task · ${esc(counts.open_runs||0)} open run</div>
-        </div>
-
-        <div class="briefCard">
           <h3>Next 24 hours</h3>
           <div class="briefList">${eventHtml}</div>
         </div>
@@ -1297,7 +1284,9 @@ async function openDailyBrief(){
       </div>
     </div>`;
 
-    qs("#briefRefresh").onclick=openDailyBrief;
+    bindBriefLoops();
+    if(options.focusLoops)qs("#briefOpenLoops").scrollIntoView({block:"start"});
+    qs("#briefRefresh").onclick=()=>openDailyBrief(options);
     qs("#briefCoach").onclick=()=>{resetWorkspace("coach");send("Review my Daily Brief using my live connected data, Open Loops, calendar, Gmail signals, BMOD Tools snapshot, momentum and recent wins. Tell me what matters most today, what can wait, and give me one highest-leverage move.","coach")};
     qs("#briefTakeLead").onclick=()=>{resetWorkspace("action");send("Use my Daily Brief and take the lead on today's highest-leverage business priorities. Build what you can, use connected tools where appropriate, and queue any consequential external actions for my approval.","action")};
     qs("#saveBriefSchedule").onclick=async()=>{
@@ -1340,86 +1329,38 @@ async function openDailyBrief(){
   }
 }
 
+function renderBriefLoops(loops,expanded=false){
+  const counts=loops.counts||{};
+  const chatButton=x=>x.conversation_id?`<button data-open-loop-chat="${esc(x.conversation_id)}">Continue</button>`:"";
+  const meta=x=>`${esc(String(x.status||"planned").replace(/_/g," "))}${x.result?.due_at?` · Due ${esc(formatDate(x.result.due_at))}`:""}`;
+  const taskCard=(x,snoozed=false)=>`<div class="loopItem" data-loop-task="${esc(x.id)}"><strong>${esc(x.title)}</strong><div class="loopMeta">${snoozed?`Snoozed until ${esc(formatDate(x.result.snoozed_until))}`:meta(x)}</div>${x.description?`<p>${esc(x.description)}</p>`:""}<div class="loopActions">${chatButton(x)}<button class="doneLoop" data-loop-task-action="done">Mark done</button><button data-loop-task-action="${snoozed?"resume":"snooze"}">${snoozed?"Bring back now":"Snooze 24 hours"}</button></div></div>`;
+  const cards=[...(loops.approvals||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(x.external_system||"External action")} · Awaiting approval</div>${x.description?`<p>${esc(x.description)}</p>`:""}<div class="loopActions">${x.conversation_id?`<button data-open-loop-chat="${esc(x.conversation_id)}">Review in Action Mode</button>`:`<span>Open the original Action Mode conversation to review this action.</span>`}</div></div>`),...(loops.tasks||[]).map(x=>taskCard(x)),...(loops.runs||[]).map(x=>`<div class="loopItem"><strong>${esc(x.objective||"Action Run")}</strong><div class="loopMeta">${meta(x)}</div>${x.summary?`<p>${esc(x.summary)}</p>`:""}<div class="loopActions">${chatButton(x)}</div></div>`)];
+  const completed=(loops.recent_completed||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">Completed</div>${x.result?.note?`<p>${esc(x.result.note)}</p>`:""}</div>`).join("");
+  const assets=(loops.ready_assets||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(workspaceLabel(x.section))} · ready to use</div><div class="loopActions"><button data-open-asset-section="${esc(x.section)}">Open workspace</button></div></div>`).join("");
+  const recent=state.conversations?.[0];
+  return `<section id="briefOpenLoops" class="loopSection" aria-labelledby="briefLoopsHeading"><div class="loopSectionHead"><div><div class="eyebrow">Open Loops</div><h3 id="briefLoopsHeading">Your next steps, in one place.</h3></div></div><p class="loopMeta">${esc(counts.needs_approval||0)} awaiting approval · ${esc(counts.your_tasks||0)} tasks · ${esc(counts.open_runs||0)} open runs</p><div class="loopList">${cards.slice(0,4).join("")||'<div class="workspaceEmpty">Nothing needs your attention here right now.</div>'}</div><details id="briefAllLoops" ${expanded?"open":""}><summary>View all Open Loops (${cards.length}) and saved work</summary><div class="loopList">${cards.slice(4).join("")}</div>${loops.snoozed_tasks?.length?`<h4>Snoozed tasks</h4><div class="loopList">${loops.snoozed_tasks.map(x=>taskCard(x,true)).join("")}</div>`:""}<h4>Recently completed</h4><div class="loopList">${completed||'<p>No completed actions yet.</p>'}</div><h4>Ready to use</h4><div class="loopList">${assets||'<p>No recent saved assets.</p>'}</div></details>${recent?`<div class="briefToolbar"><button data-open-loop-chat="${esc(recent.id)}">Continue where you left off</button></div>`:""}<div id="briefLoopStatus" role="status" aria-live="polite"></div></section>`;
+}
+function bindBriefLoops(){
+  const root=qs("#briefOpenLoops");
+  root.querySelectorAll("[data-loop-task-action]").forEach(b=>b.onclick=async()=>{
+    const item=b.closest("[data-loop-task]");
+    const buttons=item.querySelectorAll("button");buttons.forEach(x=>x.disabled=true);
+    const action=b.dataset.loopTaskAction;
+    try{
+      await api("/api/open-loops/task",{method:"PATCH",body:JSON.stringify({stepId:item.dataset.loopTask,...(action==="done"?{done:true}:{snooze:action==="snooze"})})});
+      const loops=await api("/api/open-loops");
+      const expanded=qs("#briefAllLoops").open;
+      root.outerHTML=renderBriefLoops(loops,expanded);bindBriefLoops();
+      qs("#briefLoopStatus").textContent=action==="done"?"Task completed.":action==="snooze"?"Task snoozed for 24 hours.":"Task returned to your brief.";
+    }catch(e){qs("#briefLoopStatus").textContent=e.message;buttons.forEach(x=>x.disabled=false);}
+  });
+  root.querySelectorAll("[data-open-loop-chat]").forEach(b=>b.onclick=async()=>{
+    try{await selectConversation(b.dataset.openLoopChat);}catch(e){qs("#status").textContent=e.message;}
+  });
+  root.querySelectorAll("[data-open-asset-section]").forEach(b=>b.onclick=()=>openWorkspace(b.dataset.openAssetSection));
+}
 async function openOpenLoopsPage(){
-  state.messages=[];state.conversationId="";renderThreads();
-  qs("#messages").innerHTML=`<div class="openLoopsPage"><div class="eyebrow">Open Loops</div><h2>What needs your attention.</h2><p>Approvals, your tasks, unfinished Action Runs, finished work, and assets Marina has ready for you.</p><div class="workspaceEmpty">Checking your open loops...</div></div>`;
-  try{
-    const j=await api("/api/open-loops");
-    const counts=j.counts||{}, approvals=j.approvals||[], tasks=j.tasks||[], runs=j.runs||[], completed=j.recent_completed||[], assets=j.ready_assets||[];
-    const btn=qs("#openLoopsBtn");
-    if(btn)btn.classList.toggle("hasAttention",Number(counts.attention_total||0)>0);
-
-    const empty=(text)=>`<div class="workspaceEmpty">${esc(text)}</div>`;
-    const approvalHtml=approvals.length?approvals.map(x=>`<div class="loopItem" data-loop-step="${esc(x.id)}">
-      <div class="loopItemTop"><div><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(x.external_system||"External action")} · needs approval</div></div></div>
-      ${x.description?`<p>${esc(x.description)}</p>`:""}
-      <div class="loopActions"><button class="approveLoop" data-loop-approve="approve">Approve</button><button data-loop-approve="reject">Reject</button></div>
-    </div>`).join(""):empty("Nothing is waiting for approval.");
-
-    const taskHtml=tasks.length?tasks.map(x=>`<div class="loopItem" data-loop-task="${esc(x.id)}">
-      <div class="loopItemTop"><div><strong>${esc(x.title)}</strong><div class="loopMeta">Your Move · internal Marina task</div></div></div>
-      ${x.description?`<p>${esc(x.description)}</p>`:""}
-      <div class="loopActions"><button class="doneLoop" data-loop-task-done>Mark Done ✓</button></div>
-    </div>`).join(""):empty("No Marina tasks are waiting on you.");
-
-    const runHtml=runs.length?runs.map(x=>`<div class="loopItem">
-      <div class="loopItemTop"><div><strong>${esc(x.objective||"Action Run")}</strong><div class="loopMeta">${esc(String(x.status||"").replace(/_/g," "))}</div></div></div>
-      ${x.summary?`<p>${esc(x.summary)}</p>`:""}
-      ${x.conversation_id?`<div class="loopActions"><button data-open-loop-chat="${esc(x.conversation_id)}">Open conversation</button></div>`:""}
-    </div>`).join(""):empty("No unfinished Action Runs.");
-
-    const completedHtml=completed.length?completed.slice(0,8).map(x=>`<div class="loopItem">
-      <div class="loopItemTop"><div><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(x.external_system||"Marina")} · completed</div></div></div>
-      ${x.result?.note?`<p>${esc(x.result.note)}</p>`:""}
-    </div>`).join(""):empty("Completed actions will show up here.");
-
-    const assetHtml=assets.length?assets.slice(0,8).map(x=>`<div class="loopItem">
-      <div class="loopItemTop"><div><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(workspaceLabel(x.section))} · ready to use</div></div></div>
-      <div class="loopActions"><button data-open-asset-section="${esc(x.section)}">Open workspace</button></div>
-    </div>`).join(""):empty("No recent Workspace assets yet.");
-
-    qs("#messages").innerHTML=`<div class="openLoopsPage">
-      <div class="eyebrow">Open Loops</div>
-      <h2>What needs your attention.</h2>
-      <p>Marina keeps the loose ends in one place so you do not have to remember what is waiting, what needs approval, and what is already done.</p>
-      <div class="loopSummary">
-        <div class="loopSummaryCard"><small>Needs approval</small><strong>${esc(counts.needs_approval||0)}</strong></div>
-        <div class="loopSummaryCard"><small>Your tasks</small><strong>${esc(counts.your_tasks||0)}</strong></div>
-        <div class="loopSummaryCard"><small>Open runs</small><strong>${esc(counts.open_runs||0)}</strong></div>
-        <div class="loopSummaryCard"><small>Ready assets</small><strong>${esc(counts.ready_assets||0)}</strong></div>
-      </div>
-
-      <div class="loopSection"><div class="loopSectionHead"><div><div class="eyebrow">Needs your approval</div><h3>Marina is waiting on you.</h3></div></div><div class="loopList">${approvalHtml}</div></div>
-      <div class="loopSection"><div class="loopSectionHead"><div><div class="eyebrow">Your tasks</div><h3>The moves only you can make.</h3></div></div><div class="loopList">${taskHtml}</div></div>
-      <div class="loopSection"><div class="loopSectionHead"><div><div class="eyebrow">Open Action Runs</div><h3>Work still in motion.</h3></div></div><div class="loopList">${runHtml}</div></div>
-      <div class="loopSection"><div class="loopSectionHead"><div><div class="eyebrow">Recently completed</div><h3>What Marina finished.</h3></div></div><div class="loopList">${completedHtml}</div></div>
-      <div class="loopSection"><div class="loopSectionHead"><div><div class="eyebrow">Ready to use</div><h3>Recent Workspace assets.</h3></div></div><div class="loopList">${assetHtml}</div></div>
-    </div>`;
-
-    qs("#messages").querySelectorAll("[data-loop-approve]").forEach(b=>b.onclick=async()=>{
-      const item=b.closest("[data-loop-step]");
-      if(!item)return;
-      b.disabled=true;
-      try{
-        const result=await api("/api/action-step-approval",{method:"POST",body:JSON.stringify({stepId:item.dataset.loopStep,decision:b.dataset.loopApprove})});
-        qs("#status").textContent=result.note||"Updated.";
-        await openOpenLoopsPage();
-      }catch(e){qs("#status").textContent=e.message;b.disabled=false}
-    });
-    qs("#messages").querySelectorAll("[data-loop-task-done]").forEach(b=>b.onclick=async()=>{
-      const item=b.closest("[data-loop-task]");
-      if(!item)return;
-      b.disabled=true;
-      try{
-        await api("/api/open-loops/task",{method:"PATCH",body:JSON.stringify({stepId:item.dataset.loopTask,done:true})});
-        await openOpenLoopsPage();
-      }catch(e){qs("#status").textContent=e.message;b.disabled=false}
-    });
-    qs("#messages").querySelectorAll("[data-open-loop-chat]").forEach(b=>b.onclick=()=>selectConversation(b.dataset.openLoopChat));
-    qs("#messages").querySelectorAll("[data-open-asset-section]").forEach(b=>b.onclick=()=>openWorkspace(b.dataset.openAssetSection));
-  }catch(e){
-    qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Open Loops</h2><p>${esc(e.message)}</p></div>`;
-  }
+  await openDailyBrief({expandLoops:true,focusLoops:true});
 }
 
 async function openMomentumPage(){
@@ -1488,7 +1429,7 @@ async function renderDashboard(){
     qs("#messages").innerHTML=`<div class="dashboard">
       <div class="dashboardHero"><div><div class="eyebrow">Your Business, Remembered</div><h2>Marina knows where you left off.</h2><p>No starting over. No re-explaining your business every time. Here is the work in front of us.</p></div><div class="dashboardPortraitWrap"><img class="dashboardPortrait" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina portrait"></div></div>
       <div class="focusCard"><div><small>Today's Move</small><strong>${esc(j.todayMove||"Ask Marina for today's move.")}</strong></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="dashboardDailyBrief">Open Daily Brief</button><button id="todayMoveBtn">Work this with Marina →</button></div></div>
-      ${Number(j.openLoops?.counts?.attention_total||0)>0?`<div class="attentionCard"><div><strong>${esc(j.openLoops.counts.attention_total)} thing${Number(j.openLoops.counts.attention_total)===1?"":"s"} need your attention</strong><span>${esc(j.openLoops.counts.needs_approval||0)} approval · ${esc(j.openLoops.counts.your_tasks||0)} task · ${esc(j.openLoops.counts.open_runs||0)} open run</span></div><button id="dashboardOpenLoops">Open Loops →</button></div>`:""}
+      ${Number(j.openLoops?.counts?.attention_total||0)>0?`<div class="attentionCard"><div><strong>${esc(j.openLoops.counts.attention_total)} thing${Number(j.openLoops.counts.attention_total)===1?"":"s"} need your attention</strong><span>${esc(j.openLoops.counts.needs_approval||0)} approval · ${esc(j.openLoops.counts.your_tasks||0)} task · ${esc(j.openLoops.counts.open_runs||0)} open run</span></div><button id="dashboardOpenLoops">View in Daily Brief →</button></div>`:""}
       ${assignment?`<div class="accountabilityCard"><small>Accountability Check</small><strong>${esc(assignment)}</strong><div class="checkinBtns"><button class="done" data-checkin="done">Done ✓</button><button data-checkin="partial">Partly</button><button data-checkin="not_done">Nope</button></div></div>`:""}
       <div class="businessGrid">${cards.map(([label,value])=>`<div class="bizCard"><small>${esc(label)}</small><strong>${esc(value||"Not set yet")}</strong></div>`).join("")}</div>
       <div class="momentumSection">
