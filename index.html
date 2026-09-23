@@ -149,6 +149,23 @@ body:not([data-page="chat"]) .composer,body:not([data-page="chat"]) #pending{dis
 
 body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select{min-height:44px}summary{cursor:pointer;min-height:44px;padding:12px 0;font-weight:700}textarea{max-width:100%}.dailyBriefPage{display:flex;flex-direction:column;gap:26px}.homeToday,.dailyBriefPage>.momentumSection,.loopSection{padding:26px;border:1px solid #d7dce5;border-radius:18px;background:#fff;margin:0}.homeToday .briefHero{margin:0}.connectionSummary{border-top:1px solid #d7dce5;padding:8px 0}.brandBrainSection>textarea{display:block;width:100%;min-height:100px;margin:10px 0 20px}.brandBrainSection>label{display:block;margin-top:16px}.modHelp{font-size:14px;padding:8px}.modHelp p{line-height:1.5}.briefList,.loopList{gap:14px}.briefToolbar{flex-wrap:wrap;align-items:center}.memoryPanel>details{margin-bottom:18px}.memoryPanel{display:flex;flex-direction:column}.memoryPanel>details:has(#memoryForm){order:-2}.memoryPanel>h2{order:-3}@media(max-width:640px){.homeToday,.dailyBriefPage>.momentumSection,.loopSection{padding:18px}.dailyBriefPage{gap:20px}.settingsTabs{flex-wrap:wrap}.briefItem,.loopItem{overflow-wrap:anywhere}}
 .primaryNav button{display:flex;align-items:center;gap:10px}.primaryNav svg{flex-shrink:0}.businessLinkRow{border-bottom:1px solid #d7dce5;padding:16px 0}.businessLinkRow label{display:block;margin-bottom:12px}.businessLinkRow input{display:block;width:100%;padding:10px;border:1px solid #999;border-radius:8px} .memoryPanel details>summary{color:#222}
+
+/* Shared controls: one size and shape across Home, Business, Settings, and chat. */
+#messages button:not(.skillCard):not(.createCard):not(.actionCard),#startNewChat{font-family:inherit;font-size:14px;font-weight:600;line-height:1.3;min-height:44px;padding:11px 16px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);box-shadow:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;vertical-align:middle;text-align:center;white-space:normal;transition:background .15s,border-color .15s}
+#messages button:is(.primary,.primaryConnect,.modPrimary,.done,.doneLoop,.approve),#messages .briefToolbar>button:first-child:not(.secondary){background:var(--accent-strong);color:#fff;border-color:var(--accent-strong)}
+#messages button:is(.secondary,.secondaryBtn){background:#fff;color:var(--ink);border-color:var(--line)}
+#messages button:is(.active,[aria-current="page"]){background:var(--accent-soft);color:var(--ink);border-color:var(--accent-strong)}
+#messages button:not(:disabled):hover,#startNewChat:hover{background:var(--accent-soft);border-color:var(--accent-strong);color:var(--ink)}
+#messages button:disabled{opacity:.5;cursor:not-allowed}
+#messages button:focus-visible,#startNewChat:focus-visible,.primaryNav button:focus-visible{outline:3px solid var(--accent-strong);outline-offset:3px}
+#messages button.dangerBtn,#messages button.reject{color:#a12a20;border-color:#d6aaa4;background:#fff}
+.primaryNav button{font-weight:600}.primaryNav button.current{font-weight:600}
+.topActions{display:flex;align-items:center;gap:16px}body:not([data-page="chat"]) #startNewChat{display:none}
+#periodMetrics+button{margin:14px 8px 0 0}.connectionSummary>button{margin:14px 8px 0 0}.connectionActions{gap:8px}.connectionGrid{align-items:start}.settingsTabs{gap:8px}
+#preferredName{display:block;width:100%;max-width:360px;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:16px}
+.modWelcome{display:flex;align-items:flex-start;gap:22px;margin:0 0 8px}.modWelcomePortrait{width:84px;height:100px;object-fit:cover;object-position:top;border-radius:24px;border:3px solid #fff;box-shadow:0 8px 24px rgba(43,21,15,.12);flex-shrink:0}.modWelcomeBubble{position:relative;flex:1;min-width:0;padding:28px 30px;background:linear-gradient(130deg,var(--accent-soft),#fffef9 68%,var(--rose-soft));border:1px solid #bee9e5;border-radius:0 24px 24px 24px}.modWelcomeBubble:before{content:"";position:absolute;left:-12px;top:-1px;width:12px;height:16px;background:var(--accent-soft);border-top:1px solid #bee9e5;clip-path:polygon(0 0,100% 0,100% 100%)}.modWelcomeBubble h2{font-family:Georgia,serif;font-size:clamp(25px,3vw,34px);line-height:1.16;margin:12px 0 16px;color:var(--ink)}.modWelcomeBubble p{font-size:17px;line-height:1.65;color:var(--ink);margin:0}.modRemember{border-top:1px solid #cfe4df;margin-top:22px;padding-top:18px;display:grid;gap:8px}.modRemember strong{font-size:14px;color:var(--accent-strong)}.modRemember span{font-size:15px;line-height:1.5}.modRemember button{justify-self:start;margin-top:4px}.modFirstSteps{margin-top:22px;border-top:1px solid #cfe4df;padding-top:18px}.modFirstSteps p{font-size:15px}.modFirstSteps small{color:var(--muted);line-height:1.5;display:block}.dailyBriefPage>.eyebrow{margin-bottom:0}
+@media(max-width:640px){.modWelcome{gap:12px;flex-direction:column}.modWelcomePortrait{width:62px;height:72px;border-radius:18px}.modWelcomeBubble{padding:22px;border-radius:0 20px 20px 20px;width:100%}.modWelcomeBubble:before{display:none}.modWelcomeBubble p{font-size:16px}.topActions #modelLabel{display:none}.topActions{gap:0}.connectionGrid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -189,8 +206,6 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
     <button id="memoryBtn" class="memoryBtn" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V3h8v4M3 12h18M10 12v3h4v-3"/></svg> My Business</button>
     <button id="connectionsBtn" class="connectionsBtn" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m9 3-1 3-3 1v3l-2 2 2 2v3l3 1 1 3h6l1-3 3-1v-3l2-2-2-2V7l-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/></svg> My MOD Settings</button>
     </nav>
-    <button id="startNewChat" class="secondaryBtn" type="button">New chat</button>
-    <details class="modHelp"><summary>How to use MOD</summary><p>Start on Home for today’s priorities. Open Chat with MOD to work together.</p><p>Try: “Help me write a post for my current offer.”</p><p>Review the content and destination before approving an external action. Skills and connected apps live in My MOD Settings.</p></details>
     <div hidden id="navStorage">
     <div id="workspaceNav" class="workspaceNav">
       <button data-workspace="brand">My Brand</button>
@@ -215,7 +230,7 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
     <div class="sidefoot"><span id="userEmail"></span><br><button id="signOut" style="border:0;background:transparent;padding:8px 0;color:inherit;cursor:pointer">Sign out</button></div>
   </aside>
   <section class="main">
-    <header class="top"><div class="topLeft"><button id="menuBtn" class="menuBtn" type="button" aria-label="Open menu">☰</button><div class="topBrand"><img class="topAvatar" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina portrait"><div><strong>Marina On Demand</strong><small>Your AI Brand Mentor</small></div></div></div><span id="modelLabel">Private Beta</span></header>
+    <header class="top"><div class="topLeft"><button id="menuBtn" class="menuBtn" type="button" aria-label="Open menu">☰</button><div class="topBrand"><img class="topAvatar" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina portrait"><div><strong>Marina On Demand</strong><small>Your AI Brand Mentor</small></div></div></div><div class="topActions"><button id="startNewChat" class="secondaryBtn" type="button">New chat</button><span id="modelLabel">Private Beta</span></div></header>
     <div id="messages" class="messages"></div>
     <div class="composerWrap">
       <div id="pending" class="pending"></div>
@@ -701,8 +716,8 @@ async function openMemoryPanel(){
         <p>Your current offer, goal, platform, and other operational context still live here too.</p>
         <div id="memoryForm" class="memoryGrid"></div></details>
       <details class="brandBrainSection"><summary>Business Links</summary><p>Add your website, booking page, or funnel.</p><div id="businessLinks"></div><button id="addBusinessLink" type="button">Add a link</button></details>
-      <details class="brandBrainSection"><summary>Social Profiles</summary><label for="socialProfiles">Public profile URLs, one per line</label><textarea id="socialProfiles"></textarea><button id="auditProfiles" type="button">Ask MOD to audit my profiles</button><p>Public profiles only. Private analytics require a connected source.</p></details>
-      <details class="brandBrainSection"><summary>About Me</summary><label for="publicAbout">Stories, interests, and values MOD may use in public content</label><textarea id="publicAbout"></textarea><label for="privateAbout">Background notes for your reference only</label><textarea id="privateAbout"></textarea><p>Reference-only notes are stored here and excluded from MOD’s AI context.</p></details>
+      <details class="brandBrainSection"><summary>Social Profiles</summary><label for="socialProfiles">Public profile URLs, one per line</label><textarea id="socialProfiles"></textarea><button id="auditProfiles" class="modPrimary" type="button">Ask MOD to audit my profiles</button><p>Public profiles only. Private analytics require a connected source.</p></details>
+      <details class="brandBrainSection"><summary>About Me</summary><label for="preferredName">What should MOD call you? (optional)</label><input id="preferredName" maxlength="60" autocomplete="given-name" placeholder="Your first name"><p>Save a name here to let MOD use it in your Home greeting.</p><label for="publicAbout">Stories, interests, and values MOD may use in public content</label><textarea id="publicAbout"></textarea><label for="privateAbout">Background notes for your reference only</label><textarea id="privateAbout"></textarea><p>Reference-only notes are stored here and excluded from MOD’s AI context.</p></details>
 
       <div class="memoryActions">
         <button id="saveMemory" class="primary" type="button">Save My Business</button>
@@ -734,6 +749,7 @@ async function loadMemoryIntoForm(){
     const links=Array.isArray(brand.business_links)?brand.business_links:[];
     (links.length?links:[{}]).forEach(addBusinessLinkRow);
     qs("#socialProfiles").value=brand.social_profiles||"";
+    qs("#preferredName").value=brand.preferred_name||"";
     qs("#publicAbout").value=brand.public_about||"";
     qs("#privateAbout").value=brand.private_about||"";
     state.businessDirty=false;
@@ -788,7 +804,7 @@ async function saveMemoryForm(){
 
   if(brand_brain.target_audience)patch.target_audience=brand_brain.target_audience;
   if(brand_brain.brand_positioning)patch.brand_positioning=brand_brain.brand_positioning;
-  Object.assign(brand_brain,{business_links:[...qs("#businessLinks").querySelectorAll(".businessLinkRow")].map(row=>Object.fromEntries([...row.querySelectorAll("input")].map(input=>[input.dataset.linkField,input.value.trim().slice(0,2000)]))).filter(row=>row.name||row.url||row.purpose),social_profiles:qs("#socialProfiles").value.slice(0,10000),public_about:qs("#publicAbout").value.slice(0,10000),private_about:qs("#privateAbout").value.slice(0,10000)});
+  Object.assign(brand_brain,{preferred_name:qs("#preferredName").value.trim().slice(0,60),business_links:[...qs("#businessLinks").querySelectorAll(".businessLinkRow")].map(row=>Object.fromEntries([...row.querySelectorAll("input")].map(input=>[input.dataset.linkField,input.value.trim().slice(0,2000)]))).filter(row=>row.name||row.url||row.purpose),social_profiles:qs("#socialProfiles").value.slice(0,10000),public_about:qs("#publicAbout").value.slice(0,10000),private_about:qs("#privateAbout").value.slice(0,10000)});
   if(brand_brain.business_links.some(link=>{try{return !["http:","https:"].includes(new URL(link.url).protocol);}catch{return true;}})){status.textContent="Enter a full https:// URL for each link, or remove the empty row.";return;}
   patch.brand_brain=brand_brain;
 
@@ -1313,16 +1329,40 @@ async function openScheduleSettings(){
   }catch(e){qs("#messages").innerHTML=`<div class="workspaceEmpty">${esc(e.message)}</div>`;mountSettings("schedule");}
 }
 
+function homeVisitContext(userId){
+  if(state.homeVisit&&state.homeVisit.userId===userId)return state.homeVisit;
+  let lastVisit=null;
+  try{if(userId){const key="mod-home-visit:"+userId;lastVisit=localStorage.getItem(key);localStorage.setItem(key,new Date().toISOString());}}catch{}
+  state.homeVisit={userId,lastVisit};return state.homeVisit;
+}
+function renderModGreeting(brief,data){
+  const brand=data.brandBrain||{},memory=data.memory||{};
+  const name=String(brand.preferred_name||"").trim().slice(0,60);
+  const hey=name?"Hey "+name:"Hey Queen";
+  const visit=homeVisitContext(state.session?.user?.id);
+  const hasHistory=!!(state.conversations?.length||visit.lastVisit||Object.values(memory).some(v=>Array.isArray(v)?v.length:v)||Object.values(brand).some(v=>Array.isArray(v)?v.length:v));
+  const weekAgo=Date.now()-7*86400000;
+  const win=(brief.momentum?.recent_wins||[]).find(w=>w.title&&Date.parse(w.occurred_on)>=weekAgo&&Date.parse(w.occurred_on)<=Date.now());
+  const returningAfterBreak=visit.lastVisit&&Date.parse(visit.lastVisit)<weekAgo;
+  let headline,copy;
+  if(!hasHistory){headline=hey+", welcome to your next move.";copy="Got 37 tabs open in your brain? Pull up a chair. Tell me a little about your business, then bring me the thing you’re overthinking. We’ll give it somewhere to go.";}
+  else if(win){headline=hey+", let’s give that win a moment.";copy="You logged a win: “"+win.title+".” Give yourself some credit before you move the goalpost. Ready to build on it?";}
+  else if(returningAfterBreak){headline=hey+", ready to pick things back up?";copy="How are you doing? You don’t have to catch up on everything today. Bring me what’s on your mind and we’ll find your next move.";}
+  else{headline=hey+", welcome back. Ready to get to work?";copy="I know what it’s like to have 37 tabs open in your brain. Your business is right here in one place. Take a breath, then let’s give today some direction.";}
+  const remembered=memory.primary_goal||brief.current_goal;
+  return `<section class="modWelcome" aria-label="A welcome from MOD"><img class="modWelcomePortrait" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina On Demand"><div class="modWelcomeBubble"><div class="eyebrow">A little nudge from MOD</div><h2>${esc(headline)}</h2><p>${esc(copy)}</p>${remembered?`<div class="modRemember"><strong>MOD remembers</strong><span>Your saved goal: ${esc(remembered)}</span><button id="welcomeBusiness" type="button">Update my goal</button></div>`:""}${!hasHistory?`<div class="modFirstSteps"><p><strong>Start here:</strong> Add your business basics so I have something real to work with. Chat with me when you’re ready. Home keeps track of what needs your attention.</p><div class="briefToolbar"><button id="welcomeBusiness" class="modPrimary" type="button">Introduce my business</button><button id="welcomeChat" type="button">Chat with MOD</button></div><small>You’ll review and approve actions before MOD sends or changes anything outside this app.</small></div>`:""}</div></section>`;
+}
+
 async function openDailyBrief(options={}){
   setPage("home");
   state.messages=[];state.conversationId="";renderThreads();
-  qs("#messages").innerHTML=`<div class="dailyBriefPage"><div class="eyebrow">Home</div><h2>Let’s make today count.</h2><p>MOD is checking the business before you start reacting to it.</p><div class="workspaceEmpty">Building your brief...</div></div>`;
+  qs("#messages").innerHTML=`<div class="dailyBriefPage"><div class="eyebrow">Home</div><h2>Let’s get those tabs out of your head.</h2><p>One moment while I pull your day together.</p><div class="workspaceEmpty" role="status">MOD is getting your brief ready…</div></div>`;
   try{
     const [j,memoryData]=await Promise.all([api("/api/daily-brief"),api("/api/memory").catch(()=>({}))]);
     const loops=j.open_loops||{}, cal=j.calendar||{}, gmail=j.gmail||{}, b=j.bmod||{}, m=j.momentum||{};
     const business=memoryData.memory||{};
     const events=cal.events||[], emails=gmail.unread||[], wins=m.recent_wins||[];
-    const todayLabel=new Date(j.generated_at||Date.now()).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+    const todayLabel=new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
 
     const eventHtml=events.length?events.map(e=>`<div class="briefItem"><strong>${esc(e.summary||"Busy")}</strong><span>${esc(e.start?formatDate(e.start):"Time unavailable")}${e.location?` · ${esc(e.location)}`:""}</span></div>`).join(""):`<div class="briefItem"><span>${cal.error?"Unable to load calendar events.":cal.connected?"No calendar events in the next 24 hours.":"Google Calendar is not connected."}</span></div>`;
 
@@ -1332,8 +1372,7 @@ async function openDailyBrief(options={}){
 
     qs("#messages").innerHTML=`<div class="dailyBriefPage">
       <div class="eyebrow">Home · ${esc(todayLabel)}</div>
-      <h2>Let’s make today count.</h2>
-      <p>Your daily overview. Start with one next step, then check anything waiting on you.</p>
+      ${renderModGreeting(j,memoryData)}
 
       <section class="homeToday"><div class="briefHero">
         <div class="eyebrow">Today’s Brief</div>
@@ -1342,25 +1381,28 @@ async function openDailyBrief(options={}){
       </div>
 
       <div class="briefToolbar">
-        <button id="briefCoach">Work on this</button>
+        <button id="briefCoach" class="modPrimary">Work on this</button>
         <button id="briefTakeLead" class="secondary">Let MOD take the lead</button>
         <button id="briefRefresh" class="secondary">Refresh</button>
       </div>
 
       <p class="loopMeta">Updated ${esc(formatDate(j.generated_at||new Date().toISOString()))}</p>
-      <details class="connectionSummary"><summary>${cal.error?"Calendar unavailable":cal.connected?events.length+" events in the next 24 hours":"Calendar not connected"}</summary><div class="briefList">${eventHtml}</div><a href="https://calendar.google.com/" target="_blank" rel="noopener">Open Calendar</a>${!cal.connected?'<button data-home-connect>Connect Calendar</button>':''}${cal.error?`<p>${esc(cal.error)}</p><button data-home-connect>Check connection</button>`:''}</details>
-      <details class="connectionSummary"><summary>${gmail.error?"Gmail unavailable":gmail.connected?"About "+(gmail.total_estimate??emails.length)+" unread Gmail messages from the last 7 days":"Gmail not connected"}</summary><p>Showing up to 5 recent unread messages.</p><div class="briefList">${emailHtml}</div><div class="briefToolbar"><button id="reviewInbox">Ask MOD to review my inbox</button><a href="https://mail.google.com/" target="_blank" rel="noopener">Open Gmail</a>${!gmail.connected?'<button data-home-connect>Connect Gmail</button>':''}</div>${gmail.error?`<p>${esc(gmail.error)}</p><button data-home-connect>Check connection</button>`:''}</details>
+      <details class="connectionSummary"><summary>${cal.error?"Calendar unavailable":cal.connected?events.length+" events in the next 24 hours":"Calendar not connected"}</summary><div class="briefList">${eventHtml}</div><button type="button" data-open-service="calendar">Open Calendar</button>${!cal.connected?'<button data-home-connect>Connect Calendar</button>':''}${cal.error?`<p>${esc(cal.error)}</p><button data-home-connect>Check connection</button>`:''}</details>
+      <details class="connectionSummary"><summary>${gmail.error?"Gmail unavailable":gmail.connected?"About "+(gmail.total_estimate??emails.length)+" unread Gmail messages from the last 7 days":"Gmail not connected"}</summary><p>Showing up to 5 recent unread messages.</p><div class="briefList">${emailHtml}</div><div class="briefToolbar"><button id="reviewInbox" class="modPrimary">Ask MOD to review my inbox</button><button type="button" data-open-service="gmail">Open Gmail</button>${!gmail.connected?'<button data-home-connect>Connect Gmail</button>':''}</div>${gmail.error?`<p>${esc(gmail.error)}</p><button data-home-connect>Check connection</button>`:''}</details>
       </section>
       ${business.last_assignment?`<div class="accountabilityCard"><small>Your last commitment</small><strong>${esc(business.last_assignment)}</strong><div class="checkinBtns"><button class="done" data-checkin="done">Done</button><button data-checkin="partial">Partly done</button><button data-checkin="not_done">Not yet</button></div></div>`:""}
       ${renderBriefLoops(loops,options.expandLoops===true)}
       <section class="momentumSection"><div class="momentumHeader"><div><div class="eyebrow">Your Progress</div><h3>See how far you’ve come.</h3></div></div>
         <div class="momentumGrid">${[["Conversations",m.last_7_days?.conversations||0],["Follow-ups",m.last_7_days?.follow_up||0],["Conversions",m.last_7_days?.conversion||0]].map(([label,value])=>`<div class="momentumCard"><small>${label}</small><strong>${esc(niceMetric(value))}</strong><span>logged in the last 7 days</span></div>`).join("")}</div>
         <h4>Recent wins</h4><div class="briefList">${winsHtml}</div>
-        <div class="briefToolbar"><button id="homeLogWin">Add a win</button><button id="homeLogActivity" class="secondary">Log activity</button></div>
+        <div class="briefToolbar"><button id="homeLogWin" class="modPrimary">Add a win</button><button id="homeLogActivity" class="secondary">Log activity</button></div>
         <details id="homeProgress"><summary>See all progress and wins</summary><div id="homeProgressDetails"></div></details>
       </section>
     </div>`;
 
+    qs("#messages").querySelectorAll("[data-open-service]").forEach(button=>button.onclick=()=>window.open(button.dataset.openService==="gmail"?"https://mail.google.com/":"https://calendar.google.com/","_blank","noopener,noreferrer"));
+    qs("#welcomeBusiness")?.addEventListener("click",openMemoryPanel);
+    qs("#welcomeChat")?.addEventListener("click",()=>qs("#newChat").click());
     qs("#messages").querySelectorAll("[data-checkin]").forEach(b=>b.onclick=()=>submitCheckin(b.dataset.checkin,business.last_assignment));
     qs("#reviewInbox").onclick=()=>{resetWorkspace("coach");send("Review my recent unread Gmail messages using my connected Gmail. Summarize priorities and suggest replies for review.","coach");};
     qs("#messages").querySelectorAll("[data-home-connect]").forEach(button=>button.onclick=openConnectionsPage);
@@ -1422,7 +1464,7 @@ async function openMomentumPage(){
   target.innerHTML='<p>Loading activity…</p>';
   try{
     const j=await api("/api/momentum"),m=j.momentum||{};
-    target.innerHTML=`<h3>Your logged activity</h3><label for="progressPeriod">Time period</label> <select id="progressPeriod"><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select><p>These are your activity logs. Automatic CRM activity, sales revenue, and social views are not included.</p><div id="periodMetrics" class="momentumGrid"></div><button id="pageLogWin">Add a win</button><button id="pageLogActivity">Log activity</button>`;
+    target.innerHTML=`<h3>Your logged activity</h3><label for="progressPeriod">Time period</label> <select id="progressPeriod"><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select><p>These are your activity logs. Automatic CRM activity, sales revenue, and social views are not included.</p><div id="periodMetrics" class="momentumGrid"></div><button id="pageLogWin" class="modPrimary">Add a win</button><button id="pageLogActivity">Log activity</button>`;
     const draw=()=>{const days=qs("#progressPeriod").value||"7",counts=days==="30"?m.counts30:m.counts7;qs("#periodMetrics").innerHTML=[["Conversations","conversations"],["Follow-ups","follow_up"],["Conversions","conversion"],["Execution","execution"],["Offer activity","offer_activity"]].map(([label,key])=>`<div class="momentumCard"><small>${label}</small><strong>${esc(niceMetric(counts?.[key]||0))}</strong><span>logged in the last ${days} days</span></div>`).join("");};
     qs("#progressPeriod").onchange=draw;draw();qs("#pageLogWin").onclick=logWinQuick;qs("#pageLogActivity").onclick=logActivityQuick;
   }catch(e){target.innerHTML=`<p>${esc(e.message)}</p><button id="retryProgress">Try again</button>`;qs("#retryProgress").onclick=openMomentumPage;}
