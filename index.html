@@ -138,6 +138,14 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 @media(max-width:860px){.settingGrid,.brainList,.businessEditGrid,.skillsBuilder,.skillLibraryGrid,.loopSummary,.briefGrid{grid-template-columns:1fr}.workspaceHero{align-items:flex-start;flex-direction:column}.workspaceHero h2{font-size:32px}.workspaceNav{grid-template-columns:1fr 1fr}.saveSections{grid-template-columns:1fr 1fr}.skillGrid{grid-template-columns:1fr}.momentumGrid,.winsPreview{grid-template-columns:1fr 1fr}.connectionGrid{grid-template-columns:1fr}.controlHero{align-items:flex-start;flex-direction:column}.controlHero h2{font-size:32px}.app{grid-template-columns:1fr}.mobileOverlay{display:block;position:fixed;inset:0;background:rgba(43,21,15,.38);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:30}body.sidebarOpen .mobileOverlay{opacity:1;pointer-events:auto}.sidebar{position:fixed;left:0;top:0;bottom:0;width:min(88vw,330px);transform:translateX(-100%);transition:transform .24s ease;box-shadow:0 24px 64px rgba(43,21,15,.18)}body.sidebarOpen .sidebar{transform:translateX(0)}.closeSidebar{display:grid;place-items:center}.menuBtn{display:grid}.top{padding:0 14px}.top span{display:none}.messages{padding:20px 14px 16px}.welcome{margin-top:2vh}.welcome h2{font-size:36px}.quick,.businessGrid,.modeGrid,.hubGrid,.memoryGrid{grid-template-columns:1fr}.focusCard{grid-template-columns:1fr}.dashboardHero{grid-template-columns:1fr;gap:14px}.dashboardPortraitWrap{justify-content:flex-start}.dashboardPortrait{width:min(100%,280px);height:280px}.composerWrap{padding:12px 12px calc(12px + env(safe-area-inset-bottom))}.composer{gap:8px;padding:8px}.attach,.send{width:42px;height:42px;border-radius:12px}.msg{grid-template-columns:34px 1fr;gap:10px}.avatar{width:34px;height:34px;border-radius:12px}}
 @media(max-width:560px){.center{padding:14px}.card{padding:16px;border-radius:22px}.card h1{font-size:42px}.field{flex-direction:column}.dashboardHero h2,.hub h2{font-size:32px}.focusCard strong{font-size:22px}.topBrand strong{font-size:14px}.topAvatar{width:34px;height:34px}.logo{font-size:28px}.brandPortrait{width:60px;height:60px;border-radius:14px}}
 #briefAllLoops{margin-top:14px}#briefAllLoops summary{cursor:pointer;font-weight:700;padding:12px 0}#briefAllLoops h4{margin-bottom:10px}#briefOpenLoops p{line-height:1.5}#briefLoopStatus{margin-top:10px;font-size:13px} .loopItem{overflow-wrap:anywhere}
+
+.primaryNav{display:grid;gap:8px;margin:8px 0 20px}.primaryNav button{margin:0;min-height:48px;padding:12px 16px;font-size:16px;border-radius:12px;background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none;text-align:left}.primaryNav button.current{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}.primaryNav button:hover{background:var(--accent-soft)}
+.chatHistory summary{font-size:13px;cursor:pointer;padding:12px 0;color:var(--muted)}
+.settingsHeader{max-width:980px;margin:0 auto 24px}.settingsHeader h2{font-family:Georgia,serif;font-size:34px;margin:8px 0 18px}.settingsTabs{display:flex;flex-wrap:wrap;gap:8px}.settingsTabs button{padding:12px 16px;min-height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-size:15px;cursor:pointer}.settingsTabs button[aria-current]{background:var(--accent-soft);border-color:var(--accent)}#settingsAdmin{margin-top:10px}
+body:not([data-page="chat"]) .composer,body:not([data-page="chat"]) #pending{display:none}body:not([data-page="chat"]) .composerWrap{padding:0 20px}
+.homeConnected{margin-top:22px}.homeConnected summary,#homeProgress summary{padding:14px 0;font-size:16px;font-weight:650;cursor:pointer}#homeProgressDetails{margin-top:12px}.briefItem strong,.loopItem strong{font-size:16px}.briefItem span,.loopItem p{font-size:14px}.loopMeta{font-size:12px;text-transform:none;letter-spacing:0}.loopActions button,.briefToolbar button{min-height:44px;font-size:14px;padding:10px 14px}.dailyBriefPage>.momentumSection{padding:20px 0}.briefHero strong{font-size:28px;line-height:1.3}.briefHero span{font-size:14px}.briefCard h3{font-size:22px}button:focus-visible,summary:focus-visible{outline:3px solid var(--accent-strong);outline-offset:3px}#businessWorkspaces .workspaceNav{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}#businessWorkspaces button{font-size:15px;min-height:44px}
+
+.memoryIntro,.brandBrainSection p,.skillsPage>p,.connectionsPage>p,.connectionDesc{font-size:15px;line-height:1.6}.memoryField label,.skillLibraryCard p,.connectionSub{font-size:14px}.memoryField input,.memoryField textarea,.skillBuilderCard input,.skillBuilderCard textarea,.briefScheduleRow input,.briefScheduleRow select{font-size:16px}.memoryActions button,.skillLibraryActions button,.connectionActions button{min-height:44px;font-size:14px}.settingsHeader h2{line-height:1.2}.dailyBriefPage,.memoryPanel,.skillsPage,.connectionsPage{overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -172,14 +180,13 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
         <div class="brandTag">Private Beta</div>
       </div>
     </div>
-    <button id="homeBtn" class="homeBtn" type="button">⌂ Business Dashboard</button>
-    <button id="newChat" class="new">+ New conversation</button>
-    <button id="memoryBtn" class="memoryBtn" type="button">✦ My Brand Brain</button>
-    <button id="skillsBtn" class="skillsBtn" type="button">◇ My Skills</button>
-    <button id="dailyBriefBtn" class="dailyBriefBtn" type="button">☀ Daily Brief</button>
-    <button id="momentumBtn" class="momentumBtn" type="button">↗ Momentum + Wins</button>
-    <button id="connectionsBtn" class="connectionsBtn" type="button">⌘ Connections</button>
-    <div class="sideSectionLabel">My Business</div>
+    <nav class="primaryNav" aria-label="Main menu">
+    <button id="homeBtn" class="homeBtn" type="button">⌂ Home</button>
+    <button id="newChat" class="new" type="button">Chat with Marina</button>
+    <button id="memoryBtn" class="memoryBtn" type="button">My Business</button>
+    <button id="connectionsBtn" class="connectionsBtn" type="button">Settings</button>
+    </nav>
+    <div hidden id="navStorage">
     <div id="workspaceNav" class="workspaceNav">
       <button data-workspace="brand">My Brand</button>
       <button data-workspace="offer">My Offer</button>
@@ -189,7 +196,9 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
       <button data-workspace="goals">My Goals</button>
       <button data-workspace="assets">My Assets</button>
     </div>
-    <button id="controlBtn" class="controlBtn" type="button">⚙ Marina Control Room</button>
+    <button id="controlBtn" class="controlBtn" type="button">Marina Control Room</button>
+    </div>
+    <details class="chatHistory"><summary>Past conversations &amp; folders</summary>
     <div class="sideSectionLabel">Projects</div>
     <div class="projectPanel">
       <div class="projectPanelHeader"><strong>Chat folders</strong><button id="addProjectBtn" class="projectAdd" type="button" aria-label="Create project">＋</button></div>
@@ -197,6 +206,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
     </div>
     <div class="sideSectionLabel">Conversations</div>
     <div id="threads" class="threads"></div>
+    </details>
     <div class="sidefoot"><span id="userEmail"></span><br><button id="signOut" style="border:0;background:transparent;padding:8px 0;color:inherit;cursor:pointer">Sign out</button></div>
   </aside>
   <section class="main">
@@ -236,6 +246,8 @@ import { marked } from "https://esm.sh/marked@15";
 import DOMPurify from "https://esm.sh/dompurify@3";
 
 const qs = s => document.querySelector(s);
+const workspaceNav = qs("#workspaceNav");
+const controlButton = qs("#controlBtn");
 const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
 
 const googleKeys=['gmail','google_calendar','google_drive'];
@@ -320,27 +332,12 @@ qs("#signOut").addEventListener("click",async()=>{await state.supabase.auth.sign
 qs("#menuBtn").addEventListener("click",openSidebar);
 qs("#closeSidebar").addEventListener("click",closeSidebar);
 qs("#mobileOverlay").addEventListener("click",closeSidebar);
-qs("#homeBtn").addEventListener("click",async()=>{if(state.loading)return;state.workspaceSection=null;qs("#workspaceNav").querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();await renderDashboard()});
-qs("#newChat").addEventListener("click",()=>{state.workspaceSection=null;qs("#workspaceNav").querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();state.selectedSkill=null;state.conversationId="";state.messages=[];state.pendingFiles=[];state.mode="coach";renderPending();renderWelcome();renderThreads()});
+qs("#homeBtn").addEventListener("click",async()=>{if(state.loading)return;state.workspaceSection=null;workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();await renderDashboard()});
+qs("#newChat").addEventListener("click",()=>{if(state.loading)return;state.workspaceSection=null;workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();state.selectedSkill=null;state.conversationId="";state.messages=[];state.pendingFiles=[];state.mode="coach";renderPending();renderWelcome();renderThreads()});
 qs("#memoryBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
   closeSidebarIfMobile();
   await openMemoryPanel();
-});
-qs("#skillsBtn").addEventListener("click", async ()=>{
-  if(state.loading)return;
-  closeSidebarIfMobile();
-  await openSkillsPage();
-});
-qs("#dailyBriefBtn").addEventListener("click",async()=>{
-  if(state.loading)return;
-  closeSidebarIfMobile();
-  await openDailyBrief();
-});
-qs("#momentumBtn").addEventListener("click",async()=>{
-  if(state.loading)return;
-  closeSidebarIfMobile();
-  await openMomentumPage();
 });
 qs("#addProjectBtn").addEventListener("click",createProject);
 qs("#connectionsBtn").addEventListener("click",async()=>{
@@ -353,7 +350,7 @@ qs("#controlBtn").addEventListener("click", async ()=>{
   closeSidebarIfMobile();
   await openControlRoom();
 });
-qs("#workspaceNav").querySelectorAll("[data-workspace]").forEach(b=>b.addEventListener("click",()=>openWorkspace(b.dataset.workspace)));
+workspaceNav.querySelectorAll("[data-workspace]").forEach(b=>b.addEventListener("click",()=>openWorkspace(b.dataset.workspace)));
 qs("#cancelSave").addEventListener("click",closeSaveModal);
 qs("#saveModal").addEventListener("click",e=>{if(e.target===qs("#saveModal"))closeSaveModal()});
 qs("#confirmSave").addEventListener("click",saveCandidateToWorkspace);
@@ -402,17 +399,19 @@ function workspaceBuildPrompt(section){
 }
 
 async function openWorkspace(section){
+  setPage("business");
   if(!WORKSPACE_META[section])return;
   closeSidebarIfMobile();
   state.workspaceSection=section;
   state.conversationId="";
   state.messages=[];
   renderThreads();
-  qs("#workspaceNav").querySelectorAll("[data-workspace]").forEach(b=>b.classList.toggle("active",b.dataset.workspace===section));
+  workspaceNav.querySelectorAll("[data-workspace]").forEach(b=>b.classList.toggle("active",b.dataset.workspace===section));
   await renderWorkspace(section);
 }
 
 async function renderWorkspace(section){
+  workspaceNav.remove();
   const meta=WORKSPACE_META[section];
   qs("#messages").innerHTML=`<div class="workspaceView"><div class="workspaceHero"><div><div class="eyebrow">${esc(meta.icon)} Workspace</div><h2>${esc(meta.label)}</h2><p>${esc(meta.description)}</p></div><button id="workspaceBuildBtn" class="workspaceBuildBtn">Build with Marina →</button></div><div class="workspaceEmpty">Loading your saved work...</div></div>`;
   try{
@@ -434,6 +433,8 @@ async function renderWorkspace(section){
           </article>`).join("")}</div>`
       : `<div class="workspaceEmpty">Nothing saved here yet. When Marina creates something worth keeping, tap <strong>Save to Workspace</strong> under her answer. Or start by building this section with Marina.</div>`;
     qs("#messages").innerHTML=`<div class="workspaceView"><div class="workspaceHero"><div><div class="eyebrow">${esc(meta.icon)} Workspace</div><h2>${esc(meta.label)}</h2><p>${esc(meta.description)}</p></div><button id="workspaceBuildBtn" class="workspaceBuildBtn">Build with Marina →</button></div>${content}</div>`;
+    qs("#messages").insertAdjacentHTML("afterbegin",'<div class="briefToolbar"><button id="backToBusiness" class="secondary">← My Business</button></div>');
+    qs("#backToBusiness").onclick=openMemoryPanel;
     qs("#workspaceBuildBtn").onclick=()=>{state.workspaceSection=null;resetWorkspace("create");send(workspaceBuildPrompt(section),"create")};
     qs("#messages").querySelectorAll(".workspaceItem").forEach(card=>{
       const id=card.dataset.workspaceId;
@@ -523,9 +524,9 @@ async function saveCandidateToWorkspace(){
 async function loadAdminStatus(){
   try{
     const j=await api("/api/admin-status");
-    qs("#controlBtn").style.display=j.admin?"block":"none";
+    controlButton.style.display=j.admin?"block":"none";
   }catch{
-    qs("#controlBtn").style.display="none";
+    controlButton.style.display="none";
   }
 }
 
@@ -653,12 +654,14 @@ const BRAND_BRAIN_UI_FIELDS = [
 ];
 
 async function openMemoryPanel(){
+  setPage("business");
   state.messages=[];
   state.conversationId="";
   qs("#status").textContent="";
   qs("#messages").innerHTML=`
     <div class="memoryPanel">
-      <h2>My Brand Brain</h2>
+      <h2>My Business</h2>
+      <section class="brandBrainSection"><h3>Your saved work</h3><p>Find the content, offers, and plans you have saved.</p><div id="businessWorkspaces"></div></section>
       <div class="memoryIntro">
         Teach Marina how your brand actually sounds, who it is for, what it stands for, and what makes it different. This stays with you across chats.
       </div>
@@ -687,12 +690,13 @@ async function openMemoryPanel(){
       </div>
 
       <div class="memoryActions">
-        <button id="saveMemory" class="primary" type="button">Save Brand Brain</button>
+        <button id="saveMemory" class="primary" type="button">Save My Business</button>
         <button id="reloadMemory" class="secondaryBtn" type="button">Reload</button>
         <button id="clearMemory" class="dangerBtn" type="button">Clear memory</button>
       </div>
       <div id="memoryStatus" class="memoryStatus">Loading…</div>
     </div>`;
+  qs("#businessWorkspaces").append(workspaceNav);
   await loadMemoryIntoForm();
   qs("#saveMemory").onclick=saveMemoryForm;
   qs("#reloadMemory").onclick=loadMemoryIntoForm;
@@ -979,6 +983,7 @@ function setMode(mode){
   input.placeholder=state.mode==="action"?"What do you want Marina to help execute?":"Ask Marina anything...";
 }
 function resetWorkspace(mode="coach"){
+  setPage("chat");
   state.conversationId="";state.messages=[];state.pendingFiles=[];setMode(mode);renderPending();renderThreads();
 }
 
@@ -1005,7 +1010,7 @@ async function logWinQuick(){
   try{
     await api("/api/wins",{method:"POST",body:JSON.stringify({title,winType:type})});
     qs("#status").textContent="Win saved.";
-    await openMomentumPage();
+    await openDailyBrief({progress:true});
   }catch(e){qs("#status").textContent=e.message}
 }
 
@@ -1016,7 +1021,7 @@ async function logActivityQuick(){
   try{
     await api("/api/momentum",{method:"POST",body:JSON.stringify({category,value,note})});
     qs("#status").textContent="Momentum logged.";
-    await openMomentumPage();
+    await openDailyBrief({progress:true});
   }catch(e){qs("#status").textContent=e.message}
 }
 
@@ -1130,15 +1135,16 @@ async function updateCanvaMode(mode){try{await api('/api/connections/canva/permi
 async function verifyCanva(button){button.disabled=true;const result=button.closest('.connectionCard').querySelector('[data-canva-result]');result.textContent='Checking Canva designs and brand templates...';try{const j=await api('/api/connections/canva/verify',{method:'POST',body:'{}'});result.textContent=`Connection: ${j.status}. `+(j.checks||[]).map(c=>`${c.operation.replaceAll('_',' ')}: ${c.status.replaceAll('_',' ')}`).join('; ');}catch(e){result.textContent=e.message;}finally{button.disabled=false;}}
 
 async function openConnectionsPage(){
+  setPage("settings");
   state.messages=[];state.conversationId="";renderThreads();
-  qs("#messages").innerHTML=`<div class="connectionsPage"><div class="eyebrow">Connections</div><h2>Give Marina eyes on the business.</h2><p>Connect trusted MCP servers so Marina can work from live business data instead of screenshots.</p><div class="workspaceEmpty">Loading connections...</div></div>`;
+  qs("#messages").innerHTML=`<div class="connectionsPage"><div class="eyebrow">Connected Apps</div><h2>Connect your apps.</h2><p>Connect trusted MCP servers so Marina can work from live business data instead of screenshots.</p><div class="workspaceEmpty">Loading connections...</div></div>`;
   try{
     const j=await api("/api/connections");
     const list=j.integrations||[];
     qs("#messages").innerHTML=`<div class="connectionsPage">
-      <div class="eyebrow">Connections</div>
-      <h2>Give Marina eyes on the business.</h2>
-      <p>Choose an account and connect it. Marina already knows the official connection endpoint behind the scenes, so customers never need to find or paste an MCP URL. Connections begin in <strong>read-only mode</strong>; future write actions stay behind Action Mode approval.</p>
+      <div class="eyebrow">Connected Apps</div>
+      <h2>Connect your apps.</h2>
+      <p>Connect the apps you want Marina to use. Choose whether she can view information or prepare actions for your approval.</p>
       <div class="connectionGrid">${list.map(i=>{
         const c=i.connection, status=connectionStatusLabel(c,i);
         const tools=Array.isArray(c?.allowed_tools)?c.allowed_tools:[];
@@ -1162,6 +1168,7 @@ async function openConnectionsPage(){
       }).join("")}</div>
       <div class="securityNote"><strong>Security:</strong> Connection endpoints are preconfigured server-side. Marina only auto-enables tools whose names clearly look read-only, such as get, list, search, read, fetch or view. Account authorization is handled separately from the MCP URL, and credentials are never displayed back in the browser.</div>
     </div>`;
+    mountSettings("apps");
     qs('#messages').querySelectorAll('[data-google-verify]').forEach(b=>b.onclick=()=>verifyGoogle(b));
     qs('#messages').querySelectorAll('[data-google-mode]').forEach(s=>s.onchange=()=>updateGoogleMode(s.dataset.googleMode,s.value));
     qs("#messages").querySelectorAll("[data-canva-mode]").forEach(s=>s.onchange=()=>updateCanvaMode(s.value));
@@ -1174,45 +1181,29 @@ async function openConnectionsPage(){
   }catch(e){qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Connections</h2><p>${esc(e.message)}</p></div>`}
 }
 
-async function openDailyBrief(options={}){
-  state.messages=[];state.conversationId="";renderThreads();
-  qs("#messages").innerHTML=`<div class="dailyBriefPage"><div class="eyebrow">Daily Brief</div><h2>What needs your attention today.</h2><p>Marina is checking the business before you start reacting to it.</p><div class="workspaceEmpty">Building your brief...</div></div>`;
+function setPage(page){
+  state.page=page;document.body.dataset.page=page;
+  const ids={home:"homeBtn",chat:"newChat",business:"memoryBtn",settings:"connectionsBtn"};
+  Object.values(ids).forEach(id=>{const button=qs("#"+id);button.classList.toggle("current",id===ids[page]);if(id===ids[page])button.setAttribute("aria-current","page");else button.removeAttribute("aria-current");});
+  closeSidebarIfMobile();
+}
+function mountSettings(active){
+  const root=qs("#messages");
+  root.insertAdjacentHTML("afterbegin",`<div class="settingsHeader"><div class="eyebrow">Settings</div><h2>Make Marina work for you.</h2><nav class="settingsTabs" aria-label="Settings sections">${[["apps","Connected Apps"],["instructions","Saved Instructions"],["schedule","Brief Schedule"]].map(([key,label])=>`<button type="button" data-settings="${key}" ${key===active?'aria-current="page"':''}>${label}</button>`).join("")}</nav><div id="settingsAdmin"></div></div>`);
+  qs("#settingsAdmin").append(controlButton);
+  root.querySelectorAll("[data-settings]").forEach(button=>button.onclick=()=>{if(state.loading)return;const key=button.dataset.settings;if(key==="apps")openConnectionsPage();else if(key==="instructions")openSkillsPage();else openScheduleSettings();});
+}
+async function openScheduleSettings(){
+  setPage("settings");state.messages=[];state.conversationId="";renderThreads();
+  qs("#messages").innerHTML='<div class="workspaceEmpty">Loading your schedule...</div>';
   try{
-    const [j,scheduleData]=await Promise.all([api("/api/daily-brief"),api("/api/agent-schedules")]);
-    const loops=j.open_loops||{}, counts=loops.counts||{}, cal=j.calendar||{}, gmail=j.gmail||{}, b=j.bmod||{}, m=j.momentum||{};
-    const schedules=scheduleData.schedules||[], generatedBriefs=scheduleData.briefs||[];
+    const scheduleData=await api("/api/agent-schedules");
+    const schedules=scheduleData.schedules||[],generatedBriefs=scheduleData.briefs||[];
     const dailySchedule=schedules.find(s=>s.schedule_type==="daily_brief")||null;
     const weeklySchedule=schedules.find(s=>s.schedule_type==="weekly_review")||null;
     const detectedTimeZone=Intl.DateTimeFormat().resolvedOptions().timeZone||"America/New_York";
-    const events=cal.events||[], emails=gmail.unread||[], wins=m.recent_wins||[];
-    const todayLabel=new Date(j.generated_at||Date.now()).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
-
-    const eventHtml=events.length?events.map(e=>`<div class="briefItem"><strong>${esc(e.summary||"Busy")}</strong><span>${esc(e.start?formatDate(e.start):"Time unavailable")}${e.location?` · ${esc(e.location)}`:""}</span></div>`).join(""):`<div class="briefItem"><span>${cal.connected?"No calendar events in the next 24 hours.":"Google Calendar is not connected."}</span></div>`;
-
-    const emailHtml=emails.length?emails.map(e=>`<div class="briefItem"><strong>${esc(e.subject||"(no subject)")}</strong><span>${esc(e.from||"Unknown sender")}${e.snippet?` · ${esc(e.snippet)}`:""}</span></div>`).join(""):`<div class="briefItem"><span>${gmail.connected?"No recent unread Gmail messages surfaced.":"Gmail is not connected."}</span></div>`;
-
-    const winsHtml=wins.length?wins.map(w=>`<div class="briefItem"><strong>${esc(w.title)}</strong><span>${esc(winTypeLabel(w.win_type))} · ${esc(formatDate(w.occurred_on))}</span></div>`).join(""):`<div class="briefItem"><span>No recent saved wins yet.</span></div>`;
-
-    qs("#messages").innerHTML=`<div class="dailyBriefPage">
-      <div class="eyebrow">Daily Brief · ${esc(todayLabel)}</div>
-      <h2>What needs your attention today.</h2>
-      <p>This is a live snapshot from Marina, BMOD Tools, Google Calendar, Gmail, Momentum, and Open Loops. Nothing here is invented.</p>
-
-      <div class="briefHero">
-        <div class="eyebrow">Marina's recommended move</div>
-        <strong>${esc(j.today_move||"Ask Marina for today's move.")}</strong>
-        <span>${j.current_goal?`Current goal: ${esc(j.current_goal)}`:"Set your current goal in My Brand Brain so Marina can sharpen this."}</span>
-      </div>
-
-      <div class="briefToolbar">
-        <button id="briefCoach">Coach me from this brief</button>
-        <button id="briefTakeLead" class="secondary">Take the lead on today</button>
-        <button id="briefRefresh" class="secondary">Refresh</button>
-      </div>
-
-      ${renderBriefLoops(loops,options.expandLoops===true)}
-      <div class="briefSchedule">
-        <h3>Scheduled Marina</h3>
+    qs("#messages").innerHTML=`<div class="dailyBriefPage">      <div class="briefSchedule">
+        <h3>Brief Schedule</h3>
         <p>Have Marina build a fresh in-app Daily Brief in the daily background batch. Opening this page still refreshes your live data. Background briefs do not send email or push notifications.</p>
         <div class="briefScheduleRow">
           <select id="briefScheduleEnabled">
@@ -1243,6 +1234,90 @@ async function openDailyBrief(options={}){
         ${generatedBriefs.length?`<div class="briefHistory">${generatedBriefs.slice(0,5).map(x=>`<div class="briefHistoryItem"><strong>${esc(x.brief_type==="weekly_review"?"Weekly Review":"Daily Brief")} · ${esc(x.brief_date)}</strong><span>${esc(x.summary||"Generated in the background.")}</span></div>`).join("")}</div>`:""}
       </div>
 
+</div>`;
+    mountSettings("schedule");
+    qs("#saveBriefSchedule").onclick=async()=>{
+      const btn=qs("#saveBriefSchedule");
+      btn.disabled=true;btn.textContent="Saving…";
+      try{
+        await api("/api/agent-schedules",{method:"POST",body:JSON.stringify({
+          scheduleType:"daily_brief",
+          enabled:qs("#briefScheduleEnabled").value==="true",
+          localHour:Number(dailySchedule?.local_hour??8),
+          timezone:qs("#briefScheduleTimezone").value.trim()
+        })});
+        qs("#status").textContent="Daily Brief schedule saved.";
+        await openScheduleSettings();
+      }catch(e){
+        qs("#status").textContent=e.message;
+        btn.disabled=false;btn.textContent="Save schedule";
+      }
+    };
+    qs("#saveWeeklySchedule").onclick=async()=>{
+      const btn=qs("#saveWeeklySchedule");
+      btn.disabled=true;btn.textContent="Saving…";
+      try{
+        await api("/api/agent-schedules",{method:"POST",body:JSON.stringify({
+          scheduleType:"weekly_review",
+          enabled:qs("#weeklyScheduleEnabled").value==="true",
+          weekday:Number(qs("#weeklyScheduleDay").value),
+          localHour:Number(weeklySchedule?.local_hour??8),
+          timezone:qs("#weeklyScheduleTimezone").value.trim()
+        })});
+        qs("#status").textContent="Weekly Review schedule saved.";
+        await openScheduleSettings();
+      }catch(e){
+        qs("#status").textContent=e.message;
+        btn.disabled=false;btn.textContent="Save weekly review";
+      }
+    };
+  }catch(e){qs("#messages").innerHTML=`<div class="workspaceEmpty">${esc(e.message)}</div>`;mountSettings("schedule");}
+}
+
+async function openDailyBrief(options={}){
+  setPage("home");
+  state.messages=[];state.conversationId="";renderThreads();
+  qs("#messages").innerHTML=`<div class="dailyBriefPage"><div class="eyebrow">Home</div><h2>Let’s make today count.</h2><p>Marina is checking the business before you start reacting to it.</p><div class="workspaceEmpty">Building your brief...</div></div>`;
+  try{
+    const [j,memoryData]=await Promise.all([api("/api/daily-brief"),api("/api/memory").catch(()=>({}))]);
+    const loops=j.open_loops||{}, cal=j.calendar||{}, gmail=j.gmail||{}, b=j.bmod||{}, m=j.momentum||{};
+    const business=memoryData.memory||{};
+    const events=cal.events||[], emails=gmail.unread||[], wins=m.recent_wins||[];
+    const todayLabel=new Date(j.generated_at||Date.now()).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+
+    const eventHtml=events.length?events.map(e=>`<div class="briefItem"><strong>${esc(e.summary||"Busy")}</strong><span>${esc(e.start?formatDate(e.start):"Time unavailable")}${e.location?` · ${esc(e.location)}`:""}</span></div>`).join(""):`<div class="briefItem"><span>${cal.connected?"No calendar events in the next 24 hours.":"Google Calendar is not connected."}</span></div>`;
+
+    const emailHtml=emails.length?emails.map(e=>`<div class="briefItem"><strong>${esc(e.subject||"(no subject)")}</strong><span>${esc(e.from||"Unknown sender")}${e.snippet?` · ${esc(e.snippet)}`:""}</span></div>`).join(""):`<div class="briefItem"><span>${gmail.connected?"No recent unread Gmail messages surfaced.":"Gmail is not connected."}</span></div>`;
+
+    const winsHtml=wins.length?wins.map(w=>`<div class="briefItem"><strong>${esc(w.title)}</strong><span>${esc(winTypeLabel(w.win_type))} · ${esc(formatDate(w.occurred_on))}</span></div>`).join(""):`<div class="briefItem"><span>No recent saved wins yet.</span></div>`;
+
+    qs("#messages").innerHTML=`<div class="dailyBriefPage">
+      <div class="eyebrow">Home · ${esc(todayLabel)}</div>
+      <h2>Let’s make today count.</h2>
+      <p>Your daily overview. Start with one next step, then check anything waiting on you.</p>
+
+      <div class="briefHero">
+        <div class="eyebrow">Today’s Focus</div>
+        <strong>${esc(j.today_move||"Ask Marina for today's move.")}</strong>
+        <span>${j.current_goal?`Current goal: ${esc(j.current_goal)}`:"Add your goal in My Business to help Marina guide you."}</span>
+      </div>
+
+      <div class="briefToolbar">
+        <button id="briefCoach">Work on this</button>
+        <button id="briefTakeLead" class="secondary">Let Marina take the lead</button>
+        <button id="briefRefresh" class="secondary">Refresh</button>
+      </div>
+
+      ${business.last_assignment?`<div class="accountabilityCard"><small>Your last commitment</small><strong>${esc(business.last_assignment)}</strong><div class="checkinBtns"><button class="done" data-checkin="done">Done</button><button data-checkin="partial">Partly done</button><button data-checkin="not_done">Not yet</button></div></div>`:""}
+      ${renderBriefLoops(loops,options.expandLoops===true)}
+      <section class="momentumSection"><div class="momentumHeader"><div><div class="eyebrow">Your Progress</div><h3>See how far you’ve come.</h3></div></div>
+        <div class="momentumGrid">${[["Conversations",m.last_7_days?.conversations||0],["Follow-ups",m.last_7_days?.follow_up||0],["Conversions",m.last_7_days?.conversion||0]].map(([label,value])=>`<div class="momentumCard"><small>${label}</small><strong>${esc(niceMetric(value))}</strong><span>logged in the last 7 days</span></div>`).join("")}</div>
+        <h4>Recent wins</h4><div class="briefList">${winsHtml}</div>
+        <div class="briefToolbar"><button id="homeLogWin">Add a win</button><button id="homeLogActivity" class="secondary">Log activity</button></div>
+        <details id="homeProgress"><summary>See all progress and wins</summary><div id="homeProgressDetails"></div></details>
+      </section>
+      <section class="briefCard"><h3>My Business</h3><div class="businessGrid">${[["Offer",business.primary_offer],["Audience",business.target_audience],["Goal",j.current_goal]].map(([label,value])=>`<div class="bizCard"><small>${label}</small><strong>${esc(value||"Add in My Business")}</strong></div>`).join("")}</div><div class="briefToolbar"><button id="homeEditBusiness" class="secondary">Edit My Business</button></div></section>
+      <details class="homeConnected"><summary>Calendar, email, and connected apps</summary>
       <div class="briefGrid">
         <div class="briefCard">
           <h3>Next 24 hours</h3>
@@ -1263,63 +1338,22 @@ async function openDailyBrief(options={}){
           </div>
         </div>
 
-        <div class="briefCard">
-          <h3>This week's momentum</h3>
-          <div class="briefList">
-            <div class="briefItem"><strong>${esc(niceMetric(m.last_7_days?.conversations||0))} conversations</strong><span>${esc(niceMetric(m.last_7_days?.follow_up||0))} follow-ups · ${esc(niceMetric(m.last_7_days?.conversion||0))} conversions</span></div>
-            <div class="briefItem"><strong>${esc(niceMetric(m.active_days_last_30||0))} active days</strong><span>last 30 days</span></div>
-          </div>
-        </div>
-
-        <div class="briefCard">
-          <h3>Recent wins</h3>
-          <div class="briefList">${winsHtml}</div>
-        </div>
-      </div>
+      </div></details>
     </div>`;
 
+    qs("#messages").querySelectorAll("[data-checkin]").forEach(b=>b.onclick=()=>submitCheckin(b.dataset.checkin,business.last_assignment));
+    qs("#homeEditBusiness").onclick=openMemoryPanel;
+    qs("#homeLogWin").onclick=logWinQuick;
+    qs("#homeLogActivity").onclick=logActivityQuick;
+    qs("#homeProgress").ontoggle=()=>{if(qs("#homeProgress").open)openMomentumPage();};
+    if(options.progress){qs("#homeProgress").open=true;}
     bindBriefLoops();
     if(options.focusLoops)qs("#briefOpenLoops").scrollIntoView({block:"start"});
     qs("#briefRefresh").onclick=()=>openDailyBrief(options);
     qs("#briefCoach").onclick=()=>{resetWorkspace("coach");send("Review my Daily Brief using my live connected data, Open Loops, calendar, Gmail signals, BMOD Tools snapshot, momentum and recent wins. Tell me what matters most today, what can wait, and give me one highest-leverage move.","coach")};
     qs("#briefTakeLead").onclick=()=>{resetWorkspace("action");send("Use my Daily Brief and take the lead on today's highest-leverage business priorities. Build what you can, use connected tools where appropriate, and queue any consequential external actions for my approval.","action")};
-    qs("#saveBriefSchedule").onclick=async()=>{
-      const btn=qs("#saveBriefSchedule");
-      btn.disabled=true;btn.textContent="Saving…";
-      try{
-        await api("/api/agent-schedules",{method:"POST",body:JSON.stringify({
-          scheduleType:"daily_brief",
-          enabled:qs("#briefScheduleEnabled").value==="true",
-          localHour:Number(dailySchedule?.local_hour??8),
-          timezone:qs("#briefScheduleTimezone").value.trim()
-        })});
-        qs("#status").textContent="Daily Brief schedule saved.";
-        await openDailyBrief();
-      }catch(e){
-        qs("#status").textContent=e.message;
-        btn.disabled=false;btn.textContent="Save schedule";
-      }
-    };
-    qs("#saveWeeklySchedule").onclick=async()=>{
-      const btn=qs("#saveWeeklySchedule");
-      btn.disabled=true;btn.textContent="Saving…";
-      try{
-        await api("/api/agent-schedules",{method:"POST",body:JSON.stringify({
-          scheduleType:"weekly_review",
-          enabled:qs("#weeklyScheduleEnabled").value==="true",
-          weekday:Number(qs("#weeklyScheduleDay").value),
-          localHour:Number(weeklySchedule?.local_hour??8),
-          timezone:qs("#weeklyScheduleTimezone").value.trim()
-        })});
-        qs("#status").textContent="Weekly Review schedule saved.";
-        await openDailyBrief();
-      }catch(e){
-        qs("#status").textContent=e.message;
-        btn.disabled=false;btn.textContent="Save weekly review";
-      }
-    };
   }catch(e){
-    qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Daily Brief</h2><p>${esc(e.message)}</p></div>`;
+    qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Home</h2><p>${esc(e.message)}</p></div>`;
   }
 }
 
@@ -1332,7 +1366,7 @@ function renderBriefLoops(loops,expanded=false){
   const completed=(loops.recent_completed||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">Completed</div>${x.result?.note?`<p>${esc(x.result.note)}</p>`:""}</div>`).join("");
   const assets=(loops.ready_assets||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(workspaceLabel(x.section))} · ready to use</div><div class="loopActions"><button data-open-asset-section="${esc(x.section)}">Open workspace</button></div></div>`).join("");
   const recent=state.conversations?.[0];
-  return `<section id="briefOpenLoops" class="loopSection" aria-labelledby="briefLoopsHeading"><div class="loopSectionHead"><div><div class="eyebrow">Open Loops</div><h3 id="briefLoopsHeading">Your next steps, in one place.</h3></div></div><p class="loopMeta">${esc(counts.needs_approval||0)} awaiting approval · ${esc(counts.your_tasks||0)} tasks · ${esc(counts.open_runs||0)} open runs</p><div class="loopList">${cards.slice(0,4).join("")||'<div class="workspaceEmpty">Nothing needs your attention here right now.</div>'}</div><details id="briefAllLoops" ${expanded?"open":""}><summary>View all Open Loops (${cards.length}) and saved work</summary><div class="loopList">${cards.slice(4).join("")}</div>${loops.snoozed_tasks?.length?`<h4>Snoozed tasks</h4><div class="loopList">${loops.snoozed_tasks.map(x=>taskCard(x,true)).join("")}</div>`:""}<h4>Recently completed</h4><div class="loopList">${completed||'<p>No completed actions yet.</p>'}</div><h4>Ready to use</h4><div class="loopList">${assets||'<p>No recent saved assets.</p>'}</div></details>${recent?`<div class="briefToolbar"><button data-open-loop-chat="${esc(recent.id)}">Continue where you left off</button></div>`:""}<div id="briefLoopStatus" role="status" aria-live="polite"></div></section>`;
+  return `<section id="briefOpenLoops" class="loopSection" aria-labelledby="briefLoopsHeading"><div class="loopSectionHead"><div><div class="eyebrow">Needs Your Attention</div><h3 id="briefLoopsHeading">Your next steps, in one place.</h3></div></div><p class="loopMeta">${esc(counts.needs_approval||0)} awaiting approval · ${esc(counts.your_tasks||0)} tasks · ${esc(counts.open_runs||0)} open runs</p><div class="loopList">${cards.slice(0,4).join("")||'<div class="workspaceEmpty">Nothing needs your attention here right now.</div>'}</div><details id="briefAllLoops" ${expanded?"open":""}><summary>See all ${cards.length} items and saved work</summary><div class="loopList">${cards.slice(4).join("")}</div>${loops.snoozed_tasks?.length?`<h4>Snoozed tasks</h4><div class="loopList">${loops.snoozed_tasks.map(x=>taskCard(x,true)).join("")}</div>`:""}<h4>Recently completed</h4><div class="loopList">${completed||'<p>No completed actions yet.</p>'}</div><h4>Ready to use</h4><div class="loopList">${assets||'<p>No recent saved assets.</p>'}</div></details>${recent?`<div class="briefToolbar"><button data-open-loop-chat="${esc(recent.id)}">Continue where you left off</button></div>`:""}<div id="briefLoopStatus" role="status" aria-live="polite"></div></section>`;
 }
 function bindBriefLoops(){
   const root=qs("#briefOpenLoops");
@@ -1358,8 +1392,9 @@ async function openOpenLoopsPage(){
 }
 
 async function openMomentumPage(){
-  state.messages=[];state.conversationId="";renderThreads();
-  qs("#messages").innerHTML=`<div class="momentumPage"><div class="eyebrow">Momentum</div><h2>Your business is leaving receipts.</h2><p>Marina blends live CRM signals with the wins and activity you log yourself.</p><div class="workspaceEmpty">Loading momentum...</div></div>`;
+  const target=qs("#homeProgressDetails");
+  if(!target)return openDailyBrief({progress:true});
+  target.innerHTML=`<div class="momentumPage"><div class="eyebrow">Momentum</div><h3>Activity and wins</h3><p>Marina blends live CRM signals with the wins and activity you log yourself.</p><div class="workspaceEmpty">Loading momentum...</div></div>`;
   try{
     const j=await api("/api/momentum");
     const m=j.memory||{}, s=j.momentum||{}, c=s.counts30||{}, c7=s.counts7||{}, b=j.bmod||{};
@@ -1369,9 +1404,9 @@ async function openMomentumPage(){
       ["Open opportunities",b.open_opportunities_total,"live from BMOD"],
       ["Won opportunities",b.won_opportunities_total,"live from BMOD"]
     ];
-    qs("#messages").innerHTML=`<div class="momentumPage">
-      <div class="eyebrow">Momentum + Wins Vault</div>
-      <h2>Your business is leaving receipts.</h2>
+    target.innerHTML=`<div class="momentumPage">
+      <div class="eyebrow">Your Progress</div>
+      <h3>Activity and wins</h3>
       <p><strong>Current goal:</strong> ${esc(m.primary_goal||"Not set yet")}. Marina uses live BMOD Tools data where it is reliable and your own logged activity where BMOD Tools cannot see the whole story.</p>
 
       ${b.connected?`<div class="momentumSection">
@@ -1405,50 +1440,11 @@ async function openMomentumPage(){
     qs("#pageLogActivity").onclick=logActivityQuick;
     if(qs("#refreshMomentumBmod"))qs("#refreshMomentumBmod").onclick=openMomentumPage;
     qs("#pageCoachMomentum").onclick=()=>{resetWorkspace("coach");send("Review my live CRM snapshot together with my recent logged momentum, accountability and wins. Tell me what the combined data says is working, where I am leaking momentum, and give me one highest-leverage move for today.","coach")};
-  }catch(e){qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Momentum is ready when you are.</h2><p>${esc(e.message)}</p></div>`}
+  }catch(e){target.innerHTML=`<div class="welcome"><h2 class="brand">Momentum is ready when you are.</h2><p>${esc(e.message)}</p></div>`}
 }
 
 async function renderDashboard(){
-  resetWorkspace("coach");
-  qs("#messages").innerHTML=`<div class="dashboard"><div class="dashboardHero"><div><div class="eyebrow">Your Business, Remembered</div><h2>Marina knows where you left off.</h2><p>One business brain. One current focus. Talk it through with Marina, or hand her the outcome and let Action Mode take the lead.</p></div><div class="dashboardPortraitWrap"><img class="dashboardPortrait" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina portrait"></div></div><div class="bizCard">Loading your business...</div></div>`;
-  try{
-    const j=await api("/api/dashboard");state.dashboard=j;
-    const m=j.memory||{}, s=j.momentum||{}, c7=s.counts7||{};
-    const cards=[
-      ["Primary offer",m.primary_offer],["Audience",m.target_audience],["Goal",m.primary_goal],
-      ["Current bottleneck",m.current_constraint],["Platform",m.preferred_platform],["Last assignment",m.last_assignment]
-    ];
-    const recentWins=(s.wins||[]).slice(0,3);
-    const assignment=m.last_assignment||"";
-    qs("#messages").innerHTML=`<div class="dashboard">
-      <div class="dashboardHero"><div><div class="eyebrow">Your Business, Remembered</div><h2>Marina knows where you left off.</h2><p>No starting over. No re-explaining your business every time. Here is the work in front of us.</p></div><div class="dashboardPortraitWrap"><img class="dashboardPortrait" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina portrait"></div></div>
-      <div class="focusCard"><div><small>Today's Move</small><strong>${esc(j.todayMove||"Ask Marina for today's move.")}</strong></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="dashboardDailyBrief">Open Daily Brief</button><button id="todayMoveBtn">Work this with Marina →</button></div></div>
-      ${Number(j.openLoops?.counts?.attention_total||0)>0?`<div class="attentionCard"><div><strong>${esc(j.openLoops.counts.attention_total)} thing${Number(j.openLoops.counts.attention_total)===1?"":"s"} need your attention</strong><span>${esc(j.openLoops.counts.needs_approval||0)} approval · ${esc(j.openLoops.counts.your_tasks||0)} task · ${esc(j.openLoops.counts.open_runs||0)} open run</span></div><button id="dashboardOpenLoops">View in Daily Brief →</button></div>`:""}
-      ${assignment?`<div class="accountabilityCard"><small>Accountability Check</small><strong>${esc(assignment)}</strong><div class="checkinBtns"><button class="done" data-checkin="done">Done ✓</button><button data-checkin="partial">Partly</button><button data-checkin="not_done">Nope</button></div></div>`:""}
-      <div class="businessGrid">${cards.map(([label,value])=>`<div class="bizCard"><small>${esc(label)}</small><strong>${esc(value||"Not set yet")}</strong></div>`).join("")}</div>
-      <div class="momentumSection">
-        <div class="momentumHeader"><div><div class="eyebrow">Momentum Scoreboard</div><h3>What moved this week?</h3></div><button id="openMomentum">Open Momentum + Wins →</button></div>
-        <div class="momentumGrid">
-          <div class="momentumCard"><small>Conversations</small><strong>${esc(niceMetric(c7.conversations))}</strong><span>last 7 days</span></div>
-          <div class="momentumCard"><small>Follow-ups</small><strong>${esc(niceMetric(c7.follow_up))}</strong><span>last 7 days</span></div>
-          <div class="momentumCard"><small>Conversions</small><strong>${esc(niceMetric(c7.conversion))}</strong><span>last 7 days</span></div>
-          <div class="momentumCard"><small>Active days</small><strong>${esc(niceMetric(s.activeDays30))}</strong><span>last 30 days</span></div>
-        </div>
-        <div class="winsPreview">${recentWins.length?recentWins.map(w=>`<div class="winMini"><strong>${esc(w.title)}</strong><span>${esc(winTypeLabel(w.win_type))} · ${esc(formatDate(w.occurred_on))}</span></div>`).join(""):`<div class="workspaceEmpty" style="grid-column:1/-1">No wins saved yet. When you tell Marina something worked, she can start building your Wins Vault.</div>`}</div>
-      </div>
-      <div class="eyebrow">How do you want to work?</div>
-      <div class="modeGrid">
-        <button class="modeCard" data-mode="coach"><div class="modeIcon">💬</div><strong>Chat with Marina</strong><span>Coach, strategize, write, create, research, troubleshoot, or just talk it through. Marina will shift with you inside the same conversation.</span></button>
-        <button class="modeCard" data-mode="action"><div class="modeIcon">⚡</div><strong>Action Mode <span class="betaPill">Beta</span></strong><span>Give Marina the outcome. She will build the work, use connected tools, save assets, and queue outside actions for approval.</span></button>
-      </div>
-    </div>`;
-    if(qs("#dashboardDailyBrief"))qs("#dashboardDailyBrief").onclick=openDailyBrief;
-        qs("#todayMoveBtn").onclick=()=>{resetWorkspace("coach");send("Based on what you remember about my business and my recent momentum, help me execute today's highest-leverage move. Keep me focused and give me the exact first steps.","coach")};
-    if(qs("#dashboardOpenLoops"))qs("#dashboardOpenLoops").onclick=openOpenLoopsPage;
-    if(qs("#openMomentum"))qs("#openMomentum").onclick=openMomentumPage;
-    qs("#messages").querySelectorAll("[data-checkin]").forEach(b=>b.onclick=()=>submitCheckin(b.dataset.checkin,assignment));
-    qs("#messages").querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>openMode(b.dataset.mode));
-  }catch(e){qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Marina is ready.</h2><p>${esc(e.message)}</p></div>`}
+  return openDailyBrief();
 }
 function openMode(mode){
   resetWorkspace(mode);
@@ -1473,6 +1469,7 @@ async function loadSkills(){
 function isCustomSkill(skill){return !!skill?.owner_user_id || skill?.metadata?.custom===true}
 
 async function openSkillsPage(){
+  setPage("settings");
   state.messages=[];
   state.conversationId="";
   renderThreads();
@@ -1482,9 +1479,9 @@ async function openSkillsPage(){
   const marina=state.skills.filter(s=>!isCustomSkill(s));
 
   qs("#messages").innerHTML=`<div class="skillsPage">
-    <div class="eyebrow">Skills</div>
+    <div class="eyebrow">Saved Instructions</div>
     <h2>Teach Marina how you work.</h2>
-    <p>Use Marina's built-in systems, import a skill from Claude or another tool, or turn your own SOP into a reusable private skill. Your skills can guide Marina, but they never override Marina OS, privacy, safety, or her canonical Method Library.</p>
+    <p>Save instructions for jobs you do often, such as writing your newsletter. Choose a saved instruction below to use it in a conversation.</p>
 
     <div class="skillsBuilder">
       <div class="skillBuilderCard">
@@ -1519,6 +1516,7 @@ async function openSkillsPage(){
     </div>
   </div>`;
 
+  mountSettings("instructions");
   qs("#skillImportBtn").onclick=importSkillFile;
   qs("#skillCreateBtn").onclick=createSkillPreview;
   wireSkillLibrary();
@@ -1532,7 +1530,7 @@ function renderSkillLibraryCard(skill){
     <p>${esc(skill.description||"")}</p>
     <span class="skillBadge">${esc(sourceLabel)} · ${skill.default_mode==="action"?"Action":"Chat"}</span>
     <div class="skillLibraryActions">
-      <button class="useSkill" data-use-skill="${esc(skill.skill_key)}">Use skill</button>
+      <button class="useSkill" data-use-skill="${esc(skill.skill_key)}">Use in chat</button>
       ${custom?`<button class="deleteSkill" data-delete-skill="${esc(skill.skill_key)}">Delete</button>`:""}
     </div>
   </div>`;
@@ -1631,7 +1629,7 @@ function skillLaunchPrompt(skill){
 }
 function renderSkillCards(){
   if(!state.skills.length)return"";
-  return `<div class="skillSection"><div class="skillSectionHead"><div><div class="eyebrow">Skills</div><h3>Use a specialized system.</h3></div><button class="secondaryBtn" data-open-skills type="button">Manage My Skills</button></div><div class="skillGrid">${state.skills.map(skill=>`<button class="skillCard" data-skill-key="${esc(skill.skill_key)}"><strong>${esc(skill.display_name)}</strong><span>${esc(skill.description)}</span><span class="skillBadge">${isCustomSkill(skill)?"My Skill · ":""}${skill.default_mode==="action"?"Build + Save":"Guided System"}</span></button>`).join("")}<button class="skillCard" data-dm-audit><strong>Audit My DMs</strong><span>Paste or upload a conversation and Marina will find the primary leak, explain why it happened, and give you the next move.</span><span class="skillBadge">Internal Audit</span></button></div></div>`;
+  return `<div class="skillSection"><div class="skillSectionHead"><div><div class="eyebrow">Skills</div><h3>Use a specialized system.</h3></div><button class="secondaryBtn" data-open-skills type="button">Saved Instructions</button></div><div class="skillGrid">${state.skills.map(skill=>`<button class="skillCard" data-skill-key="${esc(skill.skill_key)}"><strong>${esc(skill.display_name)}</strong><span>${esc(skill.description)}</span><span class="skillBadge">${isCustomSkill(skill)?"My Skill · ":""}${skill.default_mode==="action"?"Build + Save":"Guided System"}</span></button>`).join("")}<button class="skillCard" data-dm-audit><strong>Audit My DMs</strong><span>Paste or upload a conversation and Marina will find the primary leak, explain why it happened, and give you the next move.</span><span class="skillBadge">Internal Audit</span></button></div></div>`;
 }
 function activateSkill(skillKey){
   const skill=state.skills.find(s=>s.skill_key===skillKey);if(!skill)return;
@@ -1843,7 +1841,8 @@ document.addEventListener("click",e=>{
 });
 
 async function selectConversation(id){
-  state.workspaceSection=null;qs("#workspaceNav").querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+  setPage("chat");
+  state.workspaceSection=null;workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
   closeSidebarIfMobile();
   state.conversationId=id;
   const j=await api(`/api/messages?conversationId=${encodeURIComponent(id)}`);
@@ -1853,6 +1852,7 @@ async function selectConversation(id){
   renderMessages(); renderThreads();
 }
 function renderWelcome(){
+  setPage("chat");
   if(state.messages.length){renderMessages();return}
   if(state.mode==="create")return renderCreateHub();
   if(state.mode==="action")return renderActionHub();
@@ -1943,6 +1943,7 @@ function renderWebSources(sources){
 }
 
 function renderMessages(){
+  setPage("chat");
   if(!state.messages.length){renderWelcome();return}
   qs("#messages").innerHTML=renderModeBar()+renderActiveSkillBar()+state.messages.map(m=>{
     const atts=(m.attachments||[]).map(a=>{
