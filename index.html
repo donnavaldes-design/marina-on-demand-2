@@ -107,6 +107,8 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .momentumBtn{width:100%;padding:10px 12px;margin:0 0 10px;border:1px solid rgba(10,186,181,.3);background:var(--accent-soft);color:var(--accent-strong);border-radius:12px;text-align:left;cursor:pointer;font-weight:750}
 .dailyBriefBtn{width:100%;padding:10px 12px;margin:0 0 10px;border:1px solid rgba(10,186,181,.28);background:linear-gradient(180deg,#fff 0%,#f7fffe 100%);color:var(--ink);border-radius:12px;text-align:left;cursor:pointer;font-weight:750}
 .dailyBriefPage{max-width:980px;margin:0 auto}.dailyBriefPage h2{font-family:Georgia,serif;font-size:40px;margin:4px 0 8px}.dailyBriefPage>p{color:var(--muted);line-height:1.55}.briefHero{background:linear-gradient(135deg,var(--accent-soft),#fff 58%,var(--rose-soft));border:1px solid rgba(10,186,181,.24);border-radius:22px;padding:20px;margin:18px 0}.briefHero strong{display:block;font-family:Georgia,serif;font-size:24px;line-height:1.2}.briefHero span{display:block;color:var(--muted);font-size:12px;margin-top:7px;line-height:1.5}.briefGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.briefCard{background:#fff;border:1px solid var(--line);border-radius:17px;padding:15px}.briefCard h3{font-family:Georgia,serif;font-size:19px;margin:0 0 8px}.briefList{display:grid;gap:8px}.briefItem{border-top:1px solid var(--line);padding-top:8px}.briefItem:first-child{border-top:0;padding-top:0}.briefItem strong{display:block;font-size:12px}.briefItem span{display:block;color:var(--muted);font-size:10px;line-height:1.45;margin-top:3px}.briefToolbar{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0}.briefToolbar button{border:0;background:var(--accent);color:#fff;border-radius:11px;padding:9px 12px;font-weight:750;cursor:pointer}.briefToolbar button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.briefSchedule{background:#fff;border:1px solid var(--line);border-radius:17px;padding:15px;margin:12px 0 18px}.briefSchedule h3{font-family:Georgia,serif;font-size:19px;margin:0 0 6px}.briefSchedule p{font-size:12px;color:var(--muted);line-height:1.5;margin:0 0 10px}.briefScheduleRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.briefScheduleRow select,.briefScheduleRow input{border:1px solid var(--line);border-radius:10px;padding:8px 9px;background:#fff;color:var(--ink)}.briefScheduleRow button{border:0;background:var(--accent);color:#fff;border-radius:10px;padding:9px 11px;font-weight:750;cursor:pointer}.briefScheduleMeta{font-size:10px;color:var(--muted);margin-top:8px}.briefHistory{display:grid;gap:7px;margin-top:10px}.briefHistoryItem{border-top:1px solid var(--line);padding-top:7px}.briefHistoryItem:first-child{border-top:0;padding-top:0}.briefHistoryItem strong{display:block;font-size:11px}.briefHistoryItem span{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+
 .openLoopsBtn{width:100%;padding:10px 12px;margin:0 0 10px;border:1px solid rgba(201,163,175,.38);background:#fff;color:var(--ink);border-radius:12px;text-align:left;cursor:pointer;font-weight:750}.openLoopsBtn.hasAttention{background:var(--rose-soft);border-color:rgba(201,163,175,.58)}
 .openLoopsPage{max-width:980px;margin:0 auto}.openLoopsPage h2{font-family:Georgia,serif;font-size:40px;margin:4px 0 8px}.openLoopsPage>p{color:var(--muted);line-height:1.55}
 .loopSummary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.loopSummaryCard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}.loopSummaryCard small{display:block;text-transform:uppercase;letter-spacing:.08em;font-size:9px;color:var(--muted);font-weight:800;margin-bottom:7px}.loopSummaryCard strong{font-family:Georgia,serif;font-size:26px}
@@ -1180,8 +1182,11 @@ async function openDailyBrief(){
   state.messages=[];state.conversationId="";renderThreads();
   qs("#messages").innerHTML=`<div class="dailyBriefPage"><div class="eyebrow">Daily Brief</div><h2>What needs your attention today.</h2><p>Marina is checking the business before you start reacting to it.</p><div class="workspaceEmpty">Building your brief...</div></div>`;
   try{
-    const j=await api("/api/daily-brief");
+    const [j,scheduleData]=await Promise.all([api("/api/daily-brief"),api("/api/agent-schedules")]);
     const loops=j.open_loops||{}, counts=loops.counts||{}, cal=j.calendar||{}, gmail=j.gmail||{}, b=j.bmod||{}, m=j.momentum||{};
+    const schedules=scheduleData.schedules||[], generatedBriefs=scheduleData.briefs||[];
+    const dailySchedule=schedules.find(s=>s.schedule_type==="daily_brief")||null;
+    const detectedTimeZone=Intl.DateTimeFormat().resolvedOptions().timeZone||"America/New_York";
     const events=cal.events||[], emails=gmail.unread||[], wins=m.recent_wins||[];
     const todayLabel=new Date(j.generated_at||Date.now()).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
 
@@ -1210,6 +1215,24 @@ async function openDailyBrief(){
         <button id="briefCoach">Coach me from this brief</button>
         <button id="briefTakeLead" class="secondary">Take the lead on today</button>
         <button id="briefRefresh" class="secondary">Refresh</button>
+      </div>
+
+      <div class="briefSchedule">
+        <h3>Scheduled Marina</h3>
+        <p>Have Marina build a fresh in-app Daily Brief automatically each morning. This creates the brief in the background; it does not send email or push notifications yet.</p>
+        <div class="briefScheduleRow">
+          <select id="briefScheduleEnabled">
+            <option value="true" ${dailySchedule?.enabled!==false?"selected":""}>On</option>
+            <option value="false" ${dailySchedule?.enabled===false?"selected":""}>Off</option>
+          </select>
+          <select id="briefScheduleHour">
+            ${Array.from({length:24},(_,h)=>`<option value="${h}" ${Number(dailySchedule?.local_hour??8)===h?"selected":""}>${new Date(2000,0,1,h).toLocaleTimeString([], {hour:"numeric"})}</option>`).join("")}
+          </select>
+          <input id="briefScheduleTimezone" value="${esc(dailySchedule?.timezone||detectedTimeZone)}" aria-label="Timezone">
+          <button id="saveBriefSchedule">Save schedule</button>
+        </div>
+        <div class="briefScheduleMeta">Runs hourly behind the scenes and creates one brief per local day at the hour you choose.</div>
+        ${generatedBriefs.length?`<div class="briefHistory">${generatedBriefs.slice(0,3).map(x=>`<div class="briefHistoryItem"><strong>${esc(x.brief_type==="weekly_review"?"Weekly Review":"Daily Brief")} · ${esc(x.brief_date)}</strong><span>${esc(x.summary||"Generated in the background.")}</span></div>`).join("")}</div>`:""}
       </div>
 
       <div class="briefGrid">
@@ -1256,6 +1279,23 @@ async function openDailyBrief(){
     qs("#briefRefresh").onclick=openDailyBrief;
     qs("#briefCoach").onclick=()=>{resetWorkspace("coach");send("Review my Daily Brief using my live connected data, Open Loops, calendar, Gmail signals, BMOD Tools snapshot, momentum and recent wins. Tell me what matters most today, what can wait, and give me one highest-leverage move.","coach")};
     qs("#briefTakeLead").onclick=()=>{resetWorkspace("action");send("Use my Daily Brief and take the lead on today's highest-leverage business priorities. Build what you can, use connected tools where appropriate, and queue any consequential external actions for my approval.","action")};
+    qs("#saveBriefSchedule").onclick=async()=>{
+      const btn=qs("#saveBriefSchedule");
+      btn.disabled=true;btn.textContent="Saving…";
+      try{
+        await api("/api/agent-schedules",{method:"POST",body:JSON.stringify({
+          scheduleType:"daily_brief",
+          enabled:qs("#briefScheduleEnabled").value==="true",
+          localHour:Number(qs("#briefScheduleHour").value),
+          timezone:qs("#briefScheduleTimezone").value.trim()
+        })});
+        qs("#status").textContent="Daily Brief schedule saved.";
+        await openDailyBrief();
+      }catch(e){
+        qs("#status").textContent=e.message;
+        btn.disabled=false;btn.textContent="Save schedule";
+      }
+    };
   }catch(e){
     qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Daily Brief</h2><p>${esc(e.message)}</p></div>`;
   }
