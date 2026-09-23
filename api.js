@@ -358,23 +358,9 @@ async function hydrateAttachments(rows) {
 }
 
 async function hasAccess(userId, email) {
-  // The owner retains management access; subscribers must have a current grant.
   if (isControlRoomAdmin(email)) return true;
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  if (!normalizedEmail) return false;
-  const [userRows,emailRows] = await Promise.all([
-    sbRest(`entitlements?user_id=eq.${encodeURIComponent(userId)}&select=active,renewal_or_expiry,source`),
-    sbRest(`entitlement_email_state?email=eq.${encodeURIComponent(normalizedEmail)}&select=active,renewal_or_expiry,source`)
-  ]);
-  const bySource = new Map();
-  for (const row of Array.isArray(userRows) ? userRows : []) bySource.set(row.source,row);
-  // Webhook email state is authoritative, including revocations after signup.
-  for (const row of Array.isArray(emailRows) ? emailRows : []) bySource.set(row.source,row);
-  const now = new Date();
-  return [...bySource.values()].some(row =>
-    ["direct","bmod","monthly","annual"].includes(row.source) && row.active === true &&
-    (!row.renewal_or_expiry || new Date(row.renewal_or_expiry) >= now)
-  );
+  try { return (await MEMBERSHIP.check(email)).active; }
+  catch { throw new Error("ACCESS_CHECK_UNAVAILABLE"); }
 }
 
 async function createConversation(userId, title) {
@@ -1960,6 +1946,7 @@ async function executeGoogleOperation(user,args,context={}){
   });
 }
 const CANVA_MANIFEST = require("./canva/manifest");
+const MEMBERSHIP = require("./access/membership").createMembershipService({sbRest,connection:getBmodConnection,call:highLevelApi});
 const MOD_IMAGES = createImageService({sbRest,saveMessage,sign:createAttachmentSignedUrl,hydrate:hydrateAttachments,storageHeaders:supabaseHeaders});
 const CANVA = require("./canva/service").createService({sbRest,sbRpc,getSecret:getConnectionSecret,getRefreshSecret:getConnectionRefreshSecret,insertActionStep,nextActionStepOrder});
 const BMOD_MANIFEST = require("./bmod/manifest");
@@ -4451,6 +4438,7 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
     return json(res, 404, { error: "Not found" });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
+    if(message === "ACCESS_CHECK_UNAVAILABLE") return json(res,503,{error:"We couldn’t check your membership right now. Please try again shortly.",code:message});
     const status = message === "UNAUTHORIZED" ? 401 : message === "NOT_ALLOWED" ? 403 : 500;
     return json(res, status, { error: message });
   }
