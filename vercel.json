@@ -19,5 +19,11 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/scheduled-marina",
+      "schedule": "0 * * * *"
+    }
   ]
 }
