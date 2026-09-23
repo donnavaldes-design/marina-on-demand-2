@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Marina On Demand</title>
 <style>
- :root{--ink:#2b150f;--muted:#6f625d;--paper:#fffff0;--panel:#fffef9;--line:#eadfd8;--accent:#0abab5;--accent-strong:#07827d;--accent-soft:#e9fbfa;--rose:#c9a3af;--rose-soft:#f6eef1;--dark:#2b150f;--sidebar:#fbfaf2;--shadow:0 22px 60px rgba(43,21,15,.09);--marina-image:url("https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg")}
+ :root{--ink:#2b150f;--muted:#6f625d;--paper:#fffff0;--panel:#fffef9;--line:#eadfd8;--accent:#0abab5;--accent-strong:#07827d;--accent-soft:#e9fbfa;--rose:#c9a3af;--rose-soft:#f6eef1;--dark:#2b150f;--sidebar:#fbfaf2;--shadow:0 22px 60px rgba(43,21,15,.09);--marina-image:url("https://assets.cdn.filesafe.space/wx7yTd9haziGCOtSvT4f/media/6ab3d77f25d854bb65f55171.png")}
 *{box-sizing:border-box}html,body{height:100%}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--paper);color:var(--ink)}
 button,input,textarea{font:inherit}button{transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease}button:hover{transform:translateY(-1px)}.brand{font-family:Georgia,serif;letter-spacing:-.03em}
 .center{min-height:100vh;display:grid;place-items:center;padding:24px}.card{width:min(980px,100%);display:grid;grid-template-columns:minmax(240px,360px) 1fr;gap:28px;align-items:stretch;background:var(--panel);border:1px solid var(--line);border-radius:28px;padding:26px;box-shadow:var(--shadow)}
@@ -151,9 +151,9 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
 .primaryNav button{display:flex;align-items:center;gap:10px}.primaryNav svg{flex-shrink:0}.businessLinkRow{border-bottom:1px solid #d7dce5;padding:16px 0}.businessLinkRow label{display:block;margin-bottom:12px}.businessLinkRow input{display:block;width:100%;padding:10px;border:1px solid #999;border-radius:8px} .memoryPanel details>summary{color:#222}
 
 /* Shared controls: one size and shape across Home, Business, Settings, and chat. */
-#messages button:not(.skillCard):not(.createCard):not(.actionCard),#startNewChat{font-family:inherit;font-size:14px;font-weight:600;line-height:1.3;min-height:44px;padding:11px 16px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);box-shadow:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;vertical-align:middle;text-align:center;white-space:normal;transition:background .15s,border-color .15s}
-#messages button:is(.primary,.primaryConnect,.modPrimary,.done,.doneLoop,.approve),#messages .briefToolbar>button:first-child:not(.secondary){background:var(--accent-strong);color:#fff;border-color:var(--accent-strong)}
-#messages button:is(.secondary,.secondaryBtn){background:#fff;color:var(--ink);border-color:var(--line)}
+#messages button:where(:not(.skillCard):not(.createCard):not(.actionCard)),#startNewChat{font-family:inherit;font-size:14px;font-weight:600;line-height:1.3;min-height:44px;padding:11px 16px;border:1px solid var(--line);border-radius:11px;background:var(--rose-soft);color:var(--ink);box-shadow:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;vertical-align:middle;text-align:center;white-space:normal;transition:background .15s,border-color .15s}
+#messages button:is(.primary,.primaryConnect,.modPrimary,.done,.doneLoop,.approve),#messages .briefToolbar>button:first-child:not(.secondary){background:var(--accent);color:var(--ink);border-color:var(--accent)}
+#messages button:is(.secondary,.secondaryBtn){background:var(--rose-soft);color:var(--ink);border-color:var(--line)}
 #messages button:is(.active,[aria-current="page"]){background:var(--accent-soft);color:var(--ink);border-color:var(--accent-strong)}
 #messages button:not(:disabled):hover,#startNewChat:hover{background:var(--accent-soft);border-color:var(--accent-strong);color:var(--ink)}
 #messages button:disabled{opacity:.5;cursor:not-allowed}
@@ -166,13 +166,16 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
 .modWelcome{display:flex;align-items:flex-start;gap:22px;margin:0 0 8px}.modWelcomePortrait{width:84px;height:100px;object-fit:cover;object-position:top;border-radius:24px;border:3px solid #fff;box-shadow:0 8px 24px rgba(43,21,15,.12);flex-shrink:0}.modWelcomeBubble{position:relative;flex:1;min-width:0;padding:28px 30px;background:linear-gradient(130deg,var(--accent-soft),#fffef9 68%,var(--rose-soft));border:1px solid #bee9e5;border-radius:0 24px 24px 24px}.modWelcomeBubble:before{content:"";position:absolute;left:-12px;top:-1px;width:12px;height:16px;background:var(--accent-soft);border-top:1px solid #bee9e5;clip-path:polygon(0 0,100% 0,100% 100%)}.modWelcomeBubble h2{font-family:Georgia,serif;font-size:clamp(25px,3vw,34px);line-height:1.16;margin:12px 0 16px;color:var(--ink)}.modWelcomeBubble p{font-size:17px;line-height:1.65;color:var(--ink);margin:0}.modRemember{border-top:1px solid #cfe4df;margin-top:22px;padding-top:18px;display:grid;gap:8px}.modRemember strong{font-size:14px;color:var(--accent-strong)}.modRemember span{font-size:15px;line-height:1.5}.modRemember button{justify-self:start;margin-top:4px}.modFirstSteps{margin-top:22px;border-top:1px solid #cfe4df;padding-top:18px}.modFirstSteps p{font-size:15px}.modFirstSteps small{color:var(--muted);line-height:1.5;display:block}.dailyBriefPage>.eyebrow{margin-bottom:0}
 @media(max-width:640px){.modWelcome{gap:12px;flex-direction:column}.modWelcomePortrait{width:62px;height:72px;border-radius:18px}.modWelcomeBubble{padding:22px;border-radius:0 20px 20px 20px;width:100%}.modWelcomeBubble:before{display:none}.modWelcomeBubble p{font-size:16px}.topActions #modelLabel{display:none}.topActions{gap:0}.connectionGrid{grid-template-columns:1fr}}
 
+
+.modWelcome{display:grid;grid-template-columns:minmax(180px,30%) minmax(0,1fr);align-items:stretch;gap:22px}.modWelcomePortrait{width:100%;height:100%;min-height:300px;max-height:480px;object-fit:cover;object-position:50% 35%;border-radius:24px;border:0;background:var(--rose-soft)}
+@media(max-width:640px){.modWelcome{grid-template-columns:1fr}.modWelcomePortrait{width:100%;height:280px;min-height:0;max-height:none;object-position:50% 30%;border-radius:20px}.modWelcomeBubble{width:100%}}
 </style>
 </head>
 <body>
 <div id="login" class="center">
   <div class="card">
     <div class="loginVisual">
-      <img src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina portrait">
+      <img src="https://assets.cdn.filesafe.space/wx7yTd9haziGCOtSvT4f/media/6ab3d77f25d854bb65f55171.png" alt="Marina portrait">
       <div class="loginBadge">Private Beta</div>
       <div class="loginOverlay"><strong>Marina On Demand</strong><p>Bold guidance, better content, more sales.</p></div>
     </div>
@@ -194,7 +197,7 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
   <aside class="sidebar" id="sidebar">
     <button id="closeSidebar" class="closeSidebar" type="button" aria-label="Close menu">✕</button>
     <div class="brandPanel">
-      <img class="brandPortrait" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina portrait">
+      <img class="brandPortrait" src="https://assets.cdn.filesafe.space/wx7yTd9haziGCOtSvT4f/media/6ab3d77f25d854bb65f55171.png" alt="Marina portrait">
       <div>
         <div class="logo brand">Marina<br>On Demand<small>Bold guidance. Better content. More sales.</small></div>
         <div class="brandTag">Private Beta</div>
@@ -230,7 +233,7 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
     <div class="sidefoot"><span id="userEmail"></span><br><button id="signOut" style="border:0;background:transparent;padding:8px 0;color:inherit;cursor:pointer">Sign out</button></div>
   </aside>
   <section class="main">
-    <header class="top"><div class="topLeft"><button id="menuBtn" class="menuBtn" type="button" aria-label="Open menu">☰</button><div class="topBrand"><img class="topAvatar" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina portrait"><div><strong>Marina On Demand</strong><small>Your AI Brand Mentor</small></div></div></div><div class="topActions"><button id="startNewChat" class="secondaryBtn" type="button">New chat</button><span id="modelLabel">Private Beta</span></div></header>
+    <header class="top"><div class="topLeft"><button id="menuBtn" class="menuBtn" type="button" aria-label="Open menu">☰</button><div class="topBrand"><img class="topAvatar" src="https://assets.cdn.filesafe.space/wx7yTd9haziGCOtSvT4f/media/6ab3d77f25d854bb65f55171.png" alt="Marina portrait"><div><strong>Marina On Demand</strong><small>Your AI Brand Mentor</small></div></div></div><div class="topActions"><button id="startNewChat" class="secondaryBtn" type="button">New chat</button><span id="modelLabel">Private Beta</span></div></header>
     <div id="messages" class="messages"></div>
     <div class="composerWrap">
       <div id="pending" class="pending"></div>
@@ -271,6 +274,53 @@ const controlButton = qs("#controlBtn");
 const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
 
 const googleKeys=['gmail','google_calendar','google_drive'];
+
+const WORKSPACE_META = {
+  brand:{label:"My Brand",icon:"✦",description:"Positioning, bio, audience, voice, brand pillars, and the language people should remember you for."},
+  offer:{label:"My Offer",icon:"◈",description:"Your current offer, promise, pricing, objections, conversion path, and offer decisions."},
+  content:{label:"My Content",icon:"✎",description:"Posts, Reels, hooks, lives, content plans, and repeatable content assets worth keeping."},
+  leads:{label:"My Leads",icon:"◎",description:"Lead-generation strategy, DM flows, follow-up systems, and warm-audience conversion assets."},
+  campaigns:{label:"My Campaigns",icon:"⚡",description:"Launches, promotions, weekly sprints, campaign plans, and the assets that support them."},
+  goals:{label:"My Goals",icon:"✓",description:"Current targets, sprints, milestones, assignments, and what MOD is helping you move forward."},
+  assets:{label:"My Assets",icon:"▣",description:"Anything MOD creates that you want saved permanently and easy to find later."},
+};
+
+const MEMORY_UI_FIELDS = [
+  ["business_type","Business type"],
+  ["company_or_vehicle","Company / vehicle"],
+  ["primary_offer","Primary offer"],
+  ["target_audience","Target audience"],
+  ["primary_goal","Primary goal"],
+  ["current_constraint","Current constraint"],
+  ["current_framework","Current framework"],
+  ["preferred_platform","Preferred platform"],
+  ["last_assignment","Last assignment"],
+  ["last_assignment_status","Assignment status"],
+  ["brand_positioning","Brand positioning"],
+];
+
+const BRAND_BRAIN_UI_FIELDS = [
+  ["brand_positioning","Brand positioning","text"],
+  ["brand_promise","Brand promise","text"],
+  ["target_audience","Target audience","text"],
+  ["audience_identity","Audience identity","text"],
+  ["brand_voice","Brand voice","text"],
+  ["cta_style","CTA style","text"],
+  ["movement_or_belief","Movement / belief","text"],
+  ["visual_direction","Visual direction","text"],
+  ["audience_pain_points","Audience pain points","list"],
+  ["audience_desires","Audience desires","list"],
+  ["buyer_language","Buyer language","list"],
+  ["tone_traits","Tone traits","list"],
+  ["signature_phrases","Signature phrases","list"],
+  ["words_to_use","Words to use","list"],
+  ["words_to_avoid","Words to avoid","list"],
+  ["differentiators","Differentiators","list"],
+  ["content_pillars","Content pillars","list"],
+  ["authority_receipts","Authority / proof","list"],
+  ["emotional_drivers","Emotional drivers","list"],
+  ["common_objections","Common objections","list"],
+];
 
 const config = await fetch("/api/config").then(r=>r.json());
 qs("#modelLabel").textContent = "MOD OS · Live";
@@ -396,15 +446,7 @@ qs("#fileInput").addEventListener("change",e=>{
 
 
 
-const WORKSPACE_META = {
-  brand:{label:"My Brand",icon:"✦",description:"Positioning, bio, audience, voice, brand pillars, and the language people should remember you for."},
-  offer:{label:"My Offer",icon:"◈",description:"Your current offer, promise, pricing, objections, conversion path, and offer decisions."},
-  content:{label:"My Content",icon:"✎",description:"Posts, Reels, hooks, lives, content plans, and repeatable content assets worth keeping."},
-  leads:{label:"My Leads",icon:"◎",description:"Lead-generation strategy, DM flows, follow-up systems, and warm-audience conversion assets."},
-  campaigns:{label:"My Campaigns",icon:"⚡",description:"Launches, promotions, weekly sprints, campaign plans, and the assets that support them."},
-  goals:{label:"My Goals",icon:"✓",description:"Current targets, sprints, milestones, assignments, and what MOD is helping you move forward."},
-  assets:{label:"My Assets",icon:"▣",description:"Anything MOD creates that you want saved permanently and easy to find later."},
-};
+
 
 function workspaceLabel(section){return WORKSPACE_META[section]?.label||"My Workspace"}
 
@@ -640,42 +682,9 @@ async function saveBusinessRecord(id){
   }catch(e){status.textContent=e.message}
 }
 
-const MEMORY_UI_FIELDS = [
-  ["business_type","Business type"],
-  ["company_or_vehicle","Company / vehicle"],
-  ["primary_offer","Primary offer"],
-  ["target_audience","Target audience"],
-  ["primary_goal","Primary goal"],
-  ["current_constraint","Current constraint"],
-  ["current_framework","Current framework"],
-  ["preferred_platform","Preferred platform"],
-  ["last_assignment","Last assignment"],
-  ["last_assignment_status","Assignment status"],
-  ["brand_positioning","Brand positioning"],
-];
 
-const BRAND_BRAIN_UI_FIELDS = [
-  ["brand_positioning","Brand positioning","text"],
-  ["brand_promise","Brand promise","text"],
-  ["target_audience","Target audience","text"],
-  ["audience_identity","Audience identity","text"],
-  ["brand_voice","Brand voice","text"],
-  ["cta_style","CTA style","text"],
-  ["movement_or_belief","Movement / belief","text"],
-  ["visual_direction","Visual direction","text"],
-  ["audience_pain_points","Audience pain points","list"],
-  ["audience_desires","Audience desires","list"],
-  ["buyer_language","Buyer language","list"],
-  ["tone_traits","Tone traits","list"],
-  ["signature_phrases","Signature phrases","list"],
-  ["words_to_use","Words to use","list"],
-  ["words_to_avoid","Words to avoid","list"],
-  ["differentiators","Differentiators","list"],
-  ["content_pillars","Content pillars","list"],
-  ["authority_receipts","Authority / proof","list"],
-  ["emotional_drivers","Emotional drivers","list"],
-  ["common_objections","Common objections","list"],
-];
+
+
 
 function addBusinessLinkRow(link={}){
   const row=document.createElement("div");row.className="businessLinkRow";
@@ -1012,8 +1021,9 @@ async function uploadPendingFiles(){
 
 async function api(url, options={}){
   const r=await fetch(url,{...options,headers:{...authHeader(),...(options.headers||{})}});
-  const j=await r.json();
-  if(!r.ok) throw new Error(j.error || "Request failed");
+  let j;
+  try{j=await r.json();}catch{const error=new Error("MOD couldn’t load that response. Please try again.");error.status=r.status;throw error;}
+  if(!r.ok){const error=new Error(j.error || "Request failed");error.status=r.status;throw error;}
   return j;
 }
 
@@ -1350,7 +1360,7 @@ function renderModGreeting(brief,data){
   else if(returningAfterBreak){headline=hey+", ready to pick things back up?";copy="How are you doing? You don’t have to catch up on everything today. Bring me what’s on your mind and we’ll find your next move.";}
   else{headline=hey+", welcome back. Ready to get to work?";copy="I know what it’s like to have 37 tabs open in your brain. Your business is right here in one place. Take a breath, then let’s give today some direction.";}
   const remembered=memory.primary_goal||brief.current_goal;
-  return `<section class="modWelcome" aria-label="A welcome from MOD"><img class="modWelcomePortrait" src="https://assets.cdn.filesafe.space/BSqDPpmVR6JOJoIcHbh9/media/6ab18f8fde8ed1c29faf7d2a.jpeg" alt="Marina On Demand"><div class="modWelcomeBubble"><div class="eyebrow">A little nudge from MOD</div><h2>${esc(headline)}</h2><p>${esc(copy)}</p>${remembered?`<div class="modRemember"><strong>MOD remembers</strong><span>Your saved goal: ${esc(remembered)}</span><button id="welcomeBusiness" type="button">Update my goal</button></div>`:""}${!hasHistory?`<div class="modFirstSteps"><p><strong>Start here:</strong> Add your business basics so I have something real to work with. Chat with me when you’re ready. Home keeps track of what needs your attention.</p><div class="briefToolbar"><button id="welcomeBusiness" class="modPrimary" type="button">Introduce my business</button><button id="welcomeChat" type="button">Chat with MOD</button></div><small>You’ll review and approve actions before MOD sends or changes anything outside this app.</small></div>`:""}</div></section>`;
+  return `<section class="modWelcome" aria-label="A welcome from MOD"><img class="modWelcomePortrait" src="https://assets.cdn.filesafe.space/wx7yTd9haziGCOtSvT4f/media/6ab3d77f25d854bb65f55171.png" alt="Marina On Demand"><div class="modWelcomeBubble"><div class="eyebrow">A little nudge from MOD</div><h2>${esc(headline)}</h2><p>${esc(copy)}</p>${remembered?`<div class="modRemember"><strong>MOD remembers</strong><span>Your saved goal: ${esc(remembered)}</span><button id="welcomeBusiness" type="button">Update my goal</button></div>`:""}${!hasHistory?`<div class="modFirstSteps"><p><strong>Start here:</strong> Add your business basics so I have something real to work with. Chat with me when you’re ready. Home keeps track of what needs your attention.</p><div class="briefToolbar"><button id="welcomeBusiness" class="modPrimary" type="button">Introduce my business</button><button id="welcomeChat" type="button">Chat with MOD</button></div><small>You’ll review and approve actions before MOD sends or changes anything outside this app.</small></div>`:""}</div></section>`;
 }
 
 async function openDailyBrief(options={}){
