@@ -146,6 +146,9 @@ body:not([data-page="chat"]) .composer,body:not([data-page="chat"]) #pending{dis
 .homeConnected{margin-top:22px}.homeConnected summary,#homeProgress summary{padding:14px 0;font-size:16px;font-weight:650;cursor:pointer}#homeProgressDetails{margin-top:12px}.briefItem strong,.loopItem strong{font-size:16px}.briefItem span,.loopItem p{font-size:14px}.loopMeta{font-size:12px;text-transform:none;letter-spacing:0}.loopActions button,.briefToolbar button{min-height:44px;font-size:14px;padding:10px 14px}.dailyBriefPage>.momentumSection{padding:20px 0}.briefHero strong{font-size:28px;line-height:1.3}.briefHero span{font-size:14px}.briefCard h3{font-size:22px}button:focus-visible,summary:focus-visible{outline:3px solid var(--accent-strong);outline-offset:3px}#businessWorkspaces .workspaceNav{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}#businessWorkspaces button{font-size:15px;min-height:44px}
 
 .memoryIntro,.brandBrainSection p,.skillsPage>p,.connectionsPage>p,.connectionDesc{font-size:15px;line-height:1.6}.memoryField label,.skillLibraryCard p,.connectionSub{font-size:14px}.memoryField input,.memoryField textarea,.skillBuilderCard input,.skillBuilderCard textarea,.briefScheduleRow input,.briefScheduleRow select{font-size:16px}.memoryActions button,.skillLibraryActions button,.connectionActions button{min-height:44px;font-size:14px}.settingsHeader h2{line-height:1.2}.dailyBriefPage,.memoryPanel,.skillsPage,.connectionsPage{overflow-wrap:anywhere}
+
+body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select{min-height:44px}summary{cursor:pointer;min-height:44px;padding:12px 0;font-weight:700}textarea{max-width:100%}.dailyBriefPage{display:flex;flex-direction:column;gap:26px}.homeToday,.dailyBriefPage>.momentumSection,.loopSection{padding:26px;border:1px solid #d7dce5;border-radius:18px;background:#fff;margin:0}.homeToday .briefHero{margin:0}.connectionSummary{border-top:1px solid #d7dce5;padding:8px 0}.brandBrainSection>textarea{display:block;width:100%;min-height:100px;margin:10px 0 20px}.brandBrainSection>label{display:block;margin-top:16px}.modHelp{font-size:14px;padding:8px}.modHelp p{line-height:1.5}.briefList,.loopList{gap:14px}.briefToolbar{flex-wrap:wrap;align-items:center}.memoryPanel>details{margin-bottom:18px}.memoryPanel{display:flex;flex-direction:column}.memoryPanel>details:has(#memoryForm){order:-2}.memoryPanel>h2{order:-3}@media(max-width:640px){.homeToday,.dailyBriefPage>.momentumSection,.loopSection{padding:18px}.dailyBriefPage{gap:20px}.settingsTabs{flex-wrap:wrap}.briefItem,.loopItem{overflow-wrap:anywhere}}
+.primaryNav button{display:flex;align-items:center;gap:10px}.primaryNav svg{flex-shrink:0}.businessLinkRow{border-bottom:1px solid #d7dce5;padding:16px 0}.businessLinkRow label{display:block;margin-bottom:12px}.businessLinkRow input{display:block;width:100%;padding:10px;border:1px solid #999;border-radius:8px} .memoryPanel details>summary{color:#222}
 </style>
 </head>
 <body>
@@ -159,7 +162,7 @@ body:not([data-page="chat"]) .composer,body:not([data-page="chat"]) #pending{dis
     <div class="loginCopy">
       <div class="eyebrow">Private Beta</div>
       <h1 class="brand">Marina<br>On Demand</h1>
-      <p>Brand. Lead. Convert. Sign in with your email and Marina will send you a secure magic link.</p>
+      <p>Brand. Lead. Convert. Sign in with your email and MOD will send you a secure magic link.</p>
       <form id="loginForm" class="field">
         <input id="email" type="email" placeholder="you@example.com" required>
         <button class="primary" type="submit">Send link</button>
@@ -181,11 +184,13 @@ body:not([data-page="chat"]) .composer,body:not([data-page="chat"]) #pending{dis
       </div>
     </div>
     <nav class="primaryNav" aria-label="Main menu">
-    <button id="homeBtn" class="homeBtn" type="button">⌂ Home</button>
-    <button id="newChat" class="new" type="button">Chat with Marina</button>
-    <button id="memoryBtn" class="memoryBtn" type="button">My Business</button>
-    <button id="connectionsBtn" class="connectionsBtn" type="button">Settings</button>
+    <button id="homeBtn" class="homeBtn" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></svg> Home</button>
+    <button id="newChat" class="new" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11a8 8 0 0 1-8 8H7l-4 3V5a2 2 0 0 1 2-2h8a8 8 0 0 1 8 8Z"/></svg> Chat with MOD</button>
+    <button id="memoryBtn" class="memoryBtn" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V3h8v4M3 12h18M10 12v3h4v-3"/></svg> My Business</button>
+    <button id="connectionsBtn" class="connectionsBtn" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m9 3-1 3-3 1v3l-2 2 2 2v3l3 1 1 3h6l1-3 3-1v-3l2-2-2-2V7l-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/></svg> My MOD Settings</button>
     </nav>
+    <button id="startNewChat" class="secondaryBtn" type="button">New chat</button>
+    <details class="modHelp"><summary>How to use MOD</summary><p>Start on Home for today’s priorities. Open Chat with MOD to work together.</p><p>Try: “Help me write a post for my current offer.”</p><p>Review the content and destination before approving an external action. Skills and connected apps live in My MOD Settings.</p></details>
     <div hidden id="navStorage">
     <div id="workspaceNav" class="workspaceNav">
       <button data-workspace="brand">My Brand</button>
@@ -196,7 +201,7 @@ body:not([data-page="chat"]) .composer,body:not([data-page="chat"]) #pending{dis
       <button data-workspace="goals">My Goals</button>
       <button data-workspace="assets">My Assets</button>
     </div>
-    <button id="controlBtn" class="controlBtn" type="button">Marina Control Room</button>
+    <button id="controlBtn" class="controlBtn" type="button">MOD Control Room</button>
     </div>
     <details class="chatHistory"><summary>Past conversations &amp; folders</summary>
     <div class="sideSectionLabel">Projects</div>
@@ -217,7 +222,7 @@ body:not([data-page="chat"]) .composer,body:not([data-page="chat"]) #pending{dis
       <form id="composer" class="composer">
         <input id="fileInput" type="file" hidden multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/markdown,application/json,text/csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
         <button id="attachBtn" class="attach" type="button" title="Attach screenshot, image, PDF or document">＋</button>
-        <textarea id="input" placeholder="Ask Marina..."></textarea>
+        <textarea id="input" placeholder="Ask MOD..."></textarea>
         <button class="send" type="submit">↑</button>
       </form>
       <div id="status" class="status"></div>
@@ -253,7 +258,7 @@ const state = { supabase:null, session:null, conversationId:"", messages:[], con
 const googleKeys=['gmail','google_calendar','google_drive'];
 
 const config = await fetch("/api/config").then(r=>r.json());
-qs("#modelLabel").textContent = "Marina OS · Live";
+qs("#modelLabel").textContent = "MOD OS · Live";
 state.supabase = createClient(config.supabaseUrl, config.supabasePublishableKey, {
   auth:{persistSession:true,detectSessionInUrl:true,flowType:"pkce"}
 });
@@ -279,6 +284,7 @@ let authEventRevision=0;
 async function applyAuthSession(session){
   state.session=session;
   if(!session){
+    state.savedChat=null;state.page=null;
     authViewUserId=null;
     authViewGeneration++;
     qs("#login").style.display="grid"; qs("#app").style.display="none";
@@ -287,6 +293,7 @@ async function applyAuthSession(session){
   qs("#login").style.display="none"; qs("#app").style.display="grid";
   qs("#userEmail").textContent=session.user.email || "";
   if(authViewUserId===session.user.id)return;
+  if(authViewUserId&&authViewUserId!==session.user.id){state.savedChat=null;state.messages=[];state.conversationId="";state.pendingFiles=[];state.businessDirty=false;state.page=null;if(qs("#input"))qs("#input").value="";}
   authViewUserId=session.user.id;
   const generation=++authViewGeneration;
   await loadConversations();
@@ -310,7 +317,7 @@ state.supabase.auth.onAuthStateChange((_event,session)=>{
   authEventRevision++;
   // Keep the auth callback synchronous; use its session rather than reentering getSession.
   setTimeout(()=>{applyAuthSession(state.session).catch(()=>{
-    qs("#status").textContent="Could not finish loading Marina. Please reload to retry.";
+    qs("#status").textContent="Could not finish loading MOD. Please reload to retry.";
   });},0);
 });
 const initialAuthRevision=authEventRevision;
@@ -333,7 +340,8 @@ qs("#menuBtn").addEventListener("click",openSidebar);
 qs("#closeSidebar").addEventListener("click",closeSidebar);
 qs("#mobileOverlay").addEventListener("click",closeSidebar);
 qs("#homeBtn").addEventListener("click",async()=>{if(state.loading)return;state.workspaceSection=null;workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();await renderDashboard()});
-qs("#newChat").addEventListener("click",()=>{if(state.loading)return;state.workspaceSection=null;workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();state.selectedSkill=null;state.conversationId="";state.messages=[];state.pendingFiles=[];state.mode="coach";renderPending();renderWelcome();renderThreads()});
+qs("#newChat").addEventListener("click",()=>{if(state.loading)return;state.workspaceSection=null;if(state.savedChat){Object.assign(state,state.savedChat);state.savedChat=null;}renderPending();setMode(state.mode);renderWelcome();renderThreads()});
+qs("#startNewChat").addEventListener("click",()=>{if(state.loading)return;if(qs("#input").value&&!confirm("Discard your unsent draft and start a new chat?"))return;state.savedChat=null;state.messages=[];state.conversationId="";state.pendingFiles=[];state.selectedSkill=null;qs("#input").value="";setMode("coach");renderPending();renderWelcome();renderThreads();});
 qs("#memoryBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
   closeSidebarIfMobile();
@@ -379,8 +387,8 @@ const WORKSPACE_META = {
   content:{label:"My Content",icon:"✎",description:"Posts, Reels, hooks, lives, content plans, and repeatable content assets worth keeping."},
   leads:{label:"My Leads",icon:"◎",description:"Lead-generation strategy, DM flows, follow-up systems, and warm-audience conversion assets."},
   campaigns:{label:"My Campaigns",icon:"⚡",description:"Launches, promotions, weekly sprints, campaign plans, and the assets that support them."},
-  goals:{label:"My Goals",icon:"✓",description:"Current targets, sprints, milestones, assignments, and what Marina is helping you move forward."},
-  assets:{label:"My Assets",icon:"▣",description:"Anything Marina creates that you want saved permanently and easy to find later."},
+  goals:{label:"My Goals",icon:"✓",description:"Current targets, sprints, milestones, assignments, and what MOD is helping you move forward."},
+  assets:{label:"My Assets",icon:"▣",description:"Anything MOD creates that you want saved permanently and easy to find later."},
 };
 
 function workspaceLabel(section){return WORKSPACE_META[section]?.label||"My Workspace"}
@@ -413,7 +421,7 @@ async function openWorkspace(section){
 async function renderWorkspace(section){
   workspaceNav.remove();
   const meta=WORKSPACE_META[section];
-  qs("#messages").innerHTML=`<div class="workspaceView"><div class="workspaceHero"><div><div class="eyebrow">${esc(meta.icon)} Workspace</div><h2>${esc(meta.label)}</h2><p>${esc(meta.description)}</p></div><button id="workspaceBuildBtn" class="workspaceBuildBtn">Build with Marina →</button></div><div class="workspaceEmpty">Loading your saved work...</div></div>`;
+  qs("#messages").innerHTML=`<div class="workspaceView"><div class="workspaceHero"><div><div class="eyebrow">${esc(meta.icon)} Workspace</div><h2>${esc(meta.label)}</h2><p>${esc(meta.description)}</p></div><button id="workspaceBuildBtn" class="workspaceBuildBtn">Build with MOD →</button></div><div class="workspaceEmpty">Loading your saved work...</div></div>`;
   try{
     const j=await api(`/api/workspace?section=${encodeURIComponent(section)}`);
     const items=j.items||[];
@@ -427,12 +435,12 @@ async function renderWorkspace(section){
             <div class="workspaceActions">
               <button data-expand>Open / Close</button>
               <button data-pin="${item.pinned?"0":"1"}">${item.pinned?"Unpin":"Pin"}</button>
-              <button data-work="${esc(item.title)}">Work on this with Marina</button>
+              <button data-work="${esc(item.title)}">Work on this with MOD</button>
               <button data-delete>Delete</button>
             </div>
           </article>`).join("")}</div>`
-      : `<div class="workspaceEmpty">Nothing saved here yet. When Marina creates something worth keeping, tap <strong>Save to Workspace</strong> under her answer. Or start by building this section with Marina.</div>`;
-    qs("#messages").innerHTML=`<div class="workspaceView"><div class="workspaceHero"><div><div class="eyebrow">${esc(meta.icon)} Workspace</div><h2>${esc(meta.label)}</h2><p>${esc(meta.description)}</p></div><button id="workspaceBuildBtn" class="workspaceBuildBtn">Build with Marina →</button></div>${content}</div>`;
+      : `<div class="workspaceEmpty">Nothing saved here yet. When MOD creates something worth keeping, tap <strong>Save to Workspace</strong> under her answer. Or start by building this section with MOD.</div>`;
+    qs("#messages").innerHTML=`<div class="workspaceView"><div class="workspaceHero"><div><div class="eyebrow">${esc(meta.icon)} Workspace</div><h2>${esc(meta.label)}</h2><p>${esc(meta.description)}</p></div><button id="workspaceBuildBtn" class="workspaceBuildBtn">Build with MOD →</button></div>${content}</div>`;
     qs("#messages").insertAdjacentHTML("afterbegin",'<div class="briefToolbar"><button id="backToBusiness" class="secondary">← My Business</button></div>');
     qs("#backToBusiness").onclick=openMemoryPanel;
     qs("#workspaceBuildBtn").onclick=()=>{state.workspaceSection=null;resetWorkspace("create");send(workspaceBuildPrompt(section),"create")};
@@ -485,7 +493,7 @@ function workspaceTitleFromText(text){
   return String(text||"")
     .replace(/^#{1,6}\s+/gm,"")
     .replace(/\*\*/g,"")
-    .split(/\n+/).map(x=>x.trim()).find(Boolean)?.slice(0,90)||"Saved from Marina";
+    .split(/\n+/).map(x=>x.trim()).find(Boolean)?.slice(0,90)||"Saved from MOD";
 }
 
 function guessWorkspaceSection(msg){
@@ -536,7 +544,7 @@ function settingValue(settings,key){
 }
 
 async function openControlRoom(){
-  qs("#messages").innerHTML=`<div class="controlRoom"><div class="controlHero"><div><div class="eyebrow">Marina Control Room</div><h2>The live brain behind the product.</h2><p>Update current business facts and operating preferences without redeploying Marina.</p></div><div class="controlBadge">Admin only</div></div><div class="controlSection">Loading live brain...</div></div>`;
+  qs("#messages").innerHTML=`<div class="controlRoom"><div class="controlHero"><div><div class="eyebrow">MOD Control Room</div><h2>The live brain behind the product.</h2><p>Update current business facts and operating preferences without redeploying MOD.</p></div><div class="controlBadge">Admin only</div></div><div class="controlSection">Loading live brain...</div></div>`;
   try{
     const j=await api("/api/control-room");
     renderControlRoom(j);
@@ -551,18 +559,18 @@ function renderControlRoom(j){
   const emoji=voice.emoji_policy||"occasional";
   const depth=voice.default_depth||"concise";
   qs("#messages").innerHTML=`<div class="controlRoom">
-    <div class="controlHero"><div><div class="eyebrow">Marina Control Room</div><h2>The live brain behind the product.</h2><p>Current facts update instantly. Canonical framework changes stay versioned and controlled.</p></div><div class="controlBadge">Admin only</div></div>
-    <div class="controlSection"><h3>Voice + operating preferences</h3><div class="controlHelp">These live overrides sit above the imported Marina OS. Use them for small changes without rewriting the core brain.</div>
+    <div class="controlHero"><div><div class="eyebrow">MOD Control Room</div><h2>The live brain behind the product.</h2><p>Current facts update instantly. Canonical framework changes stay versioned and controlled.</p></div><div class="controlBadge">Admin only</div></div>
+    <div class="controlSection"><h3>Voice + operating preferences</h3><div class="controlHelp">These live overrides sit above the imported MOD OS. Use them for small changes without rewriting the core brain.</div>
       <div class="settingGrid">
         <div class="settingCard"><label>Emoji style</label><select id="crEmoji"><option value="none" ${emoji==="none"?"selected":""}>None</option><option value="occasional" ${emoji==="occasional"?"selected":""}>Occasional</option><option value="frequent" ${emoji==="frequent"?"selected":""}>Frequent</option></select><label style="margin-top:10px">Default answer depth</label><select id="crDepth"><option value="concise" ${depth==="concise"?"selected":""}>Concise</option><option value="balanced" ${depth==="balanced"?"selected":""}>Balanced</option><option value="deep" ${depth==="deep"?"selected":""}>Deep</option></select></div>
         <div class="settingCard"><label>Voice note</label><textarea id="crVoiceNote" placeholder="Example: Use babe less. Keep it warmer and more conversational.">${esc(voice.notes||"")}</textarea></div>
-        <div class="settingCard" style="grid-column:1/-1"><label>Global live note</label><textarea id="crGlobalNote" placeholder="Temporary approved guidance that Marina should know right now.">${esc(globalNotes.notes||"")}</textarea><button class="controlSave" id="saveVoiceSettings">Save live settings</button></div>
+        <div class="settingCard" style="grid-column:1/-1"><label>Global live note</label><textarea id="crGlobalNote" placeholder="Temporary approved guidance that MOD should know right now.">${esc(globalNotes.notes||"")}</textarea><button class="controlSave" id="saveVoiceSettings">Save live settings</button></div>
       </div><div id="crSettingsStatus" class="controlStatus"></div>
     </div>
-    <div class="controlSection"><h3>Live business data</h3><div class="controlHelp">Offers, prices, availability, dates and URLs here can be used by Marina immediately. Blank means unknown, never zero.</div>
+    <div class="controlSection"><h3>Live business data</h3><div class="controlHelp">Offers, prices, availability, dates and URLs here can be used by MOD immediately. Blank means unknown, never zero.</div>
       <div class="businessList">${(j.business||[]).map(renderBusinessEditor).join("")}</div><div id="crBusinessStatus" class="controlStatus"></div>
     </div>
-    <div class="controlSection"><h3>Canonical brain sources</h3><div class="controlHelp">These are the approved Marina source documents now synced into the live runtime. Framework changes should be versioned and tested before publishing.</div>
+    <div class="controlSection"><h3>Canonical brain sources</h3><div class="controlHelp">These are the approved MOD source documents now synced into the live runtime. Framework changes should be versioned and tested before publishing.</div>
       <div class="brainList">${(j.knowledge||[]).map(k=>`<div class="brainCard"><strong><span class="liveDot"></span>${esc(k.title)}</strong><div class="brainMeta">${esc(k.authority||k.category||"")}<br>Live version: ${esc(k.live?.version||k.version||"unknown")}<br>Updated: ${esc(formatDate(k.live?.updated_at||k.updated_at))}</div></div>`).join("")}</div>
     </div>
     <div class="controlSection"><h3>Recent Control Room changes</h3><div class="changeList">${(j.recentChanges||[]).length?(j.recentChanges||[]).map(c=>`<div class="changeItem"><strong>${esc(c.change_type)}</strong> · ${esc(c.target_key)}<br>${esc(formatDate(c.created_at))}</div>`).join(""):"No live changes yet."}</div></div>
@@ -597,7 +605,7 @@ async function saveControlRoomSettings(){
     const global={notes:qs("#crGlobalNote").value.trim()};
     await api("/api/control-room/setting",{method:"PATCH",body:JSON.stringify({key:"voice_overrides",value:voice})});
     await api("/api/control-room/setting",{method:"PATCH",body:JSON.stringify({key:"global_notes",value:global})});
-    status.textContent="Saved. New Marina responses will use these live settings.";
+    status.textContent="Saved. New MOD responses will use these live settings.";
   }catch(e){status.textContent=e.message}
 }
 
@@ -612,7 +620,8 @@ async function saveBusinessRecord(id){
   });
   try{
     await api("/api/control-room/business",{method:"PATCH",body:JSON.stringify(body)});
-    status.textContent="Saved. Marina can use this business data immediately.";
+    state.businessDirty=false;
+    status.textContent="Saved. MOD can use this business data immediately.";
   }catch(e){status.textContent=e.message}
 }
 
@@ -653,6 +662,13 @@ const BRAND_BRAIN_UI_FIELDS = [
   ["common_objections","Common objections","list"],
 ];
 
+function addBusinessLinkRow(link={}){
+  const row=document.createElement("div");row.className="businessLinkRow";
+  row.innerHTML=[['name','Link name'],['url','Website address (https://…)'],['purpose','What is this link for?']].map(([key,label])=>`<label>${label}<input data-link-field="${key}" value="${esc(link[key]||'')}" type="${key==='url'?'url':'text'}"></label>`).join('')+'<button type="button">Remove link</button>';
+  row.querySelector('button').onclick=()=>{row.remove();state.businessDirty=true;qs('#memoryStatus').textContent='Unsaved changes';};
+  qs('#businessLinks').append(row);
+}
+
 async function openMemoryPanel(){
   setPage("business");
   state.messages=[];
@@ -661,14 +677,14 @@ async function openMemoryPanel(){
   qs("#messages").innerHTML=`
     <div class="memoryPanel">
       <h2>My Business</h2>
-      <section class="brandBrainSection"><h3>Your saved work</h3><p>Find the content, offers, and plans you have saved.</p><div id="businessWorkspaces"></div></section>
+      <details class="brandBrainSection"><summary>Saved Work</summary><p>Find the content, offers, and plans you have saved.</p><div id="businessWorkspaces"></div></details>
       <div class="memoryIntro">
-        Teach Marina how your brand actually sounds, who it is for, what it stands for, and what makes it different. This stays with you across chats.
+        Teach MOD how your brand actually sounds, who it is for, what it stands for, and what makes it different. This stays with you across chats.
       </div>
 
       <div class="brandBrainSection">
-        <h3>Teach Marina from your brand documents</h3>
-        <p>Upload a Brand Signal Audit, Iconic Brand Build, brand guide, audience document, offer document, or voice guide. Marina will read it, show you what she learned, and only save it after you approve.</p>
+        <h3>Teach MOD from your brand documents</h3>
+        <p>Upload a Brand Signal Audit, Iconic Brand Build, brand guide, audience document, offer document, or voice guide. MOD will read it, show you what she learned, and only save it after you approve.</p>
         <div class="brandBrainUpload">
           <input id="brandDocInput" type="file" accept=".pdf,.doc,.docx,.txt,.md,image/*" style="display:none">
           <button id="brandDocBtn" class="secondaryBtn" type="button">Upload brand document</button>
@@ -677,17 +693,16 @@ async function openMemoryPanel(){
         <div id="brandPreview"></div>
       </div>
 
-      <div class="brandBrainSection">
-        <h3>Brand identity Marina remembers</h3>
-        <p>Edit anything here. These fields are used as persistent brand context when Marina writes, coaches, audits, or creates with you.</p>
-        <div id="brandBrainForm" class="memoryGrid"></div>
-      </div>
+      <details class="brandBrainSection"><summary>Brand Voice</summary>
+        <p>Edit anything here. These fields are used as persistent brand context when MOD writes, coaches, audits, or creates with you.</p>
+        <div id="brandBrainForm" class="memoryGrid"></div></details>
 
-      <div class="brandBrainSection">
-        <h3>Business continuity</h3>
+      <details class="brandBrainSection" open><summary>Business Basics</summary>
         <p>Your current offer, goal, platform, and other operational context still live here too.</p>
-        <div id="memoryForm" class="memoryGrid"></div>
-      </div>
+        <div id="memoryForm" class="memoryGrid"></div></details>
+      <details class="brandBrainSection"><summary>Business Links</summary><p>Add your website, booking page, or funnel.</p><div id="businessLinks"></div><button id="addBusinessLink" type="button">Add a link</button></details>
+      <details class="brandBrainSection"><summary>Social Profiles</summary><label for="socialProfiles">Public profile URLs, one per line</label><textarea id="socialProfiles"></textarea><button id="auditProfiles" type="button">Ask MOD to audit my profiles</button><p>Public profiles only. Private analytics require a connected source.</p></details>
+      <details class="brandBrainSection"><summary>About Me</summary><label for="publicAbout">Stories, interests, and values MOD may use in public content</label><textarea id="publicAbout"></textarea><label for="privateAbout">Background notes for your reference only</label><textarea id="privateAbout"></textarea><p>Reference-only notes are stored here and excluded from MOD’s AI context.</p></details>
 
       <div class="memoryActions">
         <button id="saveMemory" class="primary" type="button">Save My Business</button>
@@ -698,6 +713,9 @@ async function openMemoryPanel(){
     </div>`;
   qs("#businessWorkspaces").append(workspaceNav);
   await loadMemoryIntoForm();
+  qs(".memoryPanel").addEventListener("input",()=>{state.businessDirty=true;qs("#memoryStatus").textContent="Unsaved changes";});
+  qs("#addBusinessLink").onclick=()=>{addBusinessLinkRow({});state.businessDirty=true;qs("#memoryStatus").textContent="Unsaved changes";};
+  qs("#auditProfiles").onclick=async()=>{await saveMemoryForm();if(state.businessDirty)return;const profiles=qs("#socialProfiles").value;resetWorkspace("coach");send("Audit these public social profiles if accessible. Explain any access limitations: "+profiles,"coach");};
   qs("#saveMemory").onclick=saveMemoryForm;
   qs("#reloadMemory").onclick=loadMemoryIntoForm;
   qs("#clearMemory").onclick=clearMemory;
@@ -712,6 +730,13 @@ async function loadMemoryIntoForm(){
     const j=await api("/api/memory");
     const memory=j.memory||{};
     const brand=j.brandBrain||{};
+    qs("#businessLinks").innerHTML="";
+    const links=Array.isArray(brand.business_links)?brand.business_links:[];
+    (links.length?links:[{}]).forEach(addBusinessLinkRow);
+    qs("#socialProfiles").value=brand.social_profiles||"";
+    qs("#publicAbout").value=brand.public_about||"";
+    qs("#privateAbout").value=brand.private_about||"";
+    state.businessDirty=false;
 
     const brandForm=qs("#brandBrainForm");
     brandForm.innerHTML=BRAND_BRAIN_UI_FIELDS.map(([key,label,type])=>`
@@ -734,7 +759,7 @@ async function loadMemoryIntoForm(){
       </div>`;
 
     status.textContent=Object.keys(memory).length||Object.keys(brand).length
-      ? "This is the context Marina can carry into future chats."
+      ? "This is the context MOD can carry into future chats."
       : "No durable brand memory yet. Upload a brand document or fill in what you already know.";
   }catch(e){
     status.textContent=e.message;
@@ -745,6 +770,7 @@ async function saveMemoryForm(){
   const status=qs("#memoryStatus");
   status.textContent="Saving…";
   const patch={};
+  state.businessDirty=true;
   for(const [key] of MEMORY_UI_FIELDS.filter(([key])=>key!=="brand_positioning"&&key!=="target_audience")){
     const el=qs(`#mem_${key}`);
     if(el)patch[key]=el.value;
@@ -762,11 +788,14 @@ async function saveMemoryForm(){
 
   if(brand_brain.target_audience)patch.target_audience=brand_brain.target_audience;
   if(brand_brain.brand_positioning)patch.brand_positioning=brand_brain.brand_positioning;
+  Object.assign(brand_brain,{business_links:[...qs("#businessLinks").querySelectorAll(".businessLinkRow")].map(row=>Object.fromEntries([...row.querySelectorAll("input")].map(input=>[input.dataset.linkField,input.value.trim().slice(0,2000)]))).filter(row=>row.name||row.url||row.purpose),social_profiles:qs("#socialProfiles").value.slice(0,10000),public_about:qs("#publicAbout").value.slice(0,10000),private_about:qs("#privateAbout").value.slice(0,10000)});
+  if(brand_brain.business_links.some(link=>{try{return !["http:","https:"].includes(new URL(link.url).protocol);}catch{return true;}})){status.textContent="Enter a full https:// URL for each link, or remove the empty row.";return;}
   patch.brand_brain=brand_brain;
 
   try{
     await api("/api/memory",{method:"PATCH",body:JSON.stringify(patch)});
-    status.textContent="Saved. Marina now carries this Brand Brain into future chats.";
+    state.businessDirty=false;
+    status.textContent="Saved. MOD now carries this Brand Brain into future chats.";
   }catch(e){
     status.textContent=e.message;
   }
@@ -789,11 +818,11 @@ async function importBrandDocument(e){
     const {error}=await state.supabase.storage.from("marina-attachments").upload(storagePath,file,{contentType:file.type||undefined,upsert:false});
     if(error)throw new Error(error.message);
 
-    status.textContent="Marina is reading your brand document…";
+    status.textContent="MOD is reading your brand document…";
     const attachment={storagePath,fileName:file.name,mimeType:file.type||"application/octet-stream",sizeBytes:file.size};
     const j=await api("/api/brand-brain/import",{method:"POST",body:JSON.stringify({attachment})});
     renderBrandImportPreview(j.proposed||{},attachment);
-    status.textContent="Review what Marina learned before saving it.";
+    status.textContent="Review what MOD learned before saving it.";
   }catch(err){
     status.textContent=err.message;
   }
@@ -808,7 +837,7 @@ function renderBrandImportPreview(proposed,attachment){
   }
 
   preview.innerHTML=`<div class="brandBrainPreview">
-    <h4>Here’s what Marina learned</h4>
+    <h4>Here’s what MOD learned</h4>
     <div class="brandBrainPreviewGrid">${entries.map(([k,v])=>`
       <div class="brandBrainPreviewItem"><small>${esc(k.replace(/_/g," "))}</small><div>${esc(Array.isArray(v)?v.join(" · "):v)}</div></div>`).join("")}</div>
     <div class="brandBrainSource">Source: ${esc(attachment.fileName)}</div>
@@ -837,7 +866,7 @@ function renderBrandImportPreview(proposed,attachment){
 
 async function clearMemory(){
   const status=qs("#memoryStatus");
-  if(!confirm("Clear Marina's saved business memory for this account? Your conversation history will remain."))return;
+  if(!confirm("Clear MOD's saved business memory for this account? Your conversation history will remain."))return;
   status.textContent="Clearing…";
   try{
     await api("/api/memory",{method:"DELETE"});
@@ -852,7 +881,7 @@ function renderBenchmarkPanel(runId, completed, total, currentLabel, lines){
   const pct = total ? Math.round((completed/total)*100) : 0;
   qs("#messages").innerHTML = `
     <div class="benchmarkPanel">
-      <h3>Marina 2.0 Migration Benchmark</h3>
+      <h3>MOD 2.0 Migration Benchmark</h3>
       <div class="benchmarkProgress">${esc(currentLabel)}</div>
       <div class="benchmarkBar"><span style="width:${pct}%"></span></div>
       <div class="benchmarkLog">
@@ -973,14 +1002,14 @@ async function api(url, options={}){
 }
 
 
-function modeLabel(mode){return mode==="action"?"Action Mode ⚡":"Chat with Marina"}
+function modeLabel(mode){return mode==="action"?"Action Mode ⚡":"Chat with MOD"}
 function routeLabel(route){
-  return ({framework:"Marina Method Library",identity:"Identity Mode",product:"Product Fit Logic",current:"Current Data Guardrail",operator:"Operator Mode"})[route]||"Marina Strategy";
+  return ({framework:"MOD Method Library",identity:"Identity Mode",product:"Product Fit Logic",current:"Current Data Guardrail",operator:"Operator Mode"})[route]||"MOD Strategy";
 }
 function setMode(mode){
   state.mode=["coach","create","action"].includes(mode)?mode:"coach";
   const input=qs("#input");
-  input.placeholder=state.mode==="action"?"What do you want Marina to help execute?":"Ask Marina anything...";
+  input.placeholder=state.mode==="action"?"What do you want MOD to help execute?":"Ask MOD anything...";
 }
 function resetWorkspace(mode="coach"){
   setPage("chat");
@@ -998,7 +1027,7 @@ async function submitCheckin(status,assignment){
   if(status!=="done") note=prompt(status==="partial"?"What got done, and what is still open?":"What got in the way? Keep it short.")||"";
   try{
     await api("/api/accountability",{method:"POST",body:JSON.stringify({status,assignment,note})});
-    qs("#status").textContent=status==="done"?"Logged. Kept promise.":"Logged. Marina will coach from the real result.";
+    qs("#status").textContent=status==="done"?"Logged. Kept promise.":"Logged. MOD will coach from the real result.";
     await renderDashboard();
   }catch(e){qs("#status").textContent=e.message}
 }
@@ -1063,7 +1092,7 @@ async function testConnection(key){
 }
 
 async function disconnectConnection(key){
-  if(!confirm("Disconnect this integration from Marina?"))return;
+  if(!confirm("Disconnect this integration from MOD?"))return;
   try{
     await api(`/api/connections?integrationKey=${encodeURIComponent(key)}`,{method:"DELETE"});
     qs("#status").textContent="Disconnected.";
@@ -1088,7 +1117,7 @@ function bmodVerificationMarkup(j){
   const names={search_contacts:"Contacts",search_opportunities:"Opportunities",list_pipelines:"Pipelines",list_workflows:"Workflows",list_funnels:"Funnels",list_blogs:"Blogs",list_email_templates:"Email templates",list_products:"Products"};
   const label=s=>s==="passed"?"Passed":s==="missing_permission"?"Update permissions required":"Failed";
   const rows=Object.entries(names).map(([operation,name])=>`<tr><th scope="row">${name}</th>${["before_refresh","after_refresh"].map(phase=>`<td>${label((j.checks||[]).find(c=>c.operation===operation&&c.phase===phase)?.status)}</td>`).join("")}</tr>`).join("");
-  return `<p><strong>Token refresh: ${label(j.refresh)}.</strong> Connection: ${esc(j.status||"unknown")}.</p><table><thead><tr><th>Capability</th><th>Before refresh</th><th>After refresh</th></tr></thead><tbody>${rows}</tbody></table><p>This check reads data only. Reload Marina and run it again to check persistence.</p>`;
+  return `<p><strong>Token refresh: ${label(j.refresh)}.</strong> Connection: ${esc(j.status||"unknown")}.</p><table><thead><tr><th>Capability</th><th>Before refresh</th><th>After refresh</th></tr></thead><tbody>${rows}</tbody></table><p>This check reads data only. Reload MOD and run it again to check persistence.</p>`;
 }
 async function verifyBmodReadCycle(button){
   button.disabled=true;
@@ -1137,14 +1166,14 @@ async function verifyCanva(button){button.disabled=true;const result=button.clos
 async function openConnectionsPage(){
   setPage("settings");
   state.messages=[];state.conversationId="";renderThreads();
-  qs("#messages").innerHTML=`<div class="connectionsPage"><div class="eyebrow">Connected Apps</div><h2>Connect your apps.</h2><p>Connect trusted MCP servers so Marina can work from live business data instead of screenshots.</p><div class="workspaceEmpty">Loading connections...</div></div>`;
+  qs("#messages").innerHTML=`<div class="connectionsPage"><div class="eyebrow">Connected Apps</div><h2>Connect your apps.</h2><p>Connect trusted MCP servers so MOD can work from live business data instead of screenshots.</p><div class="workspaceEmpty">Loading connections...</div></div>`;
   try{
     const j=await api("/api/connections");
     const list=j.integrations||[];
     qs("#messages").innerHTML=`<div class="connectionsPage">
       <div class="eyebrow">Connected Apps</div>
       <h2>Connect your apps.</h2>
-      <p>Connect the apps you want Marina to use. Choose whether she can view information or prepare actions for your approval.</p>
+      <p>Connect the apps you want MOD to use. Choose whether she can view information or prepare actions for your approval.</p>
       <div class="connectionGrid">${list.map(i=>{
         const c=i.connection, status=connectionStatusLabel(c,i);
         const tools=Array.isArray(c?.allowed_tools)?c.allowed_tools:[];
@@ -1166,7 +1195,7 @@ async function openConnectionsPage(){
           </div>
         </div>`;
       }).join("")}</div>
-      <div class="securityNote"><strong>Security:</strong> Connection endpoints are preconfigured server-side. Marina only auto-enables tools whose names clearly look read-only, such as get, list, search, read, fetch or view. Account authorization is handled separately from the MCP URL, and credentials are never displayed back in the browser.</div>
+      <div class="securityNote"><strong>Security:</strong> Connection endpoints are preconfigured server-side. MOD only auto-enables tools whose names clearly look read-only, such as get, list, search, read, fetch or view. Account authorization is handled separately from the MCP URL, and credentials are never displayed back in the browser.</div>
     </div>`;
     mountSettings("apps");
     qs('#messages').querySelectorAll('[data-google-verify]').forEach(b=>b.onclick=()=>verifyGoogle(b));
@@ -1181,7 +1210,17 @@ async function openConnectionsPage(){
   }catch(e){qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Connections</h2><p>${esc(e.message)}</p></div>`}
 }
 
+document.addEventListener("click",event=>{
+  if(!state.businessDirty)return;
+  const button=event.target.closest("button,a");
+  if(button && (!button.closest(".memoryPanel") || button.closest("#businessWorkspaces") || ["reloadMemory","clearMemory","brandDocBtn"].includes(button.id))){
+    if(!confirm("You have unsaved My Business changes. Leave without saving?")){event.preventDefault();event.stopImmediatePropagation();}else state.businessDirty=false;
+  }
+},true);
+window.addEventListener("beforeunload",event=>{if(state.businessDirty||qs("#input")?.value){event.preventDefault();event.returnValue="";}});
 function setPage(page){
+  if(state.page==="chat"&&page!=="chat")state.savedChat={messages:state.messages,conversationId:state.conversationId,pendingFiles:state.pendingFiles,mode:state.mode,selectedSkill:state.selectedSkill};
+  if(page==="chat"&&state.page!=="chat")state.savedChat=null;
   state.page=page;document.body.dataset.page=page;
   const ids={home:"homeBtn",chat:"newChat",business:"memoryBtn",settings:"connectionsBtn"};
   Object.values(ids).forEach(id=>{const button=qs("#"+id);button.classList.toggle("current",id===ids[page]);if(id===ids[page])button.setAttribute("aria-current","page");else button.removeAttribute("aria-current");});
@@ -1189,7 +1228,7 @@ function setPage(page){
 }
 function mountSettings(active){
   const root=qs("#messages");
-  root.insertAdjacentHTML("afterbegin",`<div class="settingsHeader"><div class="eyebrow">Settings</div><h2>Make Marina work for you.</h2><nav class="settingsTabs" aria-label="Settings sections">${[["apps","Connected Apps"],["instructions","Saved Instructions"],["schedule","Brief Schedule"]].map(([key,label])=>`<button type="button" data-settings="${key}" ${key===active?'aria-current="page"':''}>${label}</button>`).join("")}</nav><div id="settingsAdmin"></div></div>`);
+  root.insertAdjacentHTML("afterbegin",`<div class="settingsHeader"><div class="eyebrow">My MOD Settings</div><h2>Make MOD work for you.</h2><nav class="settingsTabs" aria-label="Settings sections">${[["apps","Connected Apps"],["instructions","Skills"],["schedule","Brief Schedule"]].map(([key,label])=>`<button type="button" data-settings="${key}" ${key===active?'aria-current="page"':''}>${label}</button>`).join("")}</nav><div id="settingsAdmin"></div></div>`);
   qs("#settingsAdmin").append(controlButton);
   root.querySelectorAll("[data-settings]").forEach(button=>button.onclick=()=>{if(state.loading)return;const key=button.dataset.settings;if(key==="apps")openConnectionsPage();else if(key==="instructions")openSkillsPage();else openScheduleSettings();});
 }
@@ -1204,7 +1243,7 @@ async function openScheduleSettings(){
     const detectedTimeZone=Intl.DateTimeFormat().resolvedOptions().timeZone||"America/New_York";
     qs("#messages").innerHTML=`<div class="dailyBriefPage">      <div class="briefSchedule">
         <h3>Brief Schedule</h3>
-        <p>Have Marina build a fresh in-app Daily Brief in the daily background batch. Opening this page still refreshes your live data. Background briefs do not send email or push notifications.</p>
+        <p>Have MOD build a fresh in-app Daily Brief in the daily background batch. Opening this page still refreshes your live data. Background briefs do not send email or push notifications.</p>
         <div class="briefScheduleRow">
           <select id="briefScheduleEnabled">
             <option value="true" ${dailySchedule?.enabled===true?"selected":""}>On</option>
@@ -1277,7 +1316,7 @@ async function openScheduleSettings(){
 async function openDailyBrief(options={}){
   setPage("home");
   state.messages=[];state.conversationId="";renderThreads();
-  qs("#messages").innerHTML=`<div class="dailyBriefPage"><div class="eyebrow">Home</div><h2>Let’s make today count.</h2><p>Marina is checking the business before you start reacting to it.</p><div class="workspaceEmpty">Building your brief...</div></div>`;
+  qs("#messages").innerHTML=`<div class="dailyBriefPage"><div class="eyebrow">Home</div><h2>Let’s make today count.</h2><p>MOD is checking the business before you start reacting to it.</p><div class="workspaceEmpty">Building your brief...</div></div>`;
   try{
     const [j,memoryData]=await Promise.all([api("/api/daily-brief"),api("/api/memory").catch(()=>({}))]);
     const loops=j.open_loops||{}, cal=j.calendar||{}, gmail=j.gmail||{}, b=j.bmod||{}, m=j.momentum||{};
@@ -1285,9 +1324,9 @@ async function openDailyBrief(options={}){
     const events=cal.events||[], emails=gmail.unread||[], wins=m.recent_wins||[];
     const todayLabel=new Date(j.generated_at||Date.now()).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
 
-    const eventHtml=events.length?events.map(e=>`<div class="briefItem"><strong>${esc(e.summary||"Busy")}</strong><span>${esc(e.start?formatDate(e.start):"Time unavailable")}${e.location?` · ${esc(e.location)}`:""}</span></div>`).join(""):`<div class="briefItem"><span>${cal.connected?"No calendar events in the next 24 hours.":"Google Calendar is not connected."}</span></div>`;
+    const eventHtml=events.length?events.map(e=>`<div class="briefItem"><strong>${esc(e.summary||"Busy")}</strong><span>${esc(e.start?formatDate(e.start):"Time unavailable")}${e.location?` · ${esc(e.location)}`:""}</span></div>`).join(""):`<div class="briefItem"><span>${cal.error?"Unable to load calendar events.":cal.connected?"No calendar events in the next 24 hours.":"Google Calendar is not connected."}</span></div>`;
 
-    const emailHtml=emails.length?emails.map(e=>`<div class="briefItem"><strong>${esc(e.subject||"(no subject)")}</strong><span>${esc(e.from||"Unknown sender")}${e.snippet?` · ${esc(e.snippet)}`:""}</span></div>`).join(""):`<div class="briefItem"><span>${gmail.connected?"No recent unread Gmail messages surfaced.":"Gmail is not connected."}</span></div>`;
+    const emailHtml=emails.length?emails.map(e=>`<div class="briefItem"><strong>${esc(e.subject||"(no subject)")}</strong><span>${esc(e.from||"Unknown sender")}${e.snippet?` · ${esc(e.snippet)}`:""}</span></div>`).join(""):`<div class="briefItem"><span>${gmail.error?"Unable to load Gmail messages.":gmail.connected?"No recent unread Gmail messages surfaced.":"Gmail is not connected."}</span></div>`;
 
     const winsHtml=wins.length?wins.map(w=>`<div class="briefItem"><strong>${esc(w.title)}</strong><span>${esc(winTypeLabel(w.win_type))} · ${esc(formatDate(w.occurred_on))}</span></div>`).join(""):`<div class="briefItem"><span>No recent saved wins yet.</span></div>`;
 
@@ -1296,18 +1335,22 @@ async function openDailyBrief(options={}){
       <h2>Let’s make today count.</h2>
       <p>Your daily overview. Start with one next step, then check anything waiting on you.</p>
 
-      <div class="briefHero">
-        <div class="eyebrow">Today’s Focus</div>
-        <strong>${esc(j.today_move||"Ask Marina for today's move.")}</strong>
-        <span>${j.current_goal?`Current goal: ${esc(j.current_goal)}`:"Add your goal in My Business to help Marina guide you."}</span>
+      <section class="homeToday"><div class="briefHero">
+        <div class="eyebrow">Today’s Brief</div>
+        <strong>${esc(j.today_move||"Ask MOD for today's move.")}</strong>
+        <span>${j.current_goal?`Current goal: ${esc(j.current_goal)}`:"Add your goal in My Business to help MOD guide you."}</span>
       </div>
 
       <div class="briefToolbar">
         <button id="briefCoach">Work on this</button>
-        <button id="briefTakeLead" class="secondary">Let Marina take the lead</button>
+        <button id="briefTakeLead" class="secondary">Let MOD take the lead</button>
         <button id="briefRefresh" class="secondary">Refresh</button>
       </div>
 
+      <p class="loopMeta">Updated ${esc(formatDate(j.generated_at||new Date().toISOString()))}</p>
+      <details class="connectionSummary"><summary>${cal.error?"Calendar unavailable":cal.connected?events.length+" events in the next 24 hours":"Calendar not connected"}</summary><div class="briefList">${eventHtml}</div><a href="https://calendar.google.com/" target="_blank" rel="noopener">Open Calendar</a>${!cal.connected?'<button data-home-connect>Connect Calendar</button>':''}${cal.error?`<p>${esc(cal.error)}</p><button data-home-connect>Check connection</button>`:''}</details>
+      <details class="connectionSummary"><summary>${gmail.error?"Gmail unavailable":gmail.connected?"About "+(gmail.total_estimate??emails.length)+" unread Gmail messages from the last 7 days":"Gmail not connected"}</summary><p>Showing up to 5 recent unread messages.</p><div class="briefList">${emailHtml}</div><div class="briefToolbar"><button id="reviewInbox">Ask MOD to review my inbox</button><a href="https://mail.google.com/" target="_blank" rel="noopener">Open Gmail</a>${!gmail.connected?'<button data-home-connect>Connect Gmail</button>':''}</div>${gmail.error?`<p>${esc(gmail.error)}</p><button data-home-connect>Check connection</button>`:''}</details>
+      </section>
       ${business.last_assignment?`<div class="accountabilityCard"><small>Your last commitment</small><strong>${esc(business.last_assignment)}</strong><div class="checkinBtns"><button class="done" data-checkin="done">Done</button><button data-checkin="partial">Partly done</button><button data-checkin="not_done">Not yet</button></div></div>`:""}
       ${renderBriefLoops(loops,options.expandLoops===true)}
       <section class="momentumSection"><div class="momentumHeader"><div><div class="eyebrow">Your Progress</div><h3>See how far you’ve come.</h3></div></div>
@@ -1316,33 +1359,11 @@ async function openDailyBrief(options={}){
         <div class="briefToolbar"><button id="homeLogWin">Add a win</button><button id="homeLogActivity" class="secondary">Log activity</button></div>
         <details id="homeProgress"><summary>See all progress and wins</summary><div id="homeProgressDetails"></div></details>
       </section>
-      <section class="briefCard"><h3>My Business</h3><div class="businessGrid">${[["Offer",business.primary_offer],["Audience",business.target_audience],["Goal",j.current_goal]].map(([label,value])=>`<div class="bizCard"><small>${label}</small><strong>${esc(value||"Add in My Business")}</strong></div>`).join("")}</div><div class="briefToolbar"><button id="homeEditBusiness" class="secondary">Edit My Business</button></div></section>
-      <details class="homeConnected"><summary>Calendar, email, and connected apps</summary>
-      <div class="briefGrid">
-        <div class="briefCard">
-          <h3>Next 24 hours</h3>
-          <div class="briefList">${eventHtml}</div>
-        </div>
-
-        <div class="briefCard">
-          <h3>Unread Gmail signals</h3>
-          <div class="briefList">${emailHtml}</div>
-          ${gmail.connected?`<div class="loopMeta" style="margin-top:10px">Unread estimate: ${esc(gmail.total_estimate||0)}</div>`:""}
-        </div>
-
-        <div class="briefCard">
-          <h3>BMOD Tools snapshot</h3>
-          <div class="briefList">
-            <div class="briefItem"><strong>${b.contacts_total==null?"—":esc(niceMetric(b.contacts_total))} contacts</strong><span>Live BMOD Tools total</span></div>
-            <div class="briefItem"><strong>${b.open_opportunities_total==null?"—":esc(niceMetric(b.open_opportunities_total))} open opportunities</strong><span>${b.won_opportunities_total==null?"—":esc(niceMetric(b.won_opportunities_total))} won opportunities</span></div>
-          </div>
-        </div>
-
-      </div></details>
     </div>`;
 
     qs("#messages").querySelectorAll("[data-checkin]").forEach(b=>b.onclick=()=>submitCheckin(b.dataset.checkin,business.last_assignment));
-    qs("#homeEditBusiness").onclick=openMemoryPanel;
+    qs("#reviewInbox").onclick=()=>{resetWorkspace("coach");send("Review my recent unread Gmail messages using my connected Gmail. Summarize priorities and suggest replies for review.","coach");};
+    qs("#messages").querySelectorAll("[data-home-connect]").forEach(button=>button.onclick=openConnectionsPage);
     qs("#homeLogWin").onclick=logWinQuick;
     qs("#homeLogActivity").onclick=logActivityQuick;
     qs("#homeProgress").ontoggle=()=>{if(qs("#homeProgress").open)openMomentumPage();};
@@ -1353,7 +1374,7 @@ async function openDailyBrief(options={}){
     qs("#briefCoach").onclick=()=>{resetWorkspace("coach");send("Review my Daily Brief using my live connected data, Open Loops, calendar, Gmail signals, BMOD Tools snapshot, momentum and recent wins. Tell me what matters most today, what can wait, and give me one highest-leverage move.","coach")};
     qs("#briefTakeLead").onclick=()=>{resetWorkspace("action");send("Use my Daily Brief and take the lead on today's highest-leverage business priorities. Build what you can, use connected tools where appropriate, and queue any consequential external actions for my approval.","action")};
   }catch(e){
-    qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Home</h2><p>${esc(e.message)}</p></div>`;
+    qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Home</h2><p>${esc(e.message)}</p><button id="retryHome">Try again</button></div>`;qs("#retryHome").onclick=()=>openDailyBrief(options);
   }
 }
 
@@ -1366,7 +1387,7 @@ function renderBriefLoops(loops,expanded=false){
   const completed=(loops.recent_completed||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">Completed</div>${x.result?.note?`<p>${esc(x.result.note)}</p>`:""}</div>`).join("");
   const assets=(loops.ready_assets||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(workspaceLabel(x.section))} · ready to use</div><div class="loopActions"><button data-open-asset-section="${esc(x.section)}">Open workspace</button></div></div>`).join("");
   const recent=state.conversations?.[0];
-  return `<section id="briefOpenLoops" class="loopSection" aria-labelledby="briefLoopsHeading"><div class="loopSectionHead"><div><div class="eyebrow">Needs Your Attention</div><h3 id="briefLoopsHeading">Your next steps, in one place.</h3></div></div><p class="loopMeta">${esc(counts.needs_approval||0)} awaiting approval · ${esc(counts.your_tasks||0)} tasks · ${esc(counts.open_runs||0)} open runs</p><div class="loopList">${cards.slice(0,4).join("")||'<div class="workspaceEmpty">Nothing needs your attention here right now.</div>'}</div><details id="briefAllLoops" ${expanded?"open":""}><summary>See all ${cards.length} items and saved work</summary><div class="loopList">${cards.slice(4).join("")}</div>${loops.snoozed_tasks?.length?`<h4>Snoozed tasks</h4><div class="loopList">${loops.snoozed_tasks.map(x=>taskCard(x,true)).join("")}</div>`:""}<h4>Recently completed</h4><div class="loopList">${completed||'<p>No completed actions yet.</p>'}</div><h4>Ready to use</h4><div class="loopList">${assets||'<p>No recent saved assets.</p>'}</div></details>${recent?`<div class="briefToolbar"><button data-open-loop-chat="${esc(recent.id)}">Continue where you left off</button></div>`:""}<div id="briefLoopStatus" role="status" aria-live="polite"></div></section>`;
+  return `<section id="briefOpenLoops" class="loopSection" aria-labelledby="briefLoopsHeading"><div class="loopSectionHead"><div><div class="eyebrow">Needs Your Attention</div><h3 id="briefLoopsHeading">Your next steps, in one place.</h3></div></div><p class="loopMeta">${esc(counts.needs_approval||0)} awaiting approval · ${esc(counts.your_tasks||0)} tasks · ${esc(counts.open_runs||0)} open runs</p><div class="loopList">${cards.slice(0,3).join("")||'<div class="workspaceEmpty">Nothing needs your attention here right now.</div>'}</div><details id="briefAllLoops" ${expanded?"open":""}><summary>View all ${cards.length} items and saved work</summary><div class="loopList">${cards.slice(3).join("")}</div>${loops.snoozed_tasks?.length?`<h4>Snoozed tasks</h4><div class="loopList">${loops.snoozed_tasks.map(x=>taskCard(x,true)).join("")}</div>`:""}<h4>Recently completed</h4><div class="loopList">${completed||'<p>No completed actions yet.</p>'}</div><h4>Ready to use</h4><div class="loopList">${assets||'<p>No recent saved assets.</p>'}</div></details>${recent?`<div class="briefToolbar"><button data-open-loop-chat="${esc(recent.id)}">Continue where you left off</button></div>`:""}<div id="briefLoopStatus" role="status" aria-live="polite"></div></section>`;
 }
 function bindBriefLoops(){
   const root=qs("#briefOpenLoops");
@@ -1379,6 +1400,11 @@ function bindBriefLoops(){
       const loops=await api("/api/open-loops");
       const expanded=qs("#briefAllLoops").open;
       root.outerHTML=renderBriefLoops(loops,expanded);bindBriefLoops();
+      if(action==="done"){
+        const undo=document.createElement("button");undo.textContent="Undo completion";
+        undo.onclick=async()=>{undo.disabled=true;try{await api("/api/open-loops/task",{method:"PATCH",body:JSON.stringify({stepId:item.dataset.loopTask,done:false})});await openDailyBrief({expandLoops:true});}catch(e){undo.disabled=false;qs("#status").textContent=e.message;}};
+        qs("#briefLoopStatus").after(undo);
+      }
       qs("#briefLoopStatus").textContent=action==="done"?"Task completed.":action==="snooze"?"Task snoozed for 24 hours.":"Task returned to your brief.";
     }catch(e){qs("#briefLoopStatus").textContent=e.message;buttons.forEach(x=>x.disabled=false);}
   });
@@ -1392,55 +1418,14 @@ async function openOpenLoopsPage(){
 }
 
 async function openMomentumPage(){
-  const target=qs("#homeProgressDetails");
-  if(!target)return openDailyBrief({progress:true});
-  target.innerHTML=`<div class="momentumPage"><div class="eyebrow">Momentum</div><h3>Activity and wins</h3><p>Marina blends live CRM signals with the wins and activity you log yourself.</p><div class="workspaceEmpty">Loading momentum...</div></div>`;
+  const target=qs("#homeProgressDetails");if(!target)return openDailyBrief({progress:true});
+  target.innerHTML='<p>Loading activity…</p>';
   try{
-    const j=await api("/api/momentum");
-    const m=j.memory||{}, s=j.momentum||{}, c=s.counts30||{}, c7=s.counts7||{}, b=j.bmod||{};
-    const liveCards=[
-      ["Contacts",b.contacts_total,"live from BMOD"],
-      ["Conversations",b.conversations_total,"live from BMOD"],
-      ["Open opportunities",b.open_opportunities_total,"live from BMOD"],
-      ["Won opportunities",b.won_opportunities_total,"live from BMOD"]
-    ];
-    target.innerHTML=`<div class="momentumPage">
-      <div class="eyebrow">Your Progress</div>
-      <h3>Activity and wins</h3>
-      <p><strong>Current goal:</strong> ${esc(m.primary_goal||"Not set yet")}. Marina uses live BMOD Tools data where it is reliable and your own logged activity where BMOD Tools cannot see the whole story.</p>
-
-      ${b.connected?`<div class="momentumSection">
-        <div class="momentumHeader"><div><div class="eyebrow">Live BMOD Tools snapshot</div><h3>What BMOD Tools can see right now.</h3></div><button id="refreshMomentumBmod">Refresh BMOD data</button></div>
-        <div class="momentumGrid">${liveCards.map(([label,val,sub])=>`<div class="momentumCard"><small>${esc(label)}</small><strong>${val==null?"—":esc(niceMetric(val))}</strong><span>${esc(sub)}</span></div>`).join("")}</div>
-        <div class="memoryStatus">Live totals come from your connected BMOD Tools account (powered by HighLevel). A dash means BMOD Tools did not return a reliable total, so Marina will not guess.</div>
-      </div>`:`<div class="workspaceEmpty">Connect BMOD Tools to add live CRM totals here. Manual momentum and wins still work without it.</div>`}
-
-      <div class="momentumSection">
-        <div class="momentumHeader"><div><div class="eyebrow">Your logged momentum</div><h3>The work BMOD Tools cannot fully see.</h3></div></div>
-        <div class="momentumToolbar"><button id="pageLogWin">+ Log a win</button><button id="pageLogActivity" class="secondary">+ Log activity</button><button id="pageCoachMomentum" class="secondary">Coach me from this data</button></div>
-        <div class="momentumGrid">
-          ${[
-            ["Conversations",c7.conversations,"you logged · last 7 days"],
-            ["Follow-ups",c7.follow_up,"you logged · last 7 days"],
-            ["Conversions",c7.conversion,"you logged · last 7 days"],
-            ["Active days",s.activeDays30,"last 30 days"],
-            ["Execution",c.execution,"last 30 days"],
-            ["Offer activity",c.offer_activity,"last 30 days"],
-            ["Consistency",c.consistency,"last 30 days"],
-            ["Wins",(s.wins||[]).length,"recent saved"]
-          ].map(([label,val,sub])=>`<div class="momentumCard"><small>${esc(label)}</small><strong>${esc(niceMetric(val))}</strong><span>${esc(sub)}</span></div>`).join("")}
-        </div>
-      </div>
-
-      <div class="momentumSection"><div class="momentumHeader"><div><div class="eyebrow">Wins Vault</div><h3>Proof you are moving.</h3></div></div>
-        <div class="winsList">${(s.wins||[]).length?(s.wins||[]).map(w=>`<div class="winRow"><strong>${esc(w.title)}</strong><small>${esc(winTypeLabel(w.win_type))} · ${esc(formatDate(w.occurred_on))}${w.amount!=null?` · ${esc(w.amount)}`:""}</small>${w.detail?`<div class="actionStepDesc">${esc(w.detail)}</div>`:""}</div>`).join(""):`<div class="workspaceEmpty">No wins saved yet. Tell Marina what happened or log one manually.</div>`}</div>
-      </div>
-    </div>`;
-    qs("#pageLogWin").onclick=logWinQuick;
-    qs("#pageLogActivity").onclick=logActivityQuick;
-    if(qs("#refreshMomentumBmod"))qs("#refreshMomentumBmod").onclick=openMomentumPage;
-    qs("#pageCoachMomentum").onclick=()=>{resetWorkspace("coach");send("Review my live CRM snapshot together with my recent logged momentum, accountability and wins. Tell me what the combined data says is working, where I am leaking momentum, and give me one highest-leverage move for today.","coach")};
-  }catch(e){target.innerHTML=`<div class="welcome"><h2 class="brand">Momentum is ready when you are.</h2><p>${esc(e.message)}</p></div>`}
+    const j=await api("/api/momentum"),m=j.momentum||{};
+    target.innerHTML=`<h3>Your logged activity</h3><label for="progressPeriod">Time period</label> <select id="progressPeriod"><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select><p>These are your activity logs. Automatic CRM activity, sales revenue, and social views are not included.</p><div id="periodMetrics" class="momentumGrid"></div><button id="pageLogWin">Add a win</button><button id="pageLogActivity">Log activity</button>`;
+    const draw=()=>{const days=qs("#progressPeriod").value||"7",counts=days==="30"?m.counts30:m.counts7;qs("#periodMetrics").innerHTML=[["Conversations","conversations"],["Follow-ups","follow_up"],["Conversions","conversion"],["Execution","execution"],["Offer activity","offer_activity"]].map(([label,key])=>`<div class="momentumCard"><small>${label}</small><strong>${esc(niceMetric(counts?.[key]||0))}</strong><span>logged in the last ${days} days</span></div>`).join("");};
+    qs("#progressPeriod").onchange=draw;draw();qs("#pageLogWin").onclick=logWinQuick;qs("#pageLogActivity").onclick=logActivityQuick;
+  }catch(e){target.innerHTML=`<p>${esc(e.message)}</p><button id="retryProgress">Try again</button>`;qs("#retryProgress").onclick=openMomentumPage;}
 }
 
 async function renderDashboard(){
@@ -1479,14 +1464,14 @@ async function openSkillsPage(){
   const marina=state.skills.filter(s=>!isCustomSkill(s));
 
   qs("#messages").innerHTML=`<div class="skillsPage">
-    <div class="eyebrow">Saved Instructions</div>
-    <h2>Teach Marina how you work.</h2>
+    <div class="eyebrow">Skills</div>
+    <h2>Teach MOD how you work.</h2>
     <p>Save instructions for jobs you do often, such as writing your newsletter. Choose a saved instruction below to use it in a conversation.</p>
 
     <div class="skillsBuilder">
       <div class="skillBuilderCard">
         <h3>Import a skill</h3>
-        <p>Upload a Claude skill, SKILL.md, SOP, prompt file, PDF, DOCX, TXT, JSON, YAML, or Markdown document. Marina will turn it into a reusable workflow and show you a preview before saving.</p>
+        <p>Upload a Claude skill, SKILL.md, SOP, prompt file, PDF, DOCX, TXT, JSON, YAML, or Markdown document. MOD will turn it into a reusable workflow and show you a preview before saving.</p>
         <input id="skillImportFile" type="file" accept=".skill,.md,.txt,.json,.yaml,.yml,.pdf,.doc,.docx,text/plain,text/markdown,application/json,application/pdf">
         <button id="skillImportBtn" class="primary" type="button" style="margin-top:10px">Import + preview</button>
         <div id="skillImportStatus" class="memoryStatus"></div>
@@ -1495,9 +1480,9 @@ async function openSkillsPage(){
 
       <div class="skillBuilderCard">
         <h3>Create a skill</h3>
-        <p>Describe the repeatable process you want Marina to learn. This can be your content workflow, launch system, client onboarding, research process, newsletter method, or anything you do more than once.</p>
+        <p>Describe the repeatable process you want MOD to learn. This can be your content workflow, launch system, client onboarding, research process, newsletter method, or anything you do more than once.</p>
         <input id="skillCreateName" placeholder="Skill name, e.g. My Weekly Newsletter">
-        <textarea id="skillCreatePurpose" placeholder="What should this skill help Marina do?"></textarea>
+        <textarea id="skillCreatePurpose" placeholder="What should this skill help MOD do?"></textarea>
         <textarea id="skillCreateInstructions" placeholder="Optional: paste your steps, SOP, examples, rules, or process here."></textarea>
         <button id="skillCreateBtn" class="primary" type="button" style="margin-top:10px">Build + preview skill</button>
         <div id="skillCreateStatus" class="memoryStatus"></div>
@@ -1507,11 +1492,11 @@ async function openSkillsPage(){
 
     <div class="skillSection">
       <div class="skillSectionHead"><div><div class="eyebrow">My private skills</div><h3>${custom.length?"Your reusable systems":"Nothing here yet"}</h3></div></div>
-      ${custom.length?`<div class="skillLibraryGrid">${custom.map(renderSkillLibraryCard).join("")}</div>`:`<div class="workspaceEmpty">Import one from Claude or create your first skill above. Once saved, it will be available whenever you chat with Marina.</div>`}
+      ${custom.length?`<div class="skillLibraryGrid">${custom.map(renderSkillLibraryCard).join("")}</div>`:`<div class="workspaceEmpty">Import one from Claude or create your first skill above. Once saved, it will be available whenever you chat with MOD.</div>`}
     </div>
 
     <div class="skillSection">
-      <div class="skillSectionHead"><div><div class="eyebrow">Marina Skills</div><h3>Built-in specialized systems</h3></div></div>
+      <div class="skillSectionHead"><div><div class="eyebrow">MOD Skills</div><h3>Built-in specialized systems</h3></div></div>
       <div class="skillLibraryGrid">${marina.map(renderSkillLibraryCard).join("")}</div>
     </div>
   </div>`;
@@ -1524,7 +1509,7 @@ async function openSkillsPage(){
 
 function renderSkillLibraryCard(skill){
   const custom=isCustomSkill(skill);
-  const sourceLabel=custom?"Your private skill":(skill.source==="claude"?"Marina Skill":"Marina Skill");
+  const sourceLabel=custom?"Your private skill":(skill.source==="claude"?"MOD Skill":"MOD Skill");
   return `<div class="skillLibraryCard">
     <strong>${esc(skill.display_name)}</strong>
     <p>${esc(skill.description||"")}</p>
@@ -1563,7 +1548,7 @@ async function fileToSkillPreview(file,statusEl){
   const {error}=await state.supabase.storage.from("marina-attachments").upload(storagePath,file,{contentType:file.type||undefined,upsert:false});
   if(error)throw new Error(error.message);
 
-  statusEl.textContent="Marina is turning that file into a reusable skill…";
+  statusEl.textContent="MOD is turning that file into a reusable skill…";
   return api("/api/skills/build-preview",{method:"POST",body:JSON.stringify({attachment:{storagePath,fileName:file.name,mimeType:file.type||"application/octet-stream",sizeBytes:file.size},name:file.name.replace(/\.[^.]+$/,"")})});
 }
 
@@ -1575,7 +1560,7 @@ async function importSkillFile(){
   try{
     const j=await fileToSkillPreview(file,status);
     renderSkillPreview(preview,j.skill,"imported");
-    status.textContent="Review it before adding it to Marina.";
+    status.textContent="Review it before adding it to MOD.";
   }catch(e){status.textContent=e.message}
 }
 
@@ -1584,9 +1569,9 @@ async function createSkillPreview(){
   const name=qs("#skillCreateName").value.trim();
   const purpose=qs("#skillCreatePurpose").value.trim();
   const instructions=qs("#skillCreateInstructions").value.trim();
-  if(!name&&!purpose&&!instructions){status.textContent="Give Marina a skill name, purpose, or some instructions first.";return}
+  if(!name&&!purpose&&!instructions){status.textContent="Give MOD a skill name, purpose, or some instructions first.";return}
   preview.innerHTML="";
-  status.textContent="Marina is turning that process into a reusable skill…";
+  status.textContent="MOD is turning that process into a reusable skill…";
   try{
     const j=await api("/api/skills/build-preview",{method:"POST",body:JSON.stringify({name,purpose,sourceText:instructions})});
     renderSkillPreview(preview,j.skill,"created");
@@ -1599,7 +1584,7 @@ function renderSkillPreview(root,skill,sourceType){
   root.innerHTML=`<div class="skillPreviewBox">
     <strong>${esc(skill.display_name)}</strong>
     <p>${esc(skill.description)}</p>
-    <div class="skillSourceHint">Mode: ${esc(skill.default_mode==="action"?"Action Mode":"Chat with Marina")}${skill.workspace_section?` · Saves best to ${esc(skill.workspace_section)}`:""}</div>
+    <div class="skillSourceHint">Mode: ${esc(skill.default_mode==="action"?"Action Mode":"Chat with MOD")}${skill.workspace_section?` · Saves best to ${esc(skill.workspace_section)}`:""}</div>
     <pre>${esc(skill.operating_prompt)}</pre>
     <div class="memoryActions">
       <button class="primary" type="button" data-save-skill>Save to My Skills</button>
@@ -1629,11 +1614,11 @@ function skillLaunchPrompt(skill){
 }
 function renderSkillCards(){
   if(!state.skills.length)return"";
-  return `<div class="skillSection"><div class="skillSectionHead"><div><div class="eyebrow">Skills</div><h3>Use a specialized system.</h3></div><button class="secondaryBtn" data-open-skills type="button">Saved Instructions</button></div><div class="skillGrid">${state.skills.map(skill=>`<button class="skillCard" data-skill-key="${esc(skill.skill_key)}"><strong>${esc(skill.display_name)}</strong><span>${esc(skill.description)}</span><span class="skillBadge">${isCustomSkill(skill)?"My Skill · ":""}${skill.default_mode==="action"?"Build + Save":"Guided System"}</span></button>`).join("")}<button class="skillCard" data-dm-audit><strong>Audit My DMs</strong><span>Paste or upload a conversation and Marina will find the primary leak, explain why it happened, and give you the next move.</span><span class="skillBadge">Internal Audit</span></button></div></div>`;
+  return `<div class="skillSection"><div class="skillSectionHead"><div><div class="eyebrow">Skills</div><h3>Use a specialized system.</h3></div><button class="secondaryBtn" data-open-skills type="button">Skills</button></div><div class="skillGrid">${state.skills.map(skill=>`<button class="skillCard" data-skill-key="${esc(skill.skill_key)}"><strong>${esc(skill.display_name)}</strong><span>${esc(skill.description)}</span><span class="skillBadge">${isCustomSkill(skill)?"My Skill · ":""}${skill.default_mode==="action"?"Build + Save":"Guided System"}</span></button>`).join("")}<button class="skillCard" data-dm-audit><strong>Audit My DMs</strong><span>Paste or upload a conversation and MOD will find the primary leak, explain why it happened, and give you the next move.</span><span class="skillBadge">Internal Audit</span></button></div></div>`;
 }
 function activateSkill(skillKey){
   const skill=state.skills.find(s=>s.skill_key===skillKey);if(!skill)return;
-  resetWorkspace(skill.default_mode||"create");state.selectedSkill=skill;qs("#input").placeholder=`Ask Marina · ${skill.display_name}`;send(skillLaunchPrompt(skill),skill.default_mode||"create",skill.skill_key);
+  resetWorkspace(skill.default_mode||"create");state.selectedSkill=skill;qs("#input").placeholder=`Ask MOD · ${skill.display_name}`;send(skillLaunchPrompt(skill),skill.default_mode||"create",skill.skill_key);
 }
 function renderActiveSkillBar(){
   if(!state.selectedSkill)return"";
@@ -1641,7 +1626,7 @@ function renderActiveSkillBar(){
 }
 function wireActiveSkillBar(){qs("#messages").querySelectorAll("[data-clear-skill]").forEach(b=>b.onclick=()=>{state.selectedSkill=null;setMode(state.mode);renderWelcome()})}
 function renderCreateHub(){
-  qs("#messages").innerHTML=renderModeBar()+renderActiveSkillBar()+`<div class="hub"><div class="eyebrow">Create With Me</div><h2>Don't explain it. Build it.</h2><p>Choose a starting point, use one of Marina's specialized skills, or tell Marina exactly what you need below.</p><div class="hubGrid">
+  qs("#messages").innerHTML=renderModeBar()+renderActiveSkillBar()+`<div class="hub"><div class="eyebrow">Create With Me</div><h2>Don't explain it. Build it.</h2><p>Choose a starting point, use one of MOD's specialized skills, or tell MOD exactly what you need below.</p><div class="hubGrid">
     ${[
       ["Build my week","Build my 7-day content and conversion plan around my current offer and goal."],
       ["Write today's content","Write today's highest-leverage piece of content for my current goal, including hook, body, CTA and suggested format."],
@@ -1649,7 +1634,7 @@ function renderCreateHub(){
       ["Audit my offer","Audit my current offer using Offer → Message → Path → Volume → Conversion and rewrite what is weak."],
       ["Build a live","Create a 20-minute weekly live that naturally leads to my current offer."],
       ["Build the funnel","Build the simplest conversion path for my current offer, including page sections, CTA and follow-up."]
-    ].map(([title,prompt])=>`<button class="hubBtn" data-create="${esc(prompt)}"><strong>${esc(title)}</strong><span>Marina will use what she already remembers about your business.</span></button>`).join("")}
+    ].map(([title,prompt])=>`<button class="hubBtn" data-create="${esc(prompt)}"><strong>${esc(title)}</strong><span>MOD will use what she already remembers about your business.</span></button>`).join("")}
   </div>${renderSkillCards()}</div>`;
   wireModeBar();wireActiveSkillBar();
   qs("#messages").querySelectorAll("[data-create]").forEach(b=>b.onclick=()=>send(b.dataset.create,"create"));
@@ -1658,7 +1643,7 @@ function renderCreateHub(){
   qs("#messages").querySelectorAll("[data-dm-audit]").forEach(b=>b.onclick=()=>{state.selectedSkill=null;resetWorkspace("coach");qs("#input").placeholder="Paste or upload the DM conversation to audit...";qs("#input").value="Audit my DM conversation and show me the primary leak. ";qs("#input").focus()});
 }
 function renderActionHub(){
-  qs("#messages").innerHTML=renderModeBar()+`<div class="hub"><div class="eyebrow">Action Mode ⚡ <span class="betaPill">Beta</span></div><h2>Give Marina the outcome. She'll build the work.</h2><p>Action Mode now creates real Workspace assets, tracks the execution run, assigns only the tasks you personally need to do, and queues outside-app actions for approval instead of pretending they happened.</p><div class="actionModeNote"><strong>What Marina can do now:</strong> create and save business assets automatically. Supported BMOD Tools, Canva, Gmail, and Google Calendar actions are prepared first, shown to you for approval, and executed only after you approve. Google Drive remains read-only for now.</div><div class="actionCallout"><strong>Try this:</strong><p>“I need to sell 10 of my $97 workshop this month. Take the lead and build everything you can for this week.”</p></div><div class="hubGrid">
+  qs("#messages").innerHTML=renderModeBar()+`<div class="hub"><div class="eyebrow">Action Mode ⚡ <span class="betaPill">Beta</span></div><h2>Give MOD the outcome. She'll build the work.</h2><p>Action Mode now creates real Workspace assets, tracks the execution run, assigns only the tasks you personally need to do, and queues outside-app actions for approval instead of pretending they happened.</p><div class="actionModeNote"><strong>What MOD can do now:</strong> create and save business assets automatically. Supported BMOD Tools, Canva, Gmail, and Google Calendar actions are prepared first, shown to you for approval, and executed only after you approve. Google Drive remains read-only for now.</div><div class="actionCallout"><strong>Try this:</strong><p>“I need to sell 10 of my $97 workshop this month. Take the lead and build everything you can for this week.”</p></div><div class="hubGrid">
     <button class="hubBtn" data-action="Take my current goal and run a real 7-day execution sprint. Build and save the finished content, CTAs, campaign plan and follow-up assets you can complete internally. Create only the human tasks I truly need to do, and queue any external-system actions for approval."><strong>Run my 7-day sprint</strong><span>Creates and saves the work, not just the plan.</span></button>
     <button class="hubBtn" data-action="Use what you remember about my business to identify my single biggest conversion bottleneck. Take the lead on fixing it. Build and save every internal asset needed, create my exact next tasks, and queue any external actions for approval."><strong>Fix my biggest bottleneck</strong><span>Diagnose, build, save, and queue.</span></button>
   </div></div>`;
@@ -1889,14 +1874,14 @@ function renderActionRun(run){
   const status=String(run.status||"").replace(/_/g," ");
   return `<div class="actionRunCard" data-run-id="${esc(run.id)}">
     <div class="actionRunHead">
-      <div><strong>⚡ Marina Action Run</strong><div class="actionStepMeta">${esc(run.objective||"")}</div></div>
+      <div><strong>⚡ MOD Action Run</strong><div class="actionStepMeta">${esc(run.objective||"")}</div></div>
       <span class="actionRunStatus ${esc(run.status||"")}">${esc(status)}</span>
     </div>
     <div class="actionSteps">${steps.map(step=>`
       <div class="actionStep" data-step-id="${esc(step.id)}">
         <div class="actionStepTop"><div><div class="actionStepTitle">${esc(step.title)}</div><div class="actionStepMeta">${esc(actionStepStatusLabel(step))}${step.workspace_section?` · ${esc(workspaceLabel(step.workspace_section))}`:""}${step.external_system?` · ${esc(step.external_system)}`:""}</div></div></div>
         ${step.description?`<div class="actionStepDesc">${esc(step.description)}</div>`:""}
-        ${step.step_type==="external_action"&&step.approval_status==="pending"?`<div class="actionStepButtons"><button class="approve" data-action-approve="approve">Approve</button><button class="reject" data-action-approve="reject">Reject</button></div>`:""}
+        ${step.step_type==="external_action"&&step.approval_status==="pending"?`<div class="actionStepButtons"><button class="approve" data-action-approve="approve">Approve: ${esc(step.title||"this action")}</button><button class="reject" data-action-approve="reject">Reject</button></div>`:""}
         ${step.step_type==="external_action"&&step.result?.note?`<div class="actionStepDesc"><strong>${step.status==="completed"?"Receipt: ":""}</strong>${esc(step.result.note)}
           ${step.external_system==="Canva"&&step.result.verified&&/^https:\/\/(www\.)?canva\.com\//.test(step.result.edit_url||"")?` <a href="${esc(step.result.edit_url)}" target="_blank" rel="noopener noreferrer">Open design in Canva</a>`:""}
           ${step.external_system==="BMOD Tools"&&step.result?.receipt?.url&&/^https:\/\//.test(step.result.receipt.url)?` <a href="${esc(step.result.receipt.url)}" target="_blank" rel="noopener noreferrer">Open result</a>`:""}
@@ -1974,7 +1959,7 @@ function renderMessages(){
       try{
         await api("/api/feedback",{method:"POST",body:JSON.stringify({messageId:box.dataset.feedbackFor,rating:Number(btn.dataset.rating)})});
         box.querySelectorAll("[data-rating]").forEach(x=>x.classList.remove("selected"));btn.classList.add("selected");
-        qs("#status").textContent=btn.dataset.rating==="1"?"Saved. Marina learns what works.":"Saved. We'll use this to tune Marina.";
+        qs("#status").textContent=btn.dataset.rating==="1"?"Saved. MOD learns what works.":"Saved. We'll use this to tune MOD.";
         setTimeout(()=>{qs("#status").textContent=""},1800);
       }catch(e){qs("#status").textContent=e.message}
     })
@@ -2017,6 +2002,7 @@ async function send(prefill, forcedMode, forcedSkillKey){
   const value=String(prefill ?? input.value).trim();
   if((!value&&!state.pendingFiles.length)||state.loading)return;
 
+  const originalFiles=[...state.pendingFiles];
   state.loading=true;
   input.value="";
   qs("#status").textContent="";
@@ -2039,7 +2025,7 @@ async function send(prefill, forcedMode, forcedSkillKey){
     const attachments=await uploadPendingFiles();
     state.pendingFiles=[];
     renderPending();
-    qs("#status").textContent="Marina is looking at it...";
+    qs("#status").textContent="MOD is looking at it...";
 
     const j=await api("/api/chat",{
       method:"POST",
@@ -2059,7 +2045,8 @@ async function send(prefill, forcedMode, forcedSkillKey){
     await loadConversations();
     qs("#status").textContent="";
   }catch(e){
-    qs("#status").textContent=e.message;
+    input.value=value;state.pendingFiles=originalFiles;renderPending();
+    qs("#status").textContent=e.message+" Your draft is restored. Check the conversation before sending again.";
   }
 
   state.loading=false;

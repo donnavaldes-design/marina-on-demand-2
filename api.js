@@ -465,6 +465,16 @@ function cleanMemoryValue(field, value) {
   return s.slice(0, 500);
 }
 
+function publicMemoryContext(memory) {
+  if (!memory) return memory;
+  const safe = {...memory};
+  if (safe.brand_brain && typeof safe.brand_brain === "object") {
+    safe.brand_brain = {...safe.brand_brain};
+    delete safe.brand_brain.private_about;
+  }
+  return safe;
+}
+
 function memorySnapshot(memory) {
   if (!memory) return {};
   const out = {};
@@ -1471,7 +1481,7 @@ async function runActionAgent(message, history, memory, attachments, workspaceCo
   if (!run?.id) throw new Error("ACTION_RUN_NOT_CREATED");
 
   const memoryText = memory
-    ? `\nCUSTOMER BUSINESS MEMORY:\n${JSON.stringify(memory)}`
+    ? `\nCUSTOMER BUSINESS MEMORY:\n${JSON.stringify(publicMemoryContext(memory))}`
     : "";
 
   const workspaceText = workspaceContext.length
@@ -2212,7 +2222,7 @@ async function askOpenAI(message, history, memory, attachments = [], experienceM
   const memoryText = memory
     ? `
 CUSTOMER BUSINESS MEMORY (use only when relevant; current user message wins):
-${JSON.stringify(memory)}`
+${JSON.stringify(publicMemoryContext(memory))}`
     : "";
 
   const attachmentContext = attachments.length
