@@ -1186,6 +1186,7 @@ async function openDailyBrief(){
     const loops=j.open_loops||{}, counts=loops.counts||{}, cal=j.calendar||{}, gmail=j.gmail||{}, b=j.bmod||{}, m=j.momentum||{};
     const schedules=scheduleData.schedules||[], generatedBriefs=scheduleData.briefs||[];
     const dailySchedule=schedules.find(s=>s.schedule_type==="daily_brief")||null;
+    const weeklySchedule=schedules.find(s=>s.schedule_type==="weekly_review")||null;
     const detectedTimeZone=Intl.DateTimeFormat().resolvedOptions().timeZone||"America/New_York";
     const events=cal.events||[], emails=gmail.unread||[], wins=m.recent_wins||[];
     const todayLabel=new Date(j.generated_at||Date.now()).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
@@ -1232,7 +1233,27 @@ async function openDailyBrief(){
           <button id="saveBriefSchedule">Save schedule</button>
         </div>
         <div class="briefScheduleMeta">Runs hourly behind the scenes and creates one brief per local day at the hour you choose.</div>
-        ${generatedBriefs.length?`<div class="briefHistory">${generatedBriefs.slice(0,3).map(x=>`<div class="briefHistoryItem"><strong>${esc(x.brief_type==="weekly_review"?"Weekly Review":"Daily Brief")} · ${esc(x.brief_date)}</strong><span>${esc(x.summary||"Generated in the background.")}</span></div>`).join("")}</div>`:""}
+
+        <div style="border-top:1px solid var(--line);margin:14px 0 12px;padding-top:12px">
+          <h3 style="font-size:17px">Weekly Review</h3>
+          <p>Have Marina build a deeper weekly business review automatically.</p>
+          <div class="briefScheduleRow">
+            <select id="weeklyScheduleEnabled">
+              <option value="true" ${weeklySchedule?.enabled!==false?"selected":""}>On</option>
+              <option value="false" ${weeklySchedule?.enabled===false?"selected":""}>Off</option>
+            </select>
+            <select id="weeklyScheduleDay">
+              ${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].map((d,i)=>`<option value="${i}" ${Number(weeklySchedule?.weekday??1)===i?"selected":""}>${d}</option>`).join("")}
+            </select>
+            <select id="weeklyScheduleHour">
+              ${Array.from({length:24},(_,h)=>`<option value="${h}" ${Number(weeklySchedule?.local_hour??8)===h?"selected":""}>${new Date(2000,0,1,h).toLocaleTimeString([], {hour:"numeric"})}</option>`).join("")}
+            </select>
+            <input id="weeklyScheduleTimezone" value="${esc(weeklySchedule?.timezone||dailySchedule?.timezone||detectedTimeZone)}" aria-label="Weekly review timezone">
+            <button id="saveWeeklySchedule">Save weekly review</button>
+          </div>
+        </div>
+
+        ${generatedBriefs.length?`<div class="briefHistory">${generatedBriefs.slice(0,5).map(x=>`<div class="briefHistoryItem"><strong>${esc(x.brief_type==="weekly_review"?"Weekly Review":"Daily Brief")} · ${esc(x.brief_date)}</strong><span>${esc(x.summary||"Generated in the background.")}</span></div>`).join("")}</div>`:""}
       </div>
 
       <div class="briefGrid">
@@ -1294,6 +1315,24 @@ async function openDailyBrief(){
       }catch(e){
         qs("#status").textContent=e.message;
         btn.disabled=false;btn.textContent="Save schedule";
+      }
+    };
+    qs("#saveWeeklySchedule").onclick=async()=>{
+      const btn=qs("#saveWeeklySchedule");
+      btn.disabled=true;btn.textContent="Saving…";
+      try{
+        await api("/api/agent-schedules",{method:"POST",body:JSON.stringify({
+          scheduleType:"weekly_review",
+          enabled:qs("#weeklyScheduleEnabled").value==="true",
+          weekday:Number(qs("#weeklyScheduleDay").value),
+          localHour:Number(qs("#weeklyScheduleHour").value),
+          timezone:qs("#weeklyScheduleTimezone").value.trim()
+        })});
+        qs("#status").textContent="Weekly Review schedule saved.";
+        await openDailyBrief();
+      }catch(e){
+        qs("#status").textContent=e.message;
+        btn.disabled=false;btn.textContent="Save weekly review";
       }
     };
   }catch(e){
