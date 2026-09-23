@@ -1,3 +1,4 @@
+const { IMAGE_TOOL, createImageService } = require("./images/service");
 const crypto = require("crypto");
 const MARINA_CORE = `
 You are Marina on Demand, the AI business coach built from Marina Simone's approved identity, methodologies, operating logic, and business frameworks.
@@ -1474,7 +1475,7 @@ async function refreshActionRunStatus(userId,runId){
 }
 
 
-async function runActionAgent(message, history, memory, attachments, workspaceContext, userId, conversationId, skillDefinition = null, coachingContext = null, mcpTools = [], nativeTools = []) {
+async function runActionAgent(message, history, memory, attachments, workspaceContext, userId, conversationId, skillDefinition = null, coachingContext = null, mcpTools = [], nativeTools = [], imageContext = {}) {
   const routed = routeMessage(message);
   const liveBrain = await getLiveBrainContext(routed.route);
   const run = await createActionRun(userId, conversationId, message);
@@ -1512,7 +1513,7 @@ Use this specialized operating method for this request. It is subordinate to Mar
 ${skillDefinition.operating_prompt}`
     : "";
 
-  const actionInstructions = `${liveCore}${MARINA_VOICE_LAYER}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}
+  const actionInstructions = `${liveCore}${IMAGE_RULES}${MARINA_VOICE_LAYER}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}
 
 ROUTED CANONICAL CONTEXT:
 ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext}
@@ -1572,7 +1573,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
         reasoning: { effort: "medium" },
         instructions: actionInstructions,
         input,
-        tools: [...ACTION_TOOLS, BMOD_READ_TOOL, GOOGLE_MANIFEST.tool, CANVA_MANIFEST.tool, WEB_SEARCH_TOOL, ...mcpTools],
+        tools: [IMAGE_TOOL, ...ACTION_TOOLS, BMOD_READ_TOOL, GOOGLE_MANIFEST.tool, CANVA_MANIFEST.tool, WEB_SEARCH_TOOL, ...mcpTools],
         tool_choice: "auto",
         include: ["web_search_call.action.sources"],
         parallel_tool_calls: false,
@@ -1597,6 +1598,11 @@ You are not merely planning. You are operating inside Marina's controlled execut
           args = {};
         }
 
+        if (call.name === "create_mod_image") {
+            const image = await MOD_IMAGES.start({userId,conversationId,attachments,args,...imageContext,usage:response.usage});
+            await finalizeActionRun(userId,run.id,image.answer,image.imageJob.status === 'failed');
+            return {...image,actionRun:await getActionRun(userId,run.id)};
+        }
         let result;
         try {
           if (call.name === "bmod_read") {
@@ -1639,7 +1645,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
           reasoning: { effort: "medium" },
           previous_response_id: response.id,
           input: outputs,
-          tools: [...ACTION_TOOLS, BMOD_READ_TOOL, GOOGLE_MANIFEST.tool, CANVA_MANIFEST.tool, WEB_SEARCH_TOOL, ...mcpTools],
+          tools: [IMAGE_TOOL, ...ACTION_TOOLS, BMOD_READ_TOOL, GOOGLE_MANIFEST.tool, CANVA_MANIFEST.tool, WEB_SEARCH_TOOL, ...mcpTools],
           tool_choice: "auto",
           include: ["web_search_call.action.sources"],
           parallel_tool_calls: false,
@@ -1970,6 +1976,7 @@ async function executeGoogleOperation(user,args,context={}){
   });
 }
 const CANVA_MANIFEST = require("./canva/manifest");
+const MOD_IMAGES = createImageService({sbRest,saveMessage,sign:createAttachmentSignedUrl,hydrate:hydrateAttachments,storageHeaders:supabaseHeaders});
 const CANVA = require("./canva/service").createService({sbRest,sbRpc,getSecret:getConnectionSecret,getRefreshSecret:getConnectionRefreshSecret,insertActionStep,nextActionStepOrder});
 const BMOD_MANIFEST = require("./bmod/manifest");
 const BMOD_ROUTER = require("./bmod/router");
@@ -2203,6 +2210,12 @@ async function buildNativeBusinessTools(userId) {
   return [...(googleRows.some(c=>c?.status==="connected")?[GOOGLE_MANIFEST.tool]:[]),...(bmod ? [BMOD_READ_TOOL] : []),...(canva?.status==="connected" ? [CANVA_MANIFEST.tool] : [])];
 }
 
+const IMAGE_RULES = `
+IMAGE CREATION:
+- When the user explicitly asks you to create or edit an actual image, use create_mod_image. It creates one image and returns a background job. Never claim the image is finished before the job completes.
+- For an edit, use uploads for newly attached reference images, otherwise latest for the existing image in this conversation. Include the full requested visual details and changes in the prompt.
+- Do not use this tool for analyzing images, writing image prompts, or Canva design requests. Image creation and edits cost separately from text chat.
+`;
 const CONNECTION_RULES = `
 CONNECTED BUSINESS TOOLS:
 - BMOD Tools uses Marina's native HighLevel API connection.
@@ -2216,7 +2229,7 @@ CONNECTED BUSINESS TOOLS:
 - Generic MCP connections remain READ-ONLY. Do not claim you changed, sent, published, deleted, or updated anything through a generic MCP connector.
 - Never claim an external write succeeded unless the tool returns a confirmed completion receipt.
 `;
-async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach", workspaceContext = [], skillDefinition = null, coachingContext = null, mcpTools = [], nativeTools = [], userId = null) {
+async function askOpenAI(message, history, memory, attachments = [], experienceMode = "coach", workspaceContext = [], skillDefinition = null, coachingContext = null, mcpTools = [], nativeTools = [], userId = null, conversationId = null, imageContext = {}) {
   const routed = routeMessage(message);
   const liveBrain = await getLiveBrainContext(routed.route);
   const memoryText = memory
@@ -2279,7 +2292,7 @@ Apply this specialized operating workflow when relevant. Do not expose internal 
 ${skillDefinition.operating_prompt}`
     : "";
 
-  const instructions = `${liveCore}${MARINA_VOICE_LAYER}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}${WEB_RESEARCH_RULES}${CONNECTION_RULES}
+  const instructions = `${liveCore}${IMAGE_RULES}${MARINA_VOICE_LAYER}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}${WEB_RESEARCH_RULES}${CONNECTION_RULES}
 
 ROUTED CANONICAL CONTEXT:
 ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext}${modeContext}`;
@@ -2320,7 +2333,7 @@ ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext
       reasoning: { effort: "medium" },
       instructions,
       input,
-      tools: [WEB_SEARCH_TOOL, ...mcpTools, ...nativeTools],
+      tools: [...(userId && conversationId ? [IMAGE_TOOL] : []), WEB_SEARCH_TOOL, ...mcpTools, ...nativeTools],
       tool_choice: shouldForceWebSearch(message) ? "required" : "auto",
       include: ["web_search_call.action.sources"],
       parallel_tool_calls:false,
@@ -2341,6 +2354,7 @@ ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext
     for (const call of calls) {
       let args = {};
       try { args = JSON.parse(call.arguments || "{}"); } catch {}
+      if (call.name === "create_mod_image" && userId && conversationId) return await MOD_IMAGES.start({userId,conversationId,attachments,args,...imageContext,usage:response.usage});
       let result;
       try {
         if (call.name === "bmod_read") result = await executeBmodRead(userId,args);
@@ -2368,7 +2382,7 @@ ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext
         reasoning:{effort:"medium"},
         previous_response_id:response.id,
         input:outputs,
-        tools:[WEB_SEARCH_TOOL,...mcpTools,...nativeTools],
+        tools:[...(userId && conversationId ? [IMAGE_TOOL] : []),WEB_SEARCH_TOOL,...mcpTools,...nativeTools],
         tool_choice:"auto",
         include:["web_search_call.action.sources"],
         parallel_tool_calls:false,
@@ -3435,7 +3449,7 @@ module.exports = async function handler(req, res) {
       if (!Array.isArray(conv) || !conv.length) return json(res, 404, { error: "Not found" });
 
       const rows = await sbRest(
-        `messages?conversation_id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,role,content,created_at,route,experience_mode,action_run_id,skill_key,web_sources&order=created_at.asc`
+        `messages?conversation_id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,role,content,created_at,route,experience_mode,action_run_id,skill_key,web_sources,usage&order=created_at.asc`
       );
 
       const attachmentRows = await sbRest(
@@ -3458,6 +3472,8 @@ module.exports = async function handler(req, res) {
 
       const messages = (rows || []).map(m => ({
         ...m,
+        imageJob: m.usage?.image_job || null,
+        usage: undefined,
         attachments: byMessage[m.id] || [],
         action_run: m.action_run_id ? (runMap[m.action_run_id] || null) : null,
       }));
@@ -3991,7 +4007,13 @@ async function executeApprovedBmodStep(userId,step){
       const rows = await sbRest(
         `workspace_items?user_id=eq.${encodeURIComponent(user.id)}${filter}&select=id,section,title,content,status,pinned,source_conversation_id,source_message_id,metadata,created_at,updated_at&order=pinned.desc,updated_at.desc`
       );
-      return json(res, 200, { items: Array.isArray(rows) ? rows : [] });
+      const items=await Promise.all((Array.isArray(rows)?rows:[]).map(async item=>{
+        if(item.metadata?.generated_image && MOD_IMAGES.safePath(user.id,item.metadata.storage_path)) {
+          try { return {...item,image_url:await createAttachmentSignedUrl(item.metadata.storage_path)}; } catch {}
+        }
+        return item;
+      }));
+      return json(res, 200, {items});
     }
 
     if (req.method === "POST" && path === "/api/workspace") {
@@ -4284,6 +4306,13 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
       }
     }
 
+    if (req.method === "GET" && path === "/api/images/status") {
+      return json(res,200,await MOD_IMAGES.status(user.id,url.searchParams.get("messageId") || ""));
+    }
+    if (req.method === "POST" && path === "/api/images/save") {
+      const body=await readBody(req);
+      return json(res,200,await MOD_IMAGES.save(user.id,String(body.messageId || "")));
+    }
     if (req.method === "POST" && path === "/api/chat") {
       if (!(await hasAccess(user.id, email))) return json(res, 403, { error: "Your Marina On Demand access is inactive." });
       const body = await readBody(req);
@@ -4378,8 +4407,8 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
       let ai;
       try {
         ai = experienceMode === "action"
-          ? await runActionAgent(message, history, memory, attachments, workspaceContext, user.id, conversationId, skillDefinition, coachingContext, mcpTools, nativeTools)
-          : await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext, skillDefinition, coachingContext, mcpTools, nativeTools, user.id);
+          ? await runActionAgent(message, history, memory, attachments, workspaceContext, user.id, conversationId, skillDefinition, coachingContext, mcpTools, nativeTools, {referenceMessageId:body.imageReferenceId || null})
+          : await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext, skillDefinition, coachingContext, mcpTools, nativeTools, user.id, conversationId, {referenceMessageId:body.imageReferenceId || null});
         if (skillRun?.id) await finishSkillRun(user.id, skillRun.id, ai.answer, false);
       } catch (e) {
         if (skillRun?.id) await finishSkillRun(user.id, skillRun.id, e instanceof Error ? e.message : String(e), true);
@@ -4390,7 +4419,7 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
         ? JSON.parse(JSON.stringify(ai.usage))
         : null;
 
-      const assistantMessage = await saveMessage(user.id, conversationId, "assistant", ai.answer, {
+      const assistantMessage = ai.assistantMessageId ? {id:ai.assistantMessageId} : await saveMessage(user.id, conversationId, "assistant", ai.answer, {
         model: ai.model,
         response_id: ai.responseId,
         usage: safeUsage,
@@ -4401,14 +4430,14 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
         web_sources: Array.isArray(ai.webSources) ? ai.webSources : [],
       });
 
-      await applyMemoryChanges(
+      if (!ai.imageJob) await applyMemoryChanges(
         user.id,
         conversationId,
         message,
         ai.answer,
         memory
       );
-      await applyMomentumSignals(
+      if (!ai.imageJob) await applyMomentumSignals(
         user.id,
         conversationId,
         userMessage.id,
@@ -4427,6 +4456,7 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
         route: ai.route,
         mode: experienceMode,
         messageId: assistantMessage.id,
+        imageJob: ai.imageJob || null,
         actionRun: ai.actionRun || null,
         webSources: Array.isArray(ai.webSources) ? ai.webSources : [],
         skillKey: skillDefinition?.skill_key || null,

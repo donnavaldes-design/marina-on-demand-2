@@ -169,6 +169,7 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
 
 .modWelcome{display:grid;grid-template-columns:minmax(180px,30%) minmax(0,1fr);align-items:stretch;gap:22px}.modWelcomePortrait{width:100%;height:100%;min-height:300px;max-height:480px;object-fit:cover;object-position:50% 35%;border-radius:24px;border:0;background:var(--rose-soft)}
 @media(max-width:640px){.modWelcome{grid-template-columns:1fr}.modWelcomePortrait{width:100%;height:280px;min-height:0;max-height:none;object-position:50% 30%;border-radius:20px}.modWelcomeBubble{width:100%}}
+.modImageTools{margin-top:14px}.modImageTools .imageActions{display:flex;gap:8px;flex-wrap:wrap}.modImageTools small{display:block;margin-top:9px;color:var(--muted)}.bubble:has(.modImageTools) .attachmentCard{max-width:100%;width:100%}.bubble:has(.modImageTools) .attachmentCard img,.savedModImage{display:block;width:100%;height:auto;max-height:540px;object-fit:contain;border-radius:12px}.savedModImage{margin-bottom:12px}.workspacePreview:has(.savedModImage){max-height:none}
 </style>
 </head>
 <body>
@@ -358,7 +359,7 @@ async function applyAuthSession(session){
   qs("#login").style.display="none"; qs("#app").style.display="grid";
   qs("#userEmail").textContent=session.user.email || "";
   if(authViewUserId===session.user.id)return;
-  if(authViewUserId&&authViewUserId!==session.user.id){state.savedChat=null;state.messages=[];state.conversationId="";state.pendingFiles=[];state.businessDirty=false;state.page=null;if(qs("#input"))qs("#input").value="";}
+  if(authViewUserId&&authViewUserId!==session.user.id){state.savedChat=null;state.messages=[];state.imageReferenceId=null;state.conversationId="";state.pendingFiles=[];state.businessDirty=false;state.page=null;if(qs("#input"))qs("#input").value="";}
   authViewUserId=session.user.id;
   const generation=++authViewGeneration;
   await loadConversations();
@@ -406,7 +407,7 @@ qs("#closeSidebar").addEventListener("click",closeSidebar);
 qs("#mobileOverlay").addEventListener("click",closeSidebar);
 qs("#homeBtn").addEventListener("click",async()=>{if(state.loading)return;state.workspaceSection=null;workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();await renderDashboard()});
 qs("#newChat").addEventListener("click",()=>{if(state.loading)return;state.workspaceSection=null;if(state.savedChat){Object.assign(state,state.savedChat);state.savedChat=null;}renderPending();setMode(state.mode);renderWelcome();renderThreads()});
-qs("#startNewChat").addEventListener("click",()=>{if(state.loading)return;if(qs("#input").value&&!confirm("Discard your unsent draft and start a new chat?"))return;state.savedChat=null;state.messages=[];state.conversationId="";state.pendingFiles=[];state.selectedSkill=null;qs("#input").value="";setMode("coach");renderPending();renderWelcome();renderThreads();});
+qs("#startNewChat").addEventListener("click",()=>{if(state.loading)return;if(qs("#input").value&&!confirm("Discard your unsent draft and start a new chat?"))return;state.savedChat=null;state.messages=[];state.imageReferenceId=null;state.conversationId="";state.pendingFiles=[];state.selectedSkill=null;qs("#input").value="";setMode("coach");renderPending();renderWelcome();renderThreads();});
 qs("#memoryBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
   closeSidebarIfMobile();
@@ -469,7 +470,7 @@ async function openWorkspace(section){
   closeSidebarIfMobile();
   state.workspaceSection=section;
   state.conversationId="";
-  state.messages=[];
+  state.messages=[];state.imageReferenceId=null;
   renderThreads();
   workspaceNav.querySelectorAll("[data-workspace]").forEach(b=>b.classList.toggle("active",b.dataset.workspace===section));
   await renderWorkspace(section);
@@ -488,7 +489,7 @@ async function renderWorkspace(section){
             <div class="workspaceItemHead">
               <div><h3 class="workspaceItemTitle">${esc(item.title)}</h3><div class="workspaceMeta">${item.pinned?"Pinned · ":""}Updated ${esc(formatDate(item.updated_at))}</div></div>
             </div>
-            <div class="workspacePreview markdown">${renderMarkdown(item.content)}</div>
+            <div class="workspacePreview markdown">${item.image_url?`<img class="savedModImage" src="${esc(item.image_url)}" alt="${esc(item.title)}">`:""}${renderMarkdown(item.content)}</div>
             <div class="workspaceActions">
               <button data-expand>Open / Close</button>
               <button data-pin="${item.pinned?"0":"1"}">${item.pinned?"Unpin":"Pin"}</button>
@@ -509,6 +510,8 @@ async function renderWorkspace(section){
         await renderWorkspace(section);
       };
       card.querySelector("[data-work]").onclick=()=>{
+        const item=items.find(x=>x.id===id);
+        if(item?.metadata?.generated_image&&item.source_conversation_id)return selectConversation(item.source_conversation_id);
         const title=card.querySelector("[data-work]").dataset.work;
         state.workspaceSection=null;resetWorkspace("create");
         send(`Work on my saved ${workspaceLabel(section)} asset called "${title}". Help me improve, extend, or execute it using the rest of my business context.`,"create");
@@ -695,7 +698,7 @@ function addBusinessLinkRow(link={}){
 
 async function openMemoryPanel(){
   setPage("business");
-  state.messages=[];
+  state.messages=[];state.imageReferenceId=null;
   state.conversationId="";
   qs("#status").textContent="";
   qs("#messages").innerHTML=`
@@ -1030,7 +1033,7 @@ async function api(url, options={}){
 
 function modeLabel(mode){return mode==="action"?"Action Mode ⚡":"Chat with MOD"}
 function routeLabel(route){
-  return ({framework:"MOD Method Library",identity:"Identity Mode",product:"Product Fit Logic",current:"Current Data Guardrail",operator:"Operator Mode"})[route]||"MOD Strategy";
+  return ({image_generation:"MOD Image Studio",framework:"MOD Method Library",identity:"Identity Mode",product:"Product Fit Logic",current:"Current Data Guardrail",operator:"Operator Mode"})[route]||"MOD Strategy";
 }
 function setMode(mode){
   state.mode=["coach","create","action"].includes(mode)?mode:"coach";
@@ -1039,7 +1042,7 @@ function setMode(mode){
 }
 function resetWorkspace(mode="coach"){
   setPage("chat");
-  state.conversationId="";state.messages=[];state.pendingFiles=[];setMode(mode);renderPending();renderThreads();
+  state.conversationId="";state.messages=[];state.imageReferenceId=null;state.pendingFiles=[];setMode(mode);renderPending();renderThreads();
 }
 
 function niceMetric(n){
@@ -1191,7 +1194,7 @@ async function verifyCanva(button){button.disabled=true;const result=button.clos
 
 async function openConnectionsPage(){
   setPage("settings");
-  state.messages=[];state.conversationId="";renderThreads();
+  state.messages=[];state.imageReferenceId=null;state.conversationId="";renderThreads();
   qs("#messages").innerHTML=`<div class="connectionsPage"><div class="eyebrow">Connected Apps</div><h2>Connect your apps.</h2><p>Connect trusted MCP servers so MOD can work from live business data instead of screenshots.</p><div class="workspaceEmpty">Loading connections...</div></div>`;
   try{
     const j=await api("/api/connections");
@@ -1245,7 +1248,7 @@ document.addEventListener("click",event=>{
 },true);
 window.addEventListener("beforeunload",event=>{if(state.businessDirty||qs("#input")?.value){event.preventDefault();event.returnValue="";}});
 function setPage(page){
-  if(state.page==="chat"&&page!=="chat")state.savedChat={messages:state.messages,conversationId:state.conversationId,pendingFiles:state.pendingFiles,mode:state.mode,selectedSkill:state.selectedSkill};
+  if(state.page==="chat"&&page!=="chat")state.savedChat={messages:state.messages,conversationId:state.conversationId,pendingFiles:state.pendingFiles,mode:state.mode,selectedSkill:state.selectedSkill,imageReferenceId:state.imageReferenceId};
   if(page==="chat"&&state.page!=="chat")state.savedChat=null;
   state.page=page;document.body.dataset.page=page;
   const ids={home:"homeBtn",chat:"newChat",business:"memoryBtn",settings:"connectionsBtn"};
@@ -1259,7 +1262,7 @@ function mountSettings(active){
   root.querySelectorAll("[data-settings]").forEach(button=>button.onclick=()=>{if(state.loading)return;const key=button.dataset.settings;if(key==="apps")openConnectionsPage();else if(key==="instructions")openSkillsPage();else openScheduleSettings();});
 }
 async function openScheduleSettings(){
-  setPage("settings");state.messages=[];state.conversationId="";renderThreads();
+  setPage("settings");state.messages=[];state.imageReferenceId=null;state.conversationId="";renderThreads();
   qs("#messages").innerHTML='<div class="workspaceEmpty">Loading your schedule...</div>';
   try{
     const scheduleData=await api("/api/agent-schedules");
@@ -1365,7 +1368,7 @@ function renderModGreeting(brief,data){
 
 async function openDailyBrief(options={}){
   setPage("home");
-  state.messages=[];state.conversationId="";renderThreads();
+  state.messages=[];state.imageReferenceId=null;state.conversationId="";renderThreads();
   qs("#messages").innerHTML=`<div class="dailyBriefPage"><div class="eyebrow">Home</div><h2>Let’s get those tabs out of your head.</h2><p>One moment while I pull your day together.</p><div class="workspaceEmpty" role="status">MOD is getting your brief ready…</div></div>`;
   try{
     const [j,memoryData]=await Promise.all([api("/api/daily-brief"),api("/api/memory").catch(()=>({}))]);
@@ -1507,7 +1510,7 @@ function isCustomSkill(skill){return !!skill?.owner_user_id || skill?.metadata?.
 
 async function openSkillsPage(){
   setPage("settings");
-  state.messages=[];
+  state.messages=[];state.imageReferenceId=null;
   state.conversationId="";
   renderThreads();
   await loadSkills();
@@ -1861,7 +1864,7 @@ function openChatMenu(e,id){
       await api(`/api/conversations/${encodeURIComponent(id)}`,{method:"DELETE"});
       if(state.conversationId===id){
         state.conversationId="";
-        state.messages=[];
+        state.messages=[];state.imageReferenceId=null;
         state.selectedSkill=null;
         renderWelcome();
       }
@@ -1878,6 +1881,7 @@ document.addEventListener("click",e=>{
 });
 
 async function selectConversation(id){
+  state.imageReferenceId=null;
   setPage("chat");
   state.workspaceSection=null;workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
   closeSidebarIfMobile();
@@ -1898,6 +1902,7 @@ function renderWelcome(){
     <p>Bring me the messy caption, the vague offer, the dead DMs, the Reel that got views but no buyers, or tell me what you want researched on the live web.</p>
     <div class="quick">
       ${[
+        "Create an image for my next social post",
         "Rewrite my profile like a Lead Slayer",
         "Create my Seven Layers Deep DM flow",
         "Turn my story into a weekly live",
@@ -1979,6 +1984,60 @@ function renderWebSources(sources){
   return `<div class="webSources"><div class="webSourcesLabel">Web research sources</div><div class="webSourceLinks">${list.map(s=>`<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">↗ ${esc(s.title||s.url)}</a>`).join("")}</div></div>`;
 }
 
+
+function renderImageJob(m){
+  const status=m.imageJob.status;
+  return `<div class="modImageTools" data-image-message="${esc(m.id)}"><div class="imageActions">${status==='completed'
+    ? '<button class="primary" data-image-save>Save to My Assets</button><button class="secondary" data-image-download>Download image</button><button class="secondary" data-image-edit>Edit this image</button>'
+    : status==='pending'?'<button class="secondary" data-image-check>Check status</button>':''}</div><small data-image-status aria-live="polite">${status==='pending'?'Creating one image. You can return to this chat later.':status==='starting'?'This request was interrupted. Check this conversation before asking for another image.':status==='completed'?'Want a change? Tap Edit this image and tell MOD.':'No image was created. You can revise your request.'}</small></div>`;
+}
+function wireImageJobs(){
+  qs('#messages').querySelectorAll('[data-image-message]').forEach(root=>{
+    const m=state.messages.find(x=>x.id===root.dataset.imageMessage);
+    if(!m)return;
+    clearTimeout(m.imagePollTimer);
+    const notice=root.querySelector('[data-image-status]');
+    const active=()=>state.page==='chat'&&state.messages.includes(m)&&document.contains(root);
+    const schedule=()=>{m.imagePollTimer=setTimeout(()=>{if(active())update();},5000);};
+    const update=async()=>{
+      clearTimeout(m.imagePollTimer);
+      const button=root.querySelector('[data-image-check]');if(button)button.disabled=true;
+      try{
+        const result=await api('/api/images/status?messageId='+encodeURIComponent(m.id));
+        Object.assign(m,result);
+        if(!active())return;
+        if(m.imageJob.status==='pending'){notice.textContent='Still creating your image. Checking again shortly…';schedule();}
+        else renderMessages();
+      }catch(e){if(active())notice.textContent='Could not check your image. Tap Check status to resume. This will not create another image.';}
+      finally{if(button)button.disabled=false;}
+    };
+    const check=root.querySelector('[data-image-check]');if(check)check.onclick=update;
+    if(m.imageJob.status==='pending')schedule();
+    const save=root.querySelector('[data-image-save]');
+    if(save)save.onclick=async()=>{
+      save.disabled=true;
+      try{await api('/api/images/save',{method:'POST',body:JSON.stringify({messageId:m.id})});save.textContent='Saved ✓';notice.textContent='Saved in My Business → My Assets.';}
+      catch(e){notice.textContent=e.message;save.disabled=false;}
+    };
+    const download=root.querySelector('[data-image-download]');
+    if(download)download.onclick=async()=>{
+      download.disabled=true;
+      try{
+        const result=await api('/api/images/status?messageId='+encodeURIComponent(m.id));
+        const url=result.attachments?.[0]?.signed_url;if(!url)throw new Error('Image unavailable. Please reopen this chat.');
+        const r=await fetch(url);if(!r.ok)throw new Error('Download failed. Please try again.');
+        const local=URL.createObjectURL(await r.blob());const a=document.createElement('a');a.href=local;a.download='MOD-image.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(local),60000);
+      }catch(e){notice.textContent=e.message;}
+      finally{download.disabled=false;}
+    };
+    const edit=root.querySelector('[data-image-edit]');
+    if(edit)edit.onclick=()=>{
+      if(state.loading)return;
+      state.imageReferenceId=m.id;qs('#input').value='Edit this image: ';qs('#input').focus();qs('#status').textContent='Tell MOD what to change. Sending creates one edited image.';
+    };
+  });
+}
+
 function renderMessages(){
   setPage("chat");
   if(!state.messages.length){renderWelcome();return}
@@ -1996,12 +2055,12 @@ function renderMessages(){
       ? `<div class="markdown">${renderMarkdown(m.content)}</div>`
       : `<div>${esc(m.content)}</div>`;
     const receipt=m.role==="assistant"?`<div class="receipt"><span>${esc(modeLabel(m.experience_mode||state.mode))}</span><span>${esc(routeLabel(m.route))}</span></div>`:"";
-    const feedback=m.role==="assistant"&&m.id?`<div class="feedback" data-feedback-for="${esc(m.id)}"><button data-copy-message="${esc(m.id)}" title="Copy response">📋 Copy</button><button data-rating="1" title="Helpful">👍</button><button data-rating="-1" title="Needs improvement">👎</button><button class="saveWorkspaceBtn" data-save-workspace="${esc(m.id)}">☆ Save to Workspace</button></div>`:"";
+    const feedback=m.role==="assistant"&&m.id?`<div class="feedback" data-feedback-for="${esc(m.id)}"><button data-copy-message="${esc(m.id)}" title="Copy response">📋 Copy</button><button data-rating="1" title="Helpful">👍</button><button data-rating="-1" title="Needs improvement">👎</button>${m.imageJob?"":`<button class="saveWorkspaceBtn" data-save-workspace="${esc(m.id)}">☆ Save to Workspace</button>`}</div>`:"";
     const actionRun=m.role==="assistant"&&m.action_run?renderActionRun(m.action_run):"";
     const webSources=m.role==="assistant"?renderWebSources(m.web_sources||m.webSources||[]):"";
     return `<div class="msg ${m.role}">
       <div class="avatar">${m.role==="assistant"?"M":"YOU"}</div>
-      <div class="bubble">${body}${atts?`<div class="attachmentList">${atts}</div>`:""}${webSources}${actionRun}${receipt}${feedback}</div>
+      <div class="bubble">${body}${m.imageJob?renderImageJob(m):""}${atts?`<div class="attachmentList">${atts}</div>`:""}${webSources}${actionRun}${receipt}${feedback}</div>
     </div>`;
   }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Working...</div></div>`:"");
   wireModeBar();
@@ -2045,6 +2104,7 @@ function renderMessages(){
   });
   qs("#messages").querySelectorAll("[data-save-workspace]").forEach(btn=>btn.onclick=()=>openSaveModal(btn.dataset.saveWorkspace));
   wireActionRuns();
+  wireImageJobs();
   qs("#messages").scrollTop=qs("#messages").scrollHeight;
 }
 async function send(prefill, forcedMode, forcedSkillKey){
@@ -2085,15 +2145,17 @@ async function send(prefill, forcedMode, forcedSkillKey){
         message:value,
         conversationId:state.conversationId||undefined,
         attachments,
+        imageReferenceId:state.imageReferenceId||null,
         mode:state.mode,
         skillKey:activeSkillKey
       })
     });
 
+    state.imageReferenceId=null;
     state.conversationId=j.conversationId;
     if(j.mode==="action")setMode("action");
     if(j.skillKey){state.selectedSkill=state.skills.find(s=>s.skill_key===j.skillKey)||state.selectedSkill}
-    state.messages.push({id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null,skill_key:j.skillKey||null,web_sources:j.webSources||[]});
+    state.messages.push({imageJob:j.imageJob||null,id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null,skill_key:j.skillKey||null,web_sources:j.webSources||[]});
     await loadConversations();
     qs("#status").textContent="";
   }catch(e){
