@@ -1,0 +1,12 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const vm=require('node:vm');const fs=require('node:fs');
+const source=fs.readFileSync(require('node:path').join(__dirname,'../api.js'),'utf8');
+function setup(userRows=[],emailRows=[]){
+ const ctx=vm.createContext({process:{env:{PROTOTYPE_ALLOW_ALL_AUTHENTICATED:'true',ALLOWED_TEST_EMAILS:'owner@example.com'}},isControlRoomAdmin:email=>email==='owner@example.com',sbRest:async path=>path.startsWith('entitlements?')?userRows:emailRows});
+ vm.runInContext(source.slice(source.indexOf('async function hasAccess('),source.indexOf('\nasync function createConversation(')),ctx);return ctx;
+}
+test('active direct MOD and BMOD subscriptions grant access without an email allowlist',async()=>{for(const source of ['direct','bmod','monthly','annual'])assert.equal(await setup([],[{source,active:true}]).hasAccess('user','member@example.com'),true);});
+test('inactive, missing, expired and invalid subscriptions deny despite prototype environment bypass',async()=>{for(const rows of [[],[{source:'bmod',active:false}],[{source:'direct',active:true,renewal_or_expiry:'2020-01-01'}],[{source:'direct',active:true,renewal_or_expiry:'invalid'}],[{source:'prototype',active:true}]])assert.equal(await setup([],rows).hasAccess('user','member@example.com'),false);});
+test('current webhook revocation overrides stale user grant for the same source',async()=>{assert.equal(await setup([{source:'bmod',active:true}],[{source:'bmod',active:false}]).hasAccess('user','member@example.com'),false);});
+test('one active product still grants access when the other is cancelled',async()=>{assert.equal(await setup([],[{source:'bmod',active:false},{source:'direct',active:true}]).hasAccess('user','member@example.com'),true);});
+test('owner retains management access and an unknown email fails closed',async()=>{assert.equal(await setup().hasAccess('owner','owner@example.com'),true);assert.equal(await setup().hasAccess('unknown',''),false);});
+test('all authenticated app routes have a subscription gate before connections, images and chat',()=>{const gate=source.indexOf('code:"ACCESS_INACTIVE"');assert.ok(gate>source.indexOf('await verifyUser(req)'));for(const route of ['const googleRoute=','path === "/api/images/status"','path === "/api/chat"'])assert.ok(gate<source.indexOf(route));const verify=source.slice(source.indexOf('async function verifyUser('),source.indexOf('\nasync function sbRest('));assert.doesNotMatch(verify,/ALLOWED_TEST_EMAILS|NOT_ALLOWED/);});

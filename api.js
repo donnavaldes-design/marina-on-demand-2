@@ -229,7 +229,7 @@ const BENCHMARK_TESTS = [
 function benchmarkAdminAllowed(email) {
   const allowed = String(process.env.ALLOWED_TEST_EMAILS || "")
     .split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
-  if (!allowed.length) return true; // private prototype fallback
+  if (!allowed.length) return isControlRoomAdmin(email);
   return allowed.includes(String(email || "").toLowerCase());
 }
 
@@ -282,9 +282,6 @@ async function verifyUser(req) {
   if (!r.ok) throw new Error("UNAUTHORIZED");
   const user = await r.json();
   const email = String(user.email || "").toLowerCase();
-  const allowed = String(process.env.ALLOWED_TEST_EMAILS || "")
-    .split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
-  if (allowed.length && !allowed.includes(email)) throw new Error("NOT_ALLOWED");
   return { user, token, email };
 }
 
@@ -361,36 +358,23 @@ async function hydrateAttachments(rows) {
 }
 
 async function hasAccess(userId, email) {
-  if (String(process.env.PROTOTYPE_ALLOW_ALL_AUTHENTICATED).toLowerCase() === "true") return true;
-
-  const now = new Date();
-
-  const directRows = await sbRest(
-    `entitlements?user_id=eq.${encodeURIComponent(userId)}&select=active,renewal_or_expiry,source`
-  );
-
-  for (const item of Array.isArray(directRows) ? directRows : []) {
-    if (!item?.active) continue;
-    if (!item.renewal_or_expiry || new Date(item.renewal_or_expiry) >= now) {
-      return true;
-    }
-  }
-
+  // The owner retains management access; subscribers must have a current grant.
+  if (isControlRoomAdmin(email)) return true;
   const normalizedEmail = String(email || "").trim().toLowerCase();
   if (!normalizedEmail) return false;
-
-  const emailRows = await sbRest(
-    `entitlement_email_state?email=eq.${encodeURIComponent(normalizedEmail)}&select=active,renewal_or_expiry,source`
+  const [userRows,emailRows] = await Promise.all([
+    sbRest(`entitlements?user_id=eq.${encodeURIComponent(userId)}&select=active,renewal_or_expiry,source`),
+    sbRest(`entitlement_email_state?email=eq.${encodeURIComponent(normalizedEmail)}&select=active,renewal_or_expiry,source`)
+  ]);
+  const bySource = new Map();
+  for (const row of Array.isArray(userRows) ? userRows : []) bySource.set(row.source,row);
+  // Webhook email state is authoritative, including revocations after signup.
+  for (const row of Array.isArray(emailRows) ? emailRows : []) bySource.set(row.source,row);
+  const now = new Date();
+  return [...bySource.values()].some(row =>
+    ["direct","bmod","monthly","annual"].includes(row.source) && row.active === true &&
+    (!row.renewal_or_expiry || new Date(row.renewal_or_expiry) >= now)
   );
-
-  for (const item of Array.isArray(emailRows) ? emailRows : []) {
-    if (!item?.active) continue;
-    if (!item.renewal_or_expiry || new Date(item.renewal_or_expiry) >= now) {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 async function createConversation(userId, title) {
@@ -2983,6 +2967,10 @@ module.exports = async function handler(req, res) {
       return json(res, 200, { admin: isControlRoomAdmin(email) });
     }
 
+    if (!(await hasAccess(user.id,email))) {
+      return json(res,403,{error:"We could not verify active BMOD or MOD access for this email. Sign in with your membership email or contact support.",code:"ACCESS_INACTIVE"});
+    }
+
     const googleRoute=path.match(/^\/api\/connections\/(gmail|google_calendar|google_drive)\/(permissions|verify)$/);
     if(googleRoute&&req.method==='PATCH'&&googleRoute[2]==='permissions'){
       const body=await readBody(req);if(!['view_only','view_and_take_action'].includes(body.permissionMode))return json(res,400,{error:'Invalid permission mode.'});
@@ -3624,20 +3612,17 @@ async function executeApprovedBmodStep(userId,step){
 
 
     if (req.method === "GET" && path === "/api/skills") {
-      if (!(await hasAccess(user.id, email))) return json(res, 403, { error: "Your Marina On Demand access is inactive." });
       const skills = await listUserSkills(user.id);
       return json(res, 200, { skills });
     }
 
     if (req.method === "POST" && path === "/api/skills/build-preview") {
-      if (!(await hasAccess(user.id, email))) return json(res, 403, { error: "Your Marina On Demand access is inactive." });
       const body = await readBody(req);
       const skill = await buildCustomSkillPreview(user.id, body || {});
       return json(res, 200, { skill });
     }
 
     if (req.method === "POST" && path === "/api/skills/custom") {
-      if (!(await hasAccess(user.id, email))) return json(res, 403, { error: "Your Marina On Demand access is inactive." });
       const body = await readBody(req);
       const skill = cleanSkillObject(body?.skill || {});
       if (!skill.operating_prompt) return json(res,400,{error:"Skill instructions are required."});
@@ -4314,7 +4299,6 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
       return json(res,200,await MOD_IMAGES.save(user.id,String(body.messageId || "")));
     }
     if (req.method === "POST" && path === "/api/chat") {
-      if (!(await hasAccess(user.id, email))) return json(res, 403, { error: "Your Marina On Demand access is inactive." });
       const body = await readBody(req);
       const message = String(body.message || "").trim();
       const attachments = Array.isArray(body.attachments) ? body.attachments.slice(0, 5) : [];
