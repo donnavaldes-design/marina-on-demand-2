@@ -1290,7 +1290,8 @@ async function runDueAgentSchedules(now=new Date()){
   for(const s of Array.isArray(schedules)?schedules:[]){
     const tz=safeTimeZone(s.timezone);if(!tz)continue;
     const local=zonedParts(now,tz);
-    if(local.hour!==Number(s.local_hour))continue;
+    // Hobby runs one shared daily batch at 12:00 UTC. Legacy hour preferences
+    // remain stored for a future upgrade but must not skip users in this batch.
     if(s.schedule_type==="weekly_review"&&Number(s.weekday)!==local.weekday)continue;
     const runKey=`${s.user_id}:${s.schedule_type}:${local.date}`;
     const existing=await sbRest(`agent_briefs?run_key=eq.${encodeURIComponent(runKey)}&select=id&limit=1`);

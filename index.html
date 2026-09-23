@@ -1213,33 +1213,27 @@ async function openDailyBrief(options={}){
       ${renderBriefLoops(loops,options.expandLoops===true)}
       <div class="briefSchedule">
         <h3>Scheduled Marina</h3>
-        <p>Have Marina build a fresh in-app Daily Brief automatically each morning. This creates the brief in the background; it does not send email or push notifications yet.</p>
+        <p>Have Marina build a fresh in-app Daily Brief in the daily background batch. Opening this page still refreshes your live data. Background briefs do not send email or push notifications.</p>
         <div class="briefScheduleRow">
           <select id="briefScheduleEnabled">
-            <option value="true" ${dailySchedule?.enabled!==false?"selected":""}>On</option>
-            <option value="false" ${dailySchedule?.enabled===false?"selected":""}>Off</option>
-          </select>
-          <select id="briefScheduleHour">
-            ${Array.from({length:24},(_,h)=>`<option value="${h}" ${Number(dailySchedule?.local_hour??8)===h?"selected":""}>${new Date(2000,0,1,h).toLocaleTimeString([], {hour:"numeric"})}</option>`).join("")}
+            <option value="true" ${dailySchedule?.enabled===true?"selected":""}>On</option>
+            <option value="false" ${dailySchedule?.enabled!==true?"selected":""}>Off</option>
           </select>
           <input id="briefScheduleTimezone" value="${esc(dailySchedule?.timezone||detectedTimeZone)}" aria-label="Timezone">
           <button id="saveBriefSchedule">Save schedule</button>
         </div>
-        <div class="briefScheduleMeta">Runs hourly behind the scenes and creates one brief per local day at the hour you choose.</div>
+        <div class="briefScheduleMeta">Background briefs run once daily between 12:00 and 13:00 UTC, approximately 8–9 a.m. Eastern in summer or 7–8 a.m. in winter. Your timezone determines the brief date and weekly review day. Custom delivery hours are unavailable on the current plan.</div>
 
         <div style="border-top:1px solid var(--line);margin:14px 0 12px;padding-top:12px">
           <h3 style="font-size:17px">Weekly Review</h3>
-          <p>Have Marina build a deeper weekly business review automatically.</p>
+          <p>Create a deeper review during the daily batch on your selected weekday.</p>
           <div class="briefScheduleRow">
             <select id="weeklyScheduleEnabled">
-              <option value="true" ${weeklySchedule?.enabled!==false?"selected":""}>On</option>
-              <option value="false" ${weeklySchedule?.enabled===false?"selected":""}>Off</option>
+              <option value="true" ${weeklySchedule?.enabled===true?"selected":""}>On</option>
+              <option value="false" ${weeklySchedule?.enabled!==true?"selected":""}>Off</option>
             </select>
             <select id="weeklyScheduleDay">
               ${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].map((d,i)=>`<option value="${i}" ${Number(weeklySchedule?.weekday??1)===i?"selected":""}>${d}</option>`).join("")}
-            </select>
-            <select id="weeklyScheduleHour">
-              ${Array.from({length:24},(_,h)=>`<option value="${h}" ${Number(weeklySchedule?.local_hour??8)===h?"selected":""}>${new Date(2000,0,1,h).toLocaleTimeString([], {hour:"numeric"})}</option>`).join("")}
             </select>
             <input id="weeklyScheduleTimezone" value="${esc(weeklySchedule?.timezone||dailySchedule?.timezone||detectedTimeZone)}" aria-label="Weekly review timezone">
             <button id="saveWeeklySchedule">Save weekly review</button>
@@ -1296,7 +1290,7 @@ async function openDailyBrief(options={}){
         await api("/api/agent-schedules",{method:"POST",body:JSON.stringify({
           scheduleType:"daily_brief",
           enabled:qs("#briefScheduleEnabled").value==="true",
-          localHour:Number(qs("#briefScheduleHour").value),
+          localHour:Number(dailySchedule?.local_hour??8),
           timezone:qs("#briefScheduleTimezone").value.trim()
         })});
         qs("#status").textContent="Daily Brief schedule saved.";
@@ -1314,7 +1308,7 @@ async function openDailyBrief(options={}){
           scheduleType:"weekly_review",
           enabled:qs("#weeklyScheduleEnabled").value==="true",
           weekday:Number(qs("#weeklyScheduleDay").value),
-          localHour:Number(qs("#weeklyScheduleHour").value),
+          localHour:Number(weeklySchedule?.local_hour??8),
           timezone:qs("#weeklyScheduleTimezone").value.trim()
         })});
         qs("#status").textContent="Weekly Review schedule saved.";

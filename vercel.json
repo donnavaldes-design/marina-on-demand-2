@@ -23,7 +23,7 @@
   "crons": [
     {
       "path": "/api/cron/scheduled-marina",
-      "schedule": "0 * * * *"
+      "schedule": "0 12 * * *"
     }
   ]
 }
