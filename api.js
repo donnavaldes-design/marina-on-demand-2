@@ -1241,6 +1241,82 @@ async function getOpenLoopsSummary(userId){
   };
 }
 
+function safeTimeZone(value){
+  const tz=String(value||"").trim();
+  try{new Intl.DateTimeFormat("en-US",{timeZone:tz}).format(new Date());return tz;}catch{return null}
+}
+function zonedParts(date,timeZone){
+  const parts=new Intl.DateTimeFormat("en-US",{
+    timeZone,
+    year:"numeric",month:"2-digit",day:"2-digit",
+    weekday:"short",hour:"2-digit",hour12:false
+  }).formatToParts(date);
+  const get=t=>parts.find(p=>p.type===t)?.value||"";
+  const weekdayMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+  return {
+    date:`${get("year")}-${get("month")}-${get("day")}`,
+    hour:Number(get("hour")),
+    weekday:weekdayMap[get("weekday")]
+  };
+}
+async function summarizeScheduledBrief(snapshot,type){
+  try{
+    const response=await fetch("https://api.openai.com/v1/responses",{
+      method:"POST",
+      headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,"content-type":"application/json"},
+      body:JSON.stringify({
+        model:process.env.OPENAI_MODEL||"gpt-5.6-terra",
+        reasoning:{effort:"low"},
+        instructions:`Write a concise Marina On Demand ${type==="weekly_review"?"weekly review":"daily brief"} from the supplied factual snapshot. Sound conversational, warm, sharp, and useful. Do not invent data. Prioritize what needs attention, what matters most, and one next move. Use 1-2 natural emojis if appropriate. No more than 350 words.`,
+        input:[{role:"user",content:JSON.stringify(snapshot)}]
+      })
+    });
+    const data=await response.json();
+    if(!response.ok)return null;
+    return parseOpenAIText(data)||null;
+  }catch{return null}
+}
+async function runDueAgentSchedules(now=new Date()){
+  const schedules=await sbRest("agent_schedules?enabled=eq.true&select=id,user_id,schedule_type,timezone,local_hour,weekday,last_run_at");
+  const results=[];
+  for(const s of Array.isArray(schedules)?schedules:[]){
+    const tz=safeTimeZone(s.timezone);if(!tz)continue;
+    const local=zonedParts(now,tz);
+    if(local.hour!==Number(s.local_hour))continue;
+    if(s.schedule_type==="weekly_review"&&Number(s.weekday)!==local.weekday)continue;
+    const runKey=`${s.user_id}:${s.schedule_type}:${local.date}`;
+    const existing=await sbRest(`agent_briefs?run_key=eq.${encodeURIComponent(runKey)}&select=id&limit=1`);
+    if(Array.isArray(existing)&&existing[0])continue;
+    try{
+      const snapshot=await getDailyBrief(s.user_id);
+      const summary=await summarizeScheduledBrief(snapshot,s.schedule_type);
+      const rows=await sbRest("agent_briefs?select=id,brief_type,brief_date,summary,created_at",{
+        method:"POST",
+        headers:{Prefer:"return=representation"},
+        body:JSON.stringify([{
+          user_id:s.user_id,
+          schedule_id:s.id,
+          brief_type:s.schedule_type,
+          run_key:runKey,
+          brief_date:local.date,
+          snapshot,
+          summary,
+          status:"completed"
+        }])
+      });
+      await sbRest(`agent_schedules?id=eq.${encodeURIComponent(s.id)}`,{
+        method:"PATCH",
+        headers:{Prefer:"return=minimal"},
+        body:JSON.stringify({last_run_at:now.toISOString(),updated_at:now.toISOString()})
+      });
+      results.push({schedule_id:s.id,status:"completed",brief_id:rows?.[0]?.id||null});
+    }catch(e){
+      results.push({schedule_id:s.id,status:"failed"});
+    }
+  }
+  return results;
+}
+
 async function getDailyBrief(userId){
   const now=new Date();
   const next24=new Date(now.getTime()+24*60*60*1000);
@@ -2860,6 +2936,14 @@ module.exports = async function handler(req, res) {
       }
     }
 
+    if (req.method === "GET" && path === "/api/cron/scheduled-marina") {
+      const expected=String(process.env.CRON_SECRET||"");
+      const supplied=String(req.headers.authorization||"").replace(/^Bearer\s+/i,"");
+      if(!expected||supplied!==expected)return json(res,401,{error:"Unauthorized"});
+      const results=await runDueAgentSchedules(new Date());
+      return json(res,200,{ok:true,processed:results.length,results});
+    }
+
     const { user, email } = await verifyUser(req);
 
     if (req.method === "GET" && path === "/api/admin-status") {
@@ -3683,6 +3767,51 @@ async function executeApprovedBmodStep(userId,step){
       const brief=await getDailyBrief(user.id);
       return json(res,200,brief);
     }
+
+    if (req.method === "GET" && path === "/api/agent-schedules") {
+      const rows=await sbRest(`agent_schedules?user_id=eq.${encodeURIComponent(user.id)}&select=id,schedule_type,enabled,timezone,local_hour,weekday,last_run_at,created_at,updated_at&order=schedule_type.asc`);
+      const briefs=await sbRest(`agent_briefs?user_id=eq.${encodeURIComponent(user.id)}&select=id,brief_type,brief_date,summary,status,created_at&order=created_at.desc&limit=10`);
+      return json(res,200,{schedules:Array.isArray(rows)?rows:[],briefs:Array.isArray(briefs)?briefs:[]});
+    }
+
+    if (req.method === "POST" && path === "/api/agent-schedules") {
+      const body=await readBody(req);
+      const type=["daily_brief","weekly_review"].includes(String(body.scheduleType||""))?String(body.scheduleType):null;
+      const timezone=safeTimeZone(body.timezone);
+      const localHour=Number(body.localHour);
+      const weekday=body.weekday==null?null:Number(body.weekday);
+      if(!type||!timezone||!Number.isInteger(localHour)||localHour<0||localHour>23)return json(res,400,{error:"Valid scheduleType, timezone and localHour required"});
+      if(type==="weekly_review"&&(!Number.isInteger(weekday)||weekday<0||weekday>6))return json(res,400,{error:"Weekly review requires weekday 0-6"});
+      const rows=await sbRest("agent_schedules?on_conflict=user_id,schedule_type",{
+        method:"POST",
+        headers:{Prefer:"resolution=merge-duplicates,return=representation"},
+        body:JSON.stringify([{
+          user_id:user.id,
+          schedule_type:type,
+          enabled:body.enabled!==false,
+          timezone,
+          local_hour:localHour,
+          weekday:type==="weekly_review"?weekday:null,
+          updated_at:new Date().toISOString()
+        }])
+      });
+      return json(res,200,{schedule:rows?.[0]||null});
+    }
+
+    if (req.method === "PATCH" && path === "/api/agent-schedules") {
+      const body=await readBody(req);
+      const id=String(body.id||"");
+      if(!id)return json(res,400,{error:"Schedule id required"});
+      const patch={updated_at:new Date().toISOString()};
+      if(typeof body.enabled==="boolean")patch.enabled=body.enabled;
+      if(body.timezone!=null){const tz=safeTimeZone(body.timezone);if(!tz)return json(res,400,{error:"Invalid timezone"});patch.timezone=tz;}
+      if(body.localHour!=null){const h=Number(body.localHour);if(!Number.isInteger(h)||h<0||h>23)return json(res,400,{error:"Invalid hour"});patch.local_hour=h;}
+      if(body.weekday!=null){const w=Number(body.weekday);if(!Number.isInteger(w)||w<0||w>6)return json(res,400,{error:"Invalid weekday"});patch.weekday=w;}
+      await sbRest(`agent_schedules?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user.id)}`,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(patch)});
+      return json(res,200,{ok:true});
+    }
+
+
 
     if (req.method === "GET" && path === "/api/open-loops") {
       const openLoops=await getOpenLoopsSummary(user.id);
