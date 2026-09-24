@@ -171,6 +171,14 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
 @media(max-width:640px){.modWelcome{grid-template-columns:1fr}.modWelcomePortrait{width:100%;height:280px;min-height:0;max-height:none;object-position:50% 30%;border-radius:20px}.modWelcomeBubble{width:100%}}
 .modImageTools{margin-top:14px}.modImageTools .imageActions{display:flex;gap:8px;flex-wrap:wrap}.modImageTools small{display:block;margin-top:9px;color:var(--muted)}.bubble:has(.modImageTools) .attachmentCard{max-width:100%;width:100%}.bubble:has(.modImageTools) .attachmentCard img,.savedModImage{display:block;width:100%;height:auto;max-height:540px;object-fit:contain;border-radius:12px}.savedModImage{margin-bottom:12px}.workspacePreview:has(.savedModImage){max-height:none}
 .composer textarea{min-width:0}.attach,.send{flex-shrink:0}body:not([data-page="chat"]) #voiceNote{display:none}.modVoice{margin-top:12px}.modVoice small{display:inline-block;margin-left:10px;color:var(--muted);font-size:12px}.modVoice [data-voice-output]{font-size:13px;margin-top:8px}.modVoicePlayer{width:100%;max-width:400px}#dictateBtn[aria-pressed="true"]{background:var(--rose-soft);border-color:var(--accent)}
+/* The drawer owns scrolling, including expanded chat history, on phones. */
+@media(max-width:860px){
+ body.sidebarOpen{overflow:hidden}
+ #sidebar{height:100vh;height:100dvh;bottom:auto;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;padding-bottom:calc(22px + env(safe-area-inset-bottom))}
+ #sidebar>*{flex-shrink:0}
+ #sidebar .threads{overflow:visible}
+ #sidebar .chatRow,#sidebar .projectRow{min-height:44px}
+}
 /* Keep the sign-in form within easy reach on phones and small tablets. */
 @media(max-width:960px){
  #login{min-height:100svh;align-items:start;padding:24px 16px calc(24px + env(safe-area-inset-bottom))}
