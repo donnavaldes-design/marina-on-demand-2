@@ -1,3 +1,4 @@
+const { RESPONSE_QUALITY } = require("./response-quality");
 const { IMAGE_TOOL, createImageService } = require("./images/service");
 const crypto = require("crypto");
 const MARINA_CORE = `
@@ -194,6 +195,8 @@ Ads are allowed only when organic content converts, messaging is proven, CTA is 
 
 
 const BENCHMARK_TESTS = [
+  { id:"31", category:"Conversion copy / sparse brief", prompt:"write an email that will go to my list about my amazing $7 offer." },
+  { id:"32", category:"Conversion copy / grounded offer", prompt:"Write a sales email for my $7 Bio Clarity Worksheet. It helps women who sell services turn a vague Instagram bio into one clear offer sentence. Includes a worksheet and three before-and-after examples. My list knows me. No deadline, bonuses, or testimonials. Link: https://example.com/bio. Use a warm, witty voice with a clear next step." },
   { id:"01", category:"Diagnosis / conversion", prompt:"My reels are getting 2,000 to 5,000 views and saves, but almost nobody DMs me or buys. What am I doing wrong?" },
   { id:"02", category:"Hooks / voice", prompt:"Rewrite this hook so it actually stops the scroll: “3 things I learned about confidence in business.”" },
   { id:"03", category:"Content strategy", prompt:"I sell skincare through network marketing. Give me 30 reels." },
@@ -1512,7 +1515,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
    - "schedule/remind me/calendar this" -> use Google Calendar only if a supported write operation exists. If Calendar is read-only, do NOT pretend an internal Marina task will notify the user.
 12. An INTERNAL Marina user task is only an action-list item inside Marina On Demand. It never sends a notification or reminder and must be described explicitly as internal.
 13. If a request requires a clock time for an external task/event and the user did not provide one, ask one concise question rather than inventing a time.
-14. Do not say "created", "scheduled", "sent", "updated", or "placed" unless the corresponding tool result confirms completion. Before approval, say "prepared" or "ready for approval."\n${WEB_RESEARCH_RULES}${CONNECTION_RULES}`;
+14. Do not say "created", "scheduled", "sent", "updated", or "placed" unless the corresponding tool result confirms completion. Before approval, say "prepared" or "ready for approval."\n${WEB_RESEARCH_RULES}${CONNECTION_RULES}${RESPONSE_QUALITY}`;
 
   const input = history.map(m => ({ role: m.role, content: m.content }));
   const userContent = [{
@@ -1617,6 +1620,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
           model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
           reasoning: { effort: "medium" },
           previous_response_id: response.id,
+          instructions: actionInstructions,
           input: outputs,
           tools: [IMAGE_TOOL, ...ACTION_TOOLS, BMOD_READ_TOOL, GOOGLE_MANIFEST.tool, CANVA_MANIFEST.tool, WEB_SEARCH_TOOL, ...mcpTools],
           tool_choice: "auto",
@@ -2270,7 +2274,7 @@ ${skillDefinition.operating_prompt}`
   const instructions = `${liveCore}${IMAGE_RULES}${MARINA_VOICE_LAYER}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}${WEB_RESEARCH_RULES}${CONNECTION_RULES}
 
 ROUTED CANONICAL CONTEXT:
-${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext}${modeContext}`;
+${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext}${modeContext}${RESPONSE_QUALITY}`;
   const input = history.map(m => ({ role: m.role, content: m.content }));
 
   const userContent = [];
@@ -2356,6 +2360,7 @@ ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext
         model:process.env.OPENAI_MODEL || "gpt-5.6-terra",
         reasoning:{effort:"medium"},
         previous_response_id:response.id,
+        instructions,
         input:outputs,
         tools:[...(userId && conversationId ? [IMAGE_TOOL] : []),WEB_SEARCH_TOOL,...mcpTools,...nativeTools],
         tool_choice:"auto",
