@@ -876,7 +876,7 @@ async function importBrandDocument(e){
 
   try{
     const storagePath=`${state.session.user.id}/brand-brain/${Date.now()}-${crypto.randomUUID()}-${cleanFileName(file.name)}`;
-    const {error}=await state.supabase.storage.from("marina-attachments").upload(storagePath,file,{contentType:uploadMimeType(file)||undefined,upsert:false});
+    const {error}=await state.supabase.storage.from("marina-attachments").upload(storagePath,uploadFileBody(file),{contentType:uploadMimeType(file)||undefined,upsert:false});
     if(error)throw new Error(error.message);
 
     status.textContent="MOD is reading your brand document…";
@@ -1031,6 +1031,13 @@ function renderPending(){
   });
 }
 function uploadMimeType(file){return /\.vtt$/i.test(file.name)?"text/plain":file.type;}
+function uploadFileBody(file){
+  // Multipart uploads use the File's own MIME type, even with contentType set.
+  // Normalize the actual part as well as the storage path and attachment metadata.
+  return /\.vtt$/i.test(file.name)
+    ? new File([file],cleanFileName(file.name),{type:"text/plain",lastModified:file.lastModified})
+    : file;
+}
 function cleanFileName(name){
   // WebVTT is UTF-8 text. Use a .txt storage suffix for document readers.
   if(/\.vtt$/i.test(String(name)))name=String(name)+".txt";
@@ -1046,7 +1053,7 @@ async function uploadPendingFiles(){
     qs("#status").textContent=`Uploading ${file.name}...`;
     const {error}=await state.supabase.storage
       .from("marina-attachments")
-      .upload(path,file,{contentType:uploadMimeType(file)||undefined,upsert:false});
+      .upload(path,uploadFileBody(file),{contentType:uploadMimeType(file)||undefined,upsert:false});
     if(error)throw new Error(`Upload failed: ${error.message}`);
     uploaded.push({
       storagePath:path,
@@ -1657,7 +1664,7 @@ async function fileToSkillPreview(file,statusEl){
 
   statusEl.textContent=`Uploading ${file.name}…`;
   const storagePath=`${state.session.user.id}/skills/${Date.now()}-${crypto.randomUUID()}-${cleanFileName(file.name)}`;
-  const {error}=await state.supabase.storage.from("marina-attachments").upload(storagePath,file,{contentType:uploadMimeType(file)||undefined,upsert:false});
+  const {error}=await state.supabase.storage.from("marina-attachments").upload(storagePath,uploadFileBody(file),{contentType:uploadMimeType(file)||undefined,upsert:false});
   if(error)throw new Error(error.message);
 
   statusEl.textContent="MOD is turning that file into a reusable skill…";
