@@ -171,6 +171,23 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
 @media(max-width:640px){.modWelcome{grid-template-columns:1fr}.modWelcomePortrait{width:100%;height:280px;min-height:0;max-height:none;object-position:50% 30%;border-radius:20px}.modWelcomeBubble{width:100%}}
 .modImageTools{margin-top:14px}.modImageTools .imageActions{display:flex;gap:8px;flex-wrap:wrap}.modImageTools small{display:block;margin-top:9px;color:var(--muted)}.bubble:has(.modImageTools) .attachmentCard{max-width:100%;width:100%}.bubble:has(.modImageTools) .attachmentCard img,.savedModImage{display:block;width:100%;height:auto;max-height:540px;object-fit:contain;border-radius:12px}.savedModImage{margin-bottom:12px}.workspacePreview:has(.savedModImage){max-height:none}
 .composer textarea{min-width:0}.attach,.send{flex-shrink:0}body:not([data-page="chat"]) #voiceNote{display:none}.modVoice{margin-top:12px}.modVoice small{display:inline-block;margin-left:10px;color:var(--muted);font-size:12px}.modVoice [data-voice-output]{font-size:13px;margin-top:8px}.modVoicePlayer{width:100%;max-width:400px}#dictateBtn[aria-pressed="true"]{background:var(--rose-soft);border-color:var(--accent)}
+/* Keep the sign-in form within easy reach on phones and small tablets. */
+@media(max-width:960px){
+ #login{min-height:100svh;align-items:start;padding:24px 16px calc(24px + env(safe-area-inset-bottom))}
+ #login .card{width:min(480px,100%);gap:18px;padding:24px;border-radius:24px}
+ #login .loginVisual{width:120px;height:120px;min-height:0;margin:0 auto;border-radius:24px}
+ #login .loginVisual img{width:100%;height:100%;object-fit:cover;object-position:50% 25%}
+ #login .loginOverlay,#login .loginBadge{display:none}
+ #login .loginCopy{padding:0;min-width:0}
+ #login .loginCopy>.eyebrow{text-align:center;font-size:11px}
+ #login h1{text-align:center;font-size:34px;line-height:1.05;margin:10px 0 14px}
+ #login h1 br{display:none}
+ #login .loginCopy>p{font-size:16px;line-height:1.5;margin-bottom:0;text-align:center}
+ #login .field{flex-direction:column;margin-top:20px;gap:10px}
+ #login .field input{min-width:0;width:100%;font-size:16px;min-height:48px}
+ #login .primary{min-height:48px;color:var(--ink)}
+ #loginStatus:empty{display:none}
+}
 </style>
 </head>
 <body>
@@ -183,10 +200,10 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
     </div>
     <div class="loginCopy">
       <div class="eyebrow">Private Beta</div>
-      <h1 class="brand">Marina<br>On Demand</h1>
-      <p>Brand. Lead. Convert. Sign in with your email and MOD will send you a secure magic link.</p>
+      <h1 class="brand">Marina<br> On Demand</h1>
+      <p>Hey Queen, let’s get you in. Enter your email and I’ll send you a secure sign-in link.</p>
       <form id="loginForm" class="field">
-        <input id="email" type="email" placeholder="you@example.com" required>
+        <input id="email" type="email" name="email" autocomplete="email" inputmode="email" aria-label="Email address" placeholder="you@example.com" required>
         <button class="primary" type="submit">Send link</button>
       </form>
       <div id="loginStatus" class="note"></div>
