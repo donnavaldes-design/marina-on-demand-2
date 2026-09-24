@@ -267,7 +267,7 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
     <div class="composerWrap">
       <div id="pending" class="pending"></div>
       <form id="composer" class="composer">
-        <input id="fileInput" type="file" hidden multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/markdown,application/json,text/csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+        <input id="fileInput" type="file" hidden multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.vtt,text/vtt,text/plain,text/markdown,application/json,text/csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
         <button id="attachBtn" class="attach" type="button" title="Attach screenshot, image, PDF or document">＋</button>
         <button id="dictateBtn" class="attach" type="button" aria-label="Dictate your prompt" aria-pressed="false" title="Dictate your prompt, up to 2 minutes">🎤</button>
         <textarea id="input" placeholder="Ask MOD..."></textarea>
@@ -746,7 +746,7 @@ async function openMemoryPanel(){
         <h3>Teach MOD from your brand documents</h3>
         <p>Upload a Brand Signal Audit, Iconic Brand Build, brand guide, audience document, offer document, or voice guide. MOD will read it, show you what she learned, and only save it after you approve.</p>
         <div class="brandBrainUpload">
-          <input id="brandDocInput" type="file" accept=".pdf,.doc,.docx,.txt,.md,image/*" style="display:none">
+          <input id="brandDocInput" type="file" accept=".pdf,.doc,.docx,.txt,.md,.vtt,text/vtt,image/*" style="display:none">
           <button id="brandDocBtn" class="secondaryBtn" type="button">Upload brand document</button>
           <span id="brandDocStatus" class="memoryStatus"></span>
         </div>
@@ -876,11 +876,11 @@ async function importBrandDocument(e){
 
   try{
     const storagePath=`${state.session.user.id}/brand-brain/${Date.now()}-${crypto.randomUUID()}-${cleanFileName(file.name)}`;
-    const {error}=await state.supabase.storage.from("marina-attachments").upload(storagePath,file,{contentType:file.type||undefined,upsert:false});
+    const {error}=await state.supabase.storage.from("marina-attachments").upload(storagePath,file,{contentType:uploadMimeType(file)||undefined,upsert:false});
     if(error)throw new Error(error.message);
 
     status.textContent="MOD is reading your brand document…";
-    const attachment={storagePath,fileName:file.name,mimeType:file.type||"application/octet-stream",sizeBytes:file.size};
+    const attachment={storagePath,fileName:file.name,mimeType:uploadMimeType(file)||"application/octet-stream",sizeBytes:file.size};
     const j=await api("/api/brand-brain/import",{method:"POST",body:JSON.stringify({attachment})});
     renderBrandImportPreview(j.proposed||{},attachment);
     status.textContent="Review what MOD learned before saving it.";
@@ -1030,7 +1030,10 @@ function renderPending(){
     state.pendingFiles.splice(Number(b.dataset.remove),1);renderPending();
   });
 }
+function uploadMimeType(file){return /\.vtt$/i.test(file.name)?"text/plain":file.type;}
 function cleanFileName(name){
+  // WebVTT is UTF-8 text. Use a .txt storage suffix for document readers.
+  if(/\.vtt$/i.test(String(name)))name=String(name)+".txt";
   return String(name||"attachment")
     .replace(/[^a-zA-Z0-9._-]+/g,"-")
     .replace(/-+/g,"-")
@@ -1043,12 +1046,12 @@ async function uploadPendingFiles(){
     qs("#status").textContent=`Uploading ${file.name}...`;
     const {error}=await state.supabase.storage
       .from("marina-attachments")
-      .upload(path,file,{contentType:file.type||undefined,upsert:false});
+      .upload(path,file,{contentType:uploadMimeType(file)||undefined,upsert:false});
     if(error)throw new Error(`Upload failed: ${error.message}`);
     uploaded.push({
       storagePath:path,
       fileName:file.name,
-      mimeType:file.type||"application/octet-stream",
+      mimeType:uploadMimeType(file)||"application/octet-stream",
       sizeBytes:file.size
     });
   }
@@ -1581,7 +1584,7 @@ async function openSkillsPage(){
       <div class="skillBuilderCard">
         <h3>Import a skill</h3>
         <p>Upload a Claude skill, SKILL.md, SOP, prompt file, PDF, DOCX, TXT, JSON, YAML, or Markdown document. MOD will turn it into a reusable workflow and show you a preview before saving.</p>
-        <input id="skillImportFile" type="file" accept=".skill,.md,.txt,.json,.yaml,.yml,.pdf,.doc,.docx,text/plain,text/markdown,application/json,application/pdf">
+        <input id="skillImportFile" type="file" accept=".skill,.md,.txt,.vtt,.json,.yaml,.yml,.pdf,.doc,.docx,text/plain,text/markdown,application/json,application/pdf">
         <button id="skillImportBtn" class="primary" type="button" style="margin-top:10px">Import + preview</button>
         <div id="skillImportStatus" class="memoryStatus"></div>
         <div id="skillImportPreview"></div>
@@ -1643,7 +1646,7 @@ function wireSkillLibrary(){
 }
 
 async function fileToSkillPreview(file,statusEl){
-  const textExt=/\.(skill|md|txt|json|ya?ml)$/i.test(file.name);
+  const textExt=/\.(skill|md|txt|vtt|json|ya?ml)$/i.test(file.name);
   if(file.size>20*1024*1024)throw new Error("Skill files must be 20 MB or smaller.");
 
   if(textExt){
@@ -1654,11 +1657,11 @@ async function fileToSkillPreview(file,statusEl){
 
   statusEl.textContent=`Uploading ${file.name}…`;
   const storagePath=`${state.session.user.id}/skills/${Date.now()}-${crypto.randomUUID()}-${cleanFileName(file.name)}`;
-  const {error}=await state.supabase.storage.from("marina-attachments").upload(storagePath,file,{contentType:file.type||undefined,upsert:false});
+  const {error}=await state.supabase.storage.from("marina-attachments").upload(storagePath,file,{contentType:uploadMimeType(file)||undefined,upsert:false});
   if(error)throw new Error(error.message);
 
   statusEl.textContent="MOD is turning that file into a reusable skill…";
-  return api("/api/skills/build-preview",{method:"POST",body:JSON.stringify({attachment:{storagePath,fileName:file.name,mimeType:file.type||"application/octet-stream",sizeBytes:file.size},name:file.name.replace(/\.[^.]+$/,"")})});
+  return api("/api/skills/build-preview",{method:"POST",body:JSON.stringify({attachment:{storagePath,fileName:file.name,mimeType:uploadMimeType(file)||"application/octet-stream",sizeBytes:file.size},name:file.name.replace(/\.[^.]+$/,"")})});
 }
 
 async function importSkillFile(){
