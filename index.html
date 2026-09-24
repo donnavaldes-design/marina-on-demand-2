@@ -378,6 +378,7 @@ window.addEventListener("resize",()=>{if(window.innerWidth>860)closeSidebar()});
 let authViewUserId=null;
 let authViewGeneration=0;
 let authEventRevision=0;
+let sessionRecovery=null;
 async function applyAuthSession(session){
   state.session=session;
   if(!session){
@@ -1055,7 +1056,27 @@ async function uploadPendingFiles(){
 }
 
 async function api(url, options={}){
-  const r=await fetch(url,{...options,headers:{...authHeader(),...(options.headers||{})}});
+  const userId=state.session?.user?.id;
+  const request=()=>fetch(url,{...options,headers:{...authHeader(),...(options.headers||{})}});
+  let r=await request();
+  if(r.status===401){
+    if(!sessionRecovery){
+      sessionRecovery=state.supabase.auth.refreshSession().finally(()=>{sessionRecovery=null;});
+    }
+    const {data,error}=await sessionRecovery;
+    if(error&&(error.status>=500||error.name==='AuthRetryableFetchError'))throw new Error("MOD couldn’t reconnect. Check your connection and try again.");
+    if(state.session?.user?.id!==userId)throw new Error("Your sign-in changed. Please reopen this page.");
+    if(!error&&data?.session&&data.session.user.id===userId){
+      state.session=data.session;
+      r=await request();
+    }
+    if(error||!data?.session||r.status===401){
+      await state.supabase.auth.signOut({scope:"local"}).catch(()=>{});
+      await applyAuthSession(null);
+      qs("#loginStatus").textContent="Your sign-in expired. Enter your email for a fresh link. Your saved chats are safe.";
+      throw new Error("Please sign in again using a fresh email link.");
+    }
+  }
   let j;
   try{j=await r.json();}catch{const error=new Error("MOD couldn’t load that response. Please try again.");error.status=r.status;throw error;}
   if(!r.ok){const error=new Error(j.error || "Request failed");error.status=r.status;throw error;}
