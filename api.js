@@ -359,6 +359,9 @@ async function hydrateAttachments(rows) {
 
 async function hasAccess(userId, email) {
   if (isControlRoomAdmin(email)) return true;
+  // Donna-approved permanent app access for Marina's verified account.
+  // This grants no Control Room privileges and still requires authentication.
+  if (userId === "76d7cc3f-6ca3-420b-ac02-b0e469108548") return true;
   try { return (await MEMBERSHIP.check(email)).active; }
   catch { throw new Error("ACCESS_CHECK_UNAVAILABLE"); }
 }
