@@ -170,6 +170,7 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
 .modWelcome{display:grid;grid-template-columns:minmax(180px,30%) minmax(0,1fr);align-items:stretch;gap:22px}.modWelcomePortrait{width:100%;height:100%;min-height:300px;max-height:480px;object-fit:cover;object-position:50% 35%;border-radius:24px;border:0;background:var(--rose-soft)}
 @media(max-width:640px){.modWelcome{grid-template-columns:1fr}.modWelcomePortrait{width:100%;height:280px;min-height:0;max-height:none;object-position:50% 30%;border-radius:20px}.modWelcomeBubble{width:100%}}
 .modImageTools{margin-top:14px}.modImageTools .imageActions{display:flex;gap:8px;flex-wrap:wrap}.modImageTools small{display:block;margin-top:9px;color:var(--muted)}.bubble:has(.modImageTools) .attachmentCard{max-width:100%;width:100%}.bubble:has(.modImageTools) .attachmentCard img,.savedModImage{display:block;width:100%;height:auto;max-height:540px;object-fit:contain;border-radius:12px}.savedModImage{margin-bottom:12px}.workspacePreview:has(.savedModImage){max-height:none}
+.composer textarea{min-width:0}.attach,.send{flex-shrink:0}body:not([data-page="chat"]) #voiceNote{display:none}.modVoice{margin-top:12px}.modVoice small{display:inline-block;margin-left:10px;color:var(--muted);font-size:12px}.modVoice [data-voice-output]{font-size:13px;margin-top:8px}.modVoicePlayer{width:100%;max-width:400px}#dictateBtn[aria-pressed="true"]{background:var(--rose-soft);border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -241,9 +242,11 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
       <form id="composer" class="composer">
         <input id="fileInput" type="file" hidden multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,text/plain,text/markdown,application/json,text/csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
         <button id="attachBtn" class="attach" type="button" title="Attach screenshot, image, PDF or document">＋</button>
+        <button id="dictateBtn" class="attach" type="button" aria-label="Dictate your prompt" aria-pressed="false" title="Dictate your prompt, up to 2 minutes">🎤</button>
         <textarea id="input" placeholder="Ask MOD..."></textarea>
         <button class="send" type="submit">↑</button>
       </form>
+      <div id="voiceNote" class="status" role="status">Tap the microphone to dictate. Review your text before sending. Maximum 2 minutes.</div>
       <div id="status" class="status"></div>
     </div>
   </section>
@@ -272,6 +275,7 @@ import DOMPurify from "https://esm.sh/dompurify@3";
 const qs = s => document.querySelector(s);
 const workspaceNav = qs("#workspaceNav");
 const controlButton = qs("#controlBtn");
+const voiceCapture={generation:0,recorder:null,stream:null,busy:false,discard:false,timer:null,limit:null};
 const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
 
 const googleKeys=['gmail','google_calendar','google_drive'];
@@ -350,6 +354,7 @@ let authEventRevision=0;
 async function applyAuthSession(session){
   state.session=session;
   if(!session){
+    if(typeof stopModVoice==="function")stopModVoice(true);
     state.savedChat=null;state.page=null;
     authViewUserId=null;
     authViewGeneration++;
@@ -407,7 +412,7 @@ qs("#closeSidebar").addEventListener("click",closeSidebar);
 qs("#mobileOverlay").addEventListener("click",closeSidebar);
 qs("#homeBtn").addEventListener("click",async()=>{if(state.loading)return;state.workspaceSection=null;workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();await renderDashboard()});
 qs("#newChat").addEventListener("click",()=>{if(state.loading)return;state.workspaceSection=null;if(state.savedChat){Object.assign(state,state.savedChat);state.savedChat=null;}renderPending();setMode(state.mode);renderWelcome();renderThreads()});
-qs("#startNewChat").addEventListener("click",()=>{if(state.loading)return;if(qs("#input").value&&!confirm("Discard your unsent draft and start a new chat?"))return;state.savedChat=null;state.messages=[];state.imageReferenceId=null;state.conversationId="";state.pendingFiles=[];state.selectedSkill=null;qs("#input").value="";setMode("coach");renderPending();renderWelcome();renderThreads();});
+qs("#startNewChat").addEventListener("click",()=>{stopModVoice(true);if(state.loading)return;if(qs("#input").value&&!confirm("Discard your unsent draft and start a new chat?"))return;state.savedChat=null;state.messages=[];state.imageReferenceId=null;state.conversationId="";state.pendingFiles=[];state.selectedSkill=null;qs("#input").value="";setMode("coach");renderPending();renderWelcome();renderThreads();});
 qs("#memoryBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
   closeSidebarIfMobile();
@@ -1248,6 +1253,7 @@ document.addEventListener("click",event=>{
 },true);
 window.addEventListener("beforeunload",event=>{if(state.businessDirty||qs("#input")?.value){event.preventDefault();event.returnValue="";}});
 function setPage(page){
+  if(page!=="chat"&&typeof stopModVoice==="function")stopModVoice(true);
   if(state.page==="chat"&&page!=="chat")state.savedChat={messages:state.messages,conversationId:state.conversationId,pendingFiles:state.pendingFiles,mode:state.mode,selectedSkill:state.selectedSkill,imageReferenceId:state.imageReferenceId};
   if(page==="chat"&&state.page!=="chat")state.savedChat=null;
   state.page=page;document.body.dataset.page=page;
@@ -1881,6 +1887,7 @@ document.addEventListener("click",e=>{
 });
 
 async function selectConversation(id){
+  stopModVoice(true);
   state.imageReferenceId=null;
   setPage("chat");
   state.workspaceSection=null;workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
@@ -2038,6 +2045,74 @@ function wireImageJobs(){
   });
 }
 
+function stopModVoice(discard=false){
+  if(discard){voiceCapture.generation++;voiceCapture.discard=true;}
+  clearInterval(voiceCapture.timer);clearTimeout(voiceCapture.limit);
+  if(voiceCapture.recorder?.state==='recording')voiceCapture.recorder.stop();
+  voiceCapture.stream?.getTracks().forEach(track=>track.stop());
+  voiceCapture.stream=null;
+  document.querySelectorAll('audio.modVoicePlayer').forEach(a=>a.pause());
+}
+async function toggleDictation(){
+  const button=qs('#dictateBtn'),note=qs('#voiceNote');
+  if(voiceCapture.recorder?.state==='recording'){stopModVoice();return;}
+  if(voiceCapture.busy||state.loading)return;
+  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){note.textContent='Microphone recording is unavailable in this browser. You can use your keyboard’s dictation or type.';return;}
+  const generation=++voiceCapture.generation,chat=state.conversationId,user=state.session?.user.id;
+  voiceCapture.discard=false;voiceCapture.busy=true;button.disabled=true;
+  note.textContent='Allow microphone access to dictate. Your recording is sent to OpenAI for transcription after you stop.';
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    if(generation!==voiceCapture.generation||state.page!=='chat'){stream.getTracks().forEach(t=>t.stop());return;}
+    voiceCapture.stream=stream;
+    const mime=['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'].find(type=>MediaRecorder.isTypeSupported(type));
+    const recorder=new MediaRecorder(stream,{...(mime?{mimeType:mime}:{}),audioBitsPerSecond:64000});voiceCapture.recorder=recorder;
+    const parts=[];let size=0;const began=Date.now();
+    recorder.ondataavailable=e=>{if(e.data.size){parts.push(e.data);size+=e.data.size;if(size>3*1024*1024)stopModVoice();}};
+    recorder.onerror=()=>{note.textContent='The microphone stopped unexpectedly. Please try again.';stopModVoice(true);};
+    recorder.onstop=async()=>{
+      clearInterval(voiceCapture.timer);clearTimeout(voiceCapture.limit);stream.getTracks().forEach(t=>t.stop());voiceCapture.recorder=null;voiceCapture.stream=null;button.disabled=true;button.textContent='🎤';button.setAttribute('aria-label','Dictate your prompt');button.setAttribute('aria-pressed','false');
+      try{
+        if(voiceCapture.discard||generation!==voiceCapture.generation)return;
+        if(size>3*1024*1024)throw Error('Recording is too large. Please try a shorter prompt.');
+        if(!size)throw Error('No audio recorded. Please try again.');
+        note.textContent='Turning your voice into text…';
+        const blob=new Blob(parts,{type:recorder.mimeType||mime||'audio/webm'});
+        const result=await api('/api/voice/transcribe',{method:'POST',headers:{'content-type':blob.type},body:blob});
+        if(generation!==voiceCapture.generation||state.page!=='chat'||state.conversationId!==chat||state.session?.user.id!==user)return;
+        if(!result.text){note.textContent='No speech detected. Please try again.';return;}
+        const input=qs('#input');input.value=[input.value.trim(),result.text].filter(Boolean).join(' ');input.focus();note.textContent='Ready. Review your words, then tap Send.';
+      }catch(e){if(generation===voiceCapture.generation)note.textContent=e.message;}
+      finally{voiceCapture.busy=false;button.disabled=false;}
+    };
+    recorder.start(1000);button.disabled=false;button.textContent='■';button.setAttribute('aria-label','Stop dictation');button.setAttribute('aria-pressed','true');
+    const tick=()=>{const seconds=Math.min(120,Math.floor((Date.now()-began)/1000));note.textContent=`Recording ${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')} / 2:00. Tap stop when finished.`;};tick();voiceCapture.timer=setInterval(tick,1000);voiceCapture.limit=setTimeout(()=>stopModVoice(),120000);
+  }catch(e){voiceCapture.stream?.getTracks().forEach(t=>t.stop());voiceCapture.stream=null;note.textContent=e.name==='NotAllowedError'?'Microphone access was denied. Allow it in your browser settings, or type your prompt.':e.message;}
+  finally{if(!voiceCapture.recorder){voiceCapture.busy=false;button.disabled=false;}}
+}
+function voiceControls(m){
+  return `<div class="modVoice" data-voice-message="${esc(m.id)}"><button type="button" class="secondary" data-listen>🔊 Listen to MOD</button><small>MOD’s AI voice</small><div data-voice-output aria-live="polite"></div></div>`;
+}
+function wireVoicePlayback(){
+  qs('#messages').querySelectorAll('[data-voice-message]').forEach(root=>{
+    const button=root.querySelector('[data-listen]'),output=root.querySelector('[data-voice-output]');
+    button.onclick=async()=>{
+      button.disabled=true;output.textContent='Preparing audio…';
+      document.querySelectorAll('audio.modVoicePlayer').forEach(a=>a.pause());
+      try{
+        const result=await api('/api/voice/playback',{method:'POST',body:JSON.stringify({messageId:root.dataset.voiceMessage})});
+        if(!document.contains(root)||state.page!=='chat')return;
+        if(result.pending){output.textContent='Audio is still being prepared. Tap Listen again in a moment; this won’t generate another copy.';return;}
+        output.textContent='';const audio=document.createElement('audio');audio.className='modVoicePlayer';audio.controls=true;audio.preload='none';audio.src=result.url;audio.setAttribute('aria-label','MOD’s AI voice playback');
+        audio.onplay=()=>document.querySelectorAll('audio.modVoicePlayer').forEach(a=>{if(a!==audio)a.pause();});
+        audio.onerror=()=>{button.hidden=false;output.append(document.createTextNode(' Audio could not load. Tap Listen to reload your saved audio.'));};
+        output.append(audio);button.hidden=true;try{await audio.play();}catch{/* Mobile browsers may require a second tap on the native Play control. */}
+      }catch(e){output.textContent=e.message;}
+      finally{button.disabled=false;}
+    };
+  });
+}
+
 function renderMessages(){
   setPage("chat");
   if(!state.messages.length){renderWelcome();return}
@@ -2060,7 +2135,7 @@ function renderMessages(){
     const webSources=m.role==="assistant"?renderWebSources(m.web_sources||m.webSources||[]):"";
     return `<div class="msg ${m.role}">
       <div class="avatar">${m.role==="assistant"?"M":"YOU"}</div>
-      <div class="bubble">${body}${m.imageJob?renderImageJob(m):""}${atts?`<div class="attachmentList">${atts}</div>`:""}${webSources}${actionRun}${receipt}${feedback}</div>
+      <div class="bubble">${body}${m.imageJob?renderImageJob(m):""}${atts?`<div class="attachmentList">${atts}</div>`:""}${webSources}${actionRun}${receipt}${feedback}${m.role==="assistant"&&m.id&&!m.imageJob?voiceControls(m):""}</div>
     </div>`;
   }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Working...</div></div>`:"");
   wireModeBar();
@@ -2105,6 +2180,7 @@ function renderMessages(){
   qs("#messages").querySelectorAll("[data-save-workspace]").forEach(btn=>btn.onclick=()=>openSaveModal(btn.dataset.saveWorkspace));
   wireActionRuns();
   wireImageJobs();
+  wireVoicePlayback();
   qs("#messages").scrollTop=qs("#messages").scrollHeight;
 }
 async function send(prefill, forcedMode, forcedSkillKey){
@@ -2112,6 +2188,7 @@ async function send(prefill, forcedMode, forcedSkillKey){
   if(forcedMode)setMode(forcedMode);
   const activeSkillKey=forcedSkillKey || state.selectedSkill?.skill_key || null;
   const value=String(prefill ?? input.value).trim();
+  if(voiceCapture.busy){qs("#voiceNote").textContent="Finish dictation and review your words before sending.";return;}
   if((!value&&!state.pendingFiles.length)||state.loading)return;
 
   const originalFiles=[...state.pendingFiles];
@@ -2166,6 +2243,9 @@ async function send(prefill, forcedMode, forcedSkillKey){
   state.loading=false;
   renderMessages();
 }
+qs("#dictateBtn").onclick=toggleDictation;
+window.addEventListener("pagehide",()=>stopModVoice(true));
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stopModVoice(true);});
 </script>
 </body>
 </html>

@@ -1947,6 +1947,7 @@ async function executeGoogleOperation(user,args,context={}){
 }
 const CANVA_MANIFEST = require("./canva/manifest");
 const MEMBERSHIP = require("./access/membership").createMembershipService({sbRest,connection:getBmodConnection,call:highLevelApi});
+const VOICE = require("./voice/service").createVoiceService({sbRest,storageHeaders:supabaseHeaders});
 const MOD_IMAGES = createImageService({sbRest,saveMessage,sign:createAttachmentSignedUrl,hydrate:hydrateAttachments,storageHeaders:supabaseHeaders});
 const CANVA = require("./canva/service").createService({sbRest,sbRpc,getSecret:getConnectionSecret,getRefreshSecret:getConnectionRefreshSecret,insertActionStep,nextActionStepOrder});
 const BMOD_MANIFEST = require("./bmod/manifest");
@@ -2958,6 +2959,14 @@ module.exports = async function handler(req, res) {
       return json(res,403,{error:"We could not verify active BMOD or MOD access for this email. Sign in with your membership email or contact support.",code:"ACCESS_INACTIVE"});
     }
 
+    if(req.method === "POST" && path === "/api/voice/transcribe") {
+      const recording=await require("./voice/service").readRecording(req);
+      return json(res,200,await VOICE.transcribe(user.id,recording));
+    }
+    if(req.method === "POST" && path === "/api/voice/playback") {
+      const body=await readBody(req);
+      return json(res,200,await VOICE.playback(user.id,String(body.messageId||"")));
+    }
     const googleRoute=path.match(/^\/api\/connections\/(gmail|google_calendar|google_drive)\/(permissions|verify)$/);
     if(googleRoute&&req.method==='PATCH'&&googleRoute[2]==='permissions'){
       const body=await readBody(req);if(!['view_only','view_and_take_action'].includes(body.permissionMode))return json(res,400,{error:'Invalid permission mode.'});
