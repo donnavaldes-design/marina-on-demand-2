@@ -209,6 +209,8 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
 .ecosystemCard .ecoSites[hidden]{display:none;}
 
 .chatBusinessPicker{gap:10px 14px;margin-bottom:24px}.chatBusinessPicker label{font-size:14px;font-weight:600;color:var(--ink)}.chatBusinessPicker select{font:inherit;font-size:16px;color:var(--ink);background:var(--rose-soft);border:1px solid var(--line);border-radius:12px;min-height:46px;padding:10px 14px;max-width:100%;cursor:pointer}.chatBusinessPicker select:focus-visible{outline:2px solid var(--accent-strong);outline-offset:3px}@media(max-width:600px){.chatBusinessPicker{align-items:stretch;flex-direction:column}.chatBusinessPicker select{width:100%;min-width:0}}
+
+.composerWrap{position:relative}#jumpToLatest{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);z-index:5;min-height:44px;padding:10px 18px;border:1px solid var(--accent-strong);border-radius:999px;background:var(--accent);color:var(--ink);font:inherit;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer;box-shadow:0 4px 14px rgba(43,21,15,.12)}#jumpToLatest[hidden]{display:none}#jumpToLatest:focus-visible{outline:2px solid var(--accent-strong);outline-offset:3px}
 </style>
 </head>
 <body>
@@ -275,6 +277,7 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
     <header class="top"><div class="topLeft"><button id="menuBtn" class="menuBtn" type="button" aria-label="Open menu">☰</button><div class="topBrand"><img class="topAvatar" src="https://assets.cdn.filesafe.space/wx7yTd9haziGCOtSvT4f/media/6ab3d77f25d854bb65f55171.png" alt="Marina portrait"><div><strong>Marina On Demand</strong><small>Your AI Brand Mentor</small></div></div></div><div class="topActions"><button id="startNewChat" class="secondaryBtn" type="button">New chat</button><span id="modelLabel">Private Beta</span></div></header>
     <div id="messages" class="messages"></div>
     <div class="composerWrap">
+      <button id="jumpToLatest" type="button" hidden aria-label="Jump to latest chat message">↓ Jump to latest</button>
       <div id="pending" class="pending"></div>
       <form id="composer" class="composer">
         <input id="fileInput" type="file" hidden multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.vtt,text/vtt,text/plain,text/markdown,application/json,text/csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
@@ -474,16 +477,50 @@ qs("#confirmSave").addEventListener("click",saveCandidateToWorkspace);
 qs("#composer").addEventListener("submit",e=>{e.preventDefault();send()});
 qs("#input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
 qs("#attachBtn").addEventListener("click",()=>qs("#fileInput").click());
-qs("#fileInput").addEventListener("change",e=>{
-  const files=[...(e.target.files||[])];
+function queueChatFiles(files){
+  if(state.loading){qs("#status").textContent="Wait for MOD to finish before adding attachments.";return;}
+  let added=0;const errors=[];
   for(const file of files){
-    if(state.pendingFiles.length>=5){qs("#status").textContent="Up to 5 attachments per message.";break}
-    if(file.size>20*1024*1024){qs("#status").textContent=`${file.name} is over 20 MB.`;continue}
-    state.pendingFiles.push(file);
+    if(state.pendingFiles.length>=5){errors.push("Up to 5 attachments per message.");break;}
+    if(file.size>20*1024*1024){errors.push(`${file.name} is over 20 MB.`);continue;}
+    state.pendingFiles.push(file);added++;
   }
-  e.target.value="";
   renderPending();
+  qs("#status").textContent=errors.length?errors.join(" "):added?`${added===1?'Attachment':added+' attachments'} added. Add your message, then send.`:"";
+}
+qs("#fileInput").addEventListener("change",e=>{
+  queueChatFiles([...(e.target.files||[])]);
+  e.target.value="";
 });
+function pasteChatImages(e){
+  const clipboard=e.clipboardData;
+  if(!clipboard)return;
+  let files=[...(clipboard.items||[])].filter(item=>item.kind==="file"&&item.type.startsWith("image/")).map(item=>item.getAsFile()).filter(Boolean);
+  if(!files.length)files=[...(clipboard.files||[])].filter(file=>file.type.startsWith("image/"));
+  if(!files.length)return; // Leave ordinary text and rich-text paste to the browser.
+  e.preventDefault();
+  if(state.loading){qs("#status").textContent="Wait for MOD to finish before adding attachments.";return;}
+  const supported=[];let unsupported=false;
+  for(const file of files){
+    const ext={"image/png":"png","image/jpeg":"jpg","image/webp":"webp","image/gif":"gif"}[file.type];
+    if(!ext){unsupported=true;continue;}
+    supported.push(new File([file],`screenshot-${crypto.randomUUID()}.${ext}`,{type:file.type,lastModified:file.lastModified}));
+  }
+  queueChatFiles(supported);
+  const text=clipboard.getData("text/plain");
+  if(text){const input=qs("#input");input.setRangeText(text,input.selectionStart,input.selectionEnd,"end");input.dispatchEvent(new Event("input",{bubbles:true}));}
+  if(unsupported)qs("#status").textContent+=" Paste a PNG, JPEG, WebP, or GIF image.";
+}
+qs("#input").addEventListener("paste",pasteChatImages);
+function updateJumpToLatest(){
+  const messages=qs("#messages");
+  qs("#jumpToLatest").hidden=state.page!=="chat"||!state.messages.length||messages.scrollHeight-messages.scrollTop-messages.clientHeight<160;
+}
+qs("#messages").addEventListener("scroll",updateJumpToLatest,{passive:true});
+qs("#jumpToLatest").onclick=()=>{const messages=qs("#messages");messages.scrollTo({top:messages.scrollHeight,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});};
+new MutationObserver(updateJumpToLatest).observe(qs("#messages"),{childList:true,subtree:true});
+new ResizeObserver(updateJumpToLatest).observe(qs("#messages"));
+
 
 
 
