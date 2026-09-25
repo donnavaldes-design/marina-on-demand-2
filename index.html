@@ -732,21 +732,21 @@ const ECOSYSTEM_TYPES=[['products_services','Products, services or coaching'],['
 function ecosystemCard(b={}){
  const id=b.id||crypto.randomUUID();
  const field=(key,label,large=false)=>`<label class="memoryField">${label}${large?`<textarea data-eco-field="${key}">${esc(b[key]||'')}</textarea>`:`<input data-eco-field="${key}" value="${esc(b[key]||'')}">`}</label>`;
- return `<details class="brandBrainSection ecosystemCard" data-business-id="${esc(id)}" open><summary>${esc(b.name||'New income source')}</summary><div class="memoryGrid">${field('name','Income source name')}<label class="memoryField">Type<select data-eco-field="type">${ECOSYSTEM_TYPES.map(([v,l])=>`<option value="${v}" ${(b.type||'products_services')===v?'selected':''}>${l}</option>`).join('')}</select></label>${field('company','Company or business name')}${field('audience','Who buys from you?')}${field('offers','Offers, products and prices',true)}${field('goal','Goal for this income source',true)}${field('deadline','Target date or timeframe')}<div data-network-fields style="display:${b.type==='network_marketing'?'contents':'none'}">${field('current_rank','Current rank and qualification progress')}${field('customer_goal','Customer goal')}${field('team_goal','Team-building or rank goal')}</div>${field('links','Offer, website and purchase links',true)}${field('channels','Social channels and blogs supporting this business',true)}${field('follow_up','Email, SMS, newsletters and follow-up process',true)}${field('notes','Reference notes, plan details and guidelines',true)}</div><div class="briefToolbar"><button type="button" data-business-chat="${esc(id)}">Work on this business</button><button type="button" data-business-upload="${esc(id)}">Upload a plan or reference</button><button type="button" data-business-remove>Remove income source</button></div><p class="loopMeta">Upload a compensation plan or other reference to review it with MOD in a business-specific chat. Save approved takeaways in Reference notes above.</p></details>`;
+ return `<details class="brandBrainSection ecosystemCard" data-business-id="${esc(id)}" open><summary>${esc(b.name||'New business')}</summary><div class="memoryGrid">${field('name','Business name')}<label class="memoryField">Type<select data-eco-field="type">${ECOSYSTEM_TYPES.map(([v,l])=>`<option value="${v}" ${(b.type||'products_services')===v?'selected':''}>${l}</option>`).join('')}</select></label>${field('company','Company or business name')}${field('audience','Who buys from you?')}${field('offers','Offers, products and prices',true)}${field('goal','Goal for this income source',true)}${field('deadline','Target date or timeframe')}<div data-network-fields style="display:${b.type==='network_marketing'?'contents':'none'}">${field('current_rank','Current rank and qualification progress')}${field('customer_goal','Customer goal')}${field('team_goal','Team-building or rank goal')}</div>${field('links','Offer, website and purchase links',true)}${field('channels','Social channels and blogs supporting this business',true)}${field('follow_up','Email, SMS, newsletters and follow-up process',true)}${field('notes','Reference notes, plan details and guidelines',true)}</div><div class="briefToolbar"><button type="button" data-business-chat="${esc(id)}">Work on this business</button><button type="button" data-business-upload="${esc(id)}">Upload a plan or reference</button><button type="button" data-business-remove>Remove business</button></div><p class="loopMeta">Upload a compensation plan or other reference to review it with MOD in a business-specific chat. Save approved takeaways in Reference notes above.</p></details>`;
 }
 function readEcosystemForm(){return {version:1,priorityId:qs('#ecosystemPriority').value,businesses:[...qs('#ecosystemBusinesses').querySelectorAll('.ecosystemCard')].map(card=>({id:card.dataset.businessId,...Object.fromEntries([...card.querySelectorAll('[data-eco-field]')].map(el=>[el.dataset.ecoField,el.value.trim()]))}))};}
 function updateEcosystemOverview(){
  const eco=readEcosystemForm(),select=qs('#ecosystemPriority');
- select.innerHTML='<option value="">Whole ecosystem, no single priority</option>'+eco.businesses.map(b=>`<option value="${esc(b.id)}">${esc(b.name||'New income source')}</option>`).join('');select.value=eco.priorityId;
+ select.innerHTML='<option value="">Whole ecosystem, no single priority</option>'+eco.businesses.map(b=>`<option value="${esc(b.id)}">${esc(b.name||'New business')}</option>`).join('');select.value=eco.priorityId;
  qs('#ecosystemOverview').innerHTML=eco.businesses.length?eco.businesses.map(b=>{
  const missing=[!b.goal?'Set a goal':null,!b.offers?'Describe the offer':null,!b.links?'Add the destination link':null,!b.channels?'Choose a discovery channel':null,!b.follow_up?'Define follow-up':null].filter(Boolean);
- return `<div class="loopItem"><strong>${esc(b.name||'New income source')}${eco.priorityId===b.id?' · Current priority':''}</strong><p>${esc(b.channels||'Discovery channel not recorded')} → ${esc(b.offers||'Offer not recorded')} → ${esc(b.follow_up||'Follow-up not recorded')}</p><small>${missing.length?'Setup to finish: '+esc(missing.join(' · ')):'Core setup recorded.'} Results not assessed.</small></div>`;
- }).join(''):'<p>Add your first income source. Your existing brand information is preserved below.</p>';
+ return `<div class="loopItem"><strong>${esc(b.name||'New business')}${eco.priorityId===b.id?' · Current priority':''}</strong><p>${esc(b.channels||'Discovery channel not recorded')} → ${esc(b.offers||'Offer not recorded')} → ${esc(b.follow_up||'Follow-up not recorded')}</p><small>${missing.length?'Setup to finish: '+esc(missing.join(' · ')):'Core setup recorded.'} Results not assessed.</small></div>`;
+ }).join(''):'<p>Add your first business. Your brand information is shared across your ecosystem.</p>';
 }
 function wireEcosystemCards(){
  qs('#ecosystemBusinesses').querySelectorAll('.ecosystemCard').forEach(card=>{
   card.querySelector('[data-eco-field="type"]').onchange=e=>{card.querySelector('[data-network-fields]').style.display=e.target.value==='network_marketing'?'contents':'none';state.businessDirty=true;};
-  card.querySelector('[data-business-remove]').onclick=()=>{if(!confirm('Remove this income source from your ecosystem? Existing chats and saved work will remain.'))return;card.remove();state.businessDirty=true;updateEcosystemOverview();};
+  card.querySelector('[data-business-remove]').onclick=()=>{if(!confirm('Remove this business from your ecosystem? Existing chats and saved work will remain.'))return;card.remove();state.businessDirty=true;updateEcosystemOverview();};
   card.querySelector('[data-business-chat]').onclick=async()=>{await saveMemoryForm();if(state.businessDirty)return;resetWorkspace('coach');state.businessId=card.dataset.businessId;renderWelcome();qs('#input').focus();};
   card.querySelector('[data-business-upload]').onclick=async()=>{await saveMemoryForm();if(state.businessDirty)return;state.ecosystemUploadBusiness=card.dataset.businessId;qs('#ecosystemDocument').click();};
   card.oninput=()=>{state.businessDirty=true;updateEcosystemOverview();};
@@ -761,7 +761,7 @@ async function openMemoryPanel(){
   qs("#messages").innerHTML=`
     <div class="memoryPanel">
       <h2>My Ecosystem</h2>
-      <section class="brandBrainSection"><h3>My Businesses &amp; Income Sources</h3><p>Your brand can support several businesses. Give each income source its own offer and goal.</p><label for="ecosystemPriority">My current priority</label><select id="ecosystemPriority"></select><div id="ecosystemOverview" class="loopList"></div><div id="ecosystemBusinesses"></div><button id="addIncomeSource" class="modPrimary" type="button">Add an income source</button><input id="ecosystemDocument" type="file" accept=".pdf,.docx,.txt,.md,.vtt,image/*" hidden></section>
+
       <h3>My Brand</h3>
       <details class="brandBrainSection"><summary>Saved Work</summary><p>Find the content, offers, and plans you have saved.</p><div id="businessWorkspaces"></div></details>
       <div class="memoryIntro">
@@ -783,13 +783,11 @@ async function openMemoryPanel(){
         <p>Edit anything here. These fields are used as persistent brand context when MOD writes, coaches, audits, or creates with you.</p>
         <div id="brandBrainForm" class="memoryGrid"></div></details>
 
-      <details class="brandBrainSection" open><summary>Existing business context</summary>
-        <p>Your original information is preserved here. Once you add income sources, enter their offers and goals in the matching business above.</p>
-        <div id="memoryForm" class="memoryGrid"></div></details>
-      <details class="brandBrainSection"><summary>Business Links</summary><p>Add your website, booking page, or funnel.</p><div id="businessLinks"></div><button id="addBusinessLink" type="button">Add a link</button></details>
-      <details class="brandBrainSection"><summary>My Marketing &amp; Follow-Up</summary><p>These are your shared public profiles. In each income source above, record which channels and follow-up systems support it.</p><label for="socialProfiles">Public profile URLs, one per line</label><textarea id="socialProfiles"></textarea><button id="auditProfiles" class="modPrimary" type="button">Ask MOD to audit my profiles</button><p>Public profiles only. Private analytics require a connected source.</p></details>
+      <details class="brandBrainSection"><summary>Social Profile Links</summary><p>Add the social profiles that support your brand. Keep business websites, funnels, and follow-up details inside the matching business below.</p><label for="socialProfiles">Public profile URLs, one per line</label><textarea id="socialProfiles"></textarea><button id="auditProfiles" class="modPrimary" type="button">Ask MOD to audit my profiles</button><p>Public profiles only. Private analytics require a connected source.</p></details>
       <details class="brandBrainSection"><summary>About Me</summary><label for="preferredName">What should MOD call you? (optional)</label><input id="preferredName" maxlength="60" autocomplete="given-name" placeholder="Your first name"><p>Save a name here to let MOD use it in your Home greeting.</p><label for="publicAbout">Stories, interests, and values MOD may use in public content</label><textarea id="publicAbout"></textarea><label for="privateAbout">Background notes for your reference only</label><textarea id="privateAbout"></textarea><p>Reference-only notes are stored here and excluded from MOD’s AI context.</p></details>
 
+      <section class="brandBrainSection"><h3>My Businesses</h3><p>Your brand can support several businesses. Give each business its own offer and goal, then choose which one you want to focus on now.</p><label for="ecosystemPriority">My current priority</label><select id="ecosystemPriority"></select><div id="ecosystemOverview" class="loopList"></div><div id="ecosystemBusinesses"></div><button id="addIncomeSource" class="modPrimary" type="button">Add a business</button><input id="ecosystemDocument" type="file" accept=".pdf,.docx,.txt,.md,.vtt,image/*" hidden></section>
+      <details class="brandBrainSection" id="previousBusinessDetails"><summary>Previously saved details</summary><p>These details came from your earlier My Business setup. Keep any useful information in the matching business above. Your original entries remain available here for reference.</p><div id="memoryForm" class="memoryGrid"></div><h4>Previously saved links</h4><div id="businessLinks"></div><p>Add new website, booking, and funnel links inside the matching business above.</p></details>
       <div class="memoryActions">
         <button id="saveMemory" class="primary" type="button">Save My Ecosystem</button>
         <button id="reloadMemory" class="secondaryBtn" type="button">Reload</button>
@@ -800,9 +798,8 @@ async function openMemoryPanel(){
   qs("#businessWorkspaces").append(workspaceNav);
   await loadMemoryIntoForm();
   qs(".memoryPanel").addEventListener("input",()=>{state.businessDirty=true;qs("#memoryStatus").textContent="Unsaved changes";});
-  qs("#addBusinessLink").onclick=()=>{addBusinessLinkRow({});state.businessDirty=true;qs("#memoryStatus").textContent="Unsaved changes";};
   qs("#auditProfiles").onclick=async()=>{await saveMemoryForm();if(state.businessDirty)return;const profiles=qs("#socialProfiles").value;resetWorkspace("coach");send("Audit these public social profiles if accessible. Explain any access limitations: "+profiles,"coach");};
-  qs('#addIncomeSource').onclick=()=>{if(qs('#ecosystemBusinesses').children.length>=12){qs('#memoryStatus').textContent='Use up to 12 income sources.';return;}qs('#ecosystemBusinesses').insertAdjacentHTML('beforeend',ecosystemCard());wireEcosystemCards();updateEcosystemOverview();state.businessDirty=true;};
+  qs('#addIncomeSource').onclick=()=>{if(qs('#ecosystemBusinesses').children.length>=12){qs('#memoryStatus').textContent='Use up to 12 businesses.';return;}qs('#ecosystemBusinesses').insertAdjacentHTML('beforeend',ecosystemCard());wireEcosystemCards();updateEcosystemOverview();state.businessDirty=true;};
   qs('#ecosystemPriority').onchange=()=>{state.businessDirty=true;updateEcosystemOverview();};
   qs('#ecosystemDocument').onchange=e=>{const file=e.target.files?.[0];if(!file)return;const id=state.ecosystemUploadBusiness;resetWorkspace('coach');state.businessId=id;state.pendingFiles=[file];renderPending();renderWelcome();qs('#input').value='Review this reference for the selected business. Identify its version/date, key requirements and how it relates to my goal. Flag missing information. For a compensation plan, do not promise earnings. Give me a concise reference summary I can save in this business’s notes.';qs('#input').focus();};
   qs("#saveMemory").onclick=saveMemoryForm;
@@ -825,7 +822,8 @@ async function loadMemoryIntoForm(){
     qs('#ecosystemPriority').value=state.ecosystem.priorityId||'';wireEcosystemCards();updateEcosystemOverview();
     qs("#businessLinks").innerHTML="";
     const links=Array.isArray(brand.business_links)?brand.business_links:[];
-    (links.length?links:[{}]).forEach(addBusinessLinkRow);
+    links.forEach(addBusinessLinkRow);
+    qs("#previousBusinessDetails").hidden=!links.length&&!MEMORY_UI_FIELDS.some(([key])=>memory[key])&&!memory.important_business_context?.length;
     qs("#socialProfiles").value=brand.social_profiles||"";
     qs("#preferredName").value=brand.preferred_name||"";
     qs("#publicAbout").value=brand.public_about||"";
