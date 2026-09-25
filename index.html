@@ -207,6 +207,8 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
 [data-own-offers][hidden]{display:none;}.ecosystemCard select{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:white;color:var(--ink);font:inherit;}
 [data-offer-content][hidden]{display:none;}.ecoSkip{display:flex;align-items:center;gap:10px;margin:16px 0;}.ecoSkip input{width:18px;height:18px;accent-color:var(--accent-strong);}.ecoOffer .briefToolbar{margin-top:12px;}[data-offer-scan-status]{margin:12px 0;font-style:italic;}
 .ecosystemCard .ecoSites[hidden]{display:none;}
+
+.chatBusinessPicker{gap:10px 14px;margin-bottom:24px}.chatBusinessPicker label{font-size:14px;font-weight:600;color:var(--ink)}.chatBusinessPicker select{font:inherit;font-size:16px;color:var(--ink);background:var(--rose-soft);border:1px solid var(--line);border-radius:12px;min-height:46px;padding:10px 14px;max-width:100%;cursor:pointer}.chatBusinessPicker select:focus-visible{outline:2px solid var(--accent-strong);outline-offset:3px}@media(max-width:600px){.chatBusinessPicker{align-items:stretch;flex-direction:column}.chatBusinessPicker select{width:100%;min-width:0}}
 </style>
 </head>
 <body>
@@ -1695,7 +1697,7 @@ function openMode(mode){
 }
 function renderModeBar(){
   const businesses=state.ecosystem?.businesses||[];if(!businesses.length)return '';
-  return `<div class="modeBar"><label>Business context <select id="chatBusinessContext"><option value="">Whole ecosystem / ask me</option>${businesses.map(b=>`<option value="${esc(b.id)}" ${state.businessId===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label></div>`;
+  return `<div class="modeBar chatBusinessPicker"><label for="chatBusinessContext">What are we working on?</label><select id="chatBusinessContext"><option value="">My whole ecosystem</option>${businesses.map(b=>`<option value="${esc(b.id)}" ${state.businessId===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>`;
 }
 function wireModeBar(){const select=qs('#chatBusinessContext');if(select)select.onchange=()=>{state.businessId=select.value;};}
 
