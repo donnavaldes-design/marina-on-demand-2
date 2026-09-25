@@ -211,6 +211,7 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
 .chatBusinessPicker{gap:10px 14px;margin-bottom:24px}.chatBusinessPicker label{font-size:14px;font-weight:600;color:var(--ink)}.chatBusinessPicker select{font:inherit;font-size:16px;color:var(--ink);background:var(--rose-soft);border:1px solid var(--line);border-radius:12px;min-height:46px;padding:10px 14px;max-width:100%;cursor:pointer}.chatBusinessPicker select:focus-visible{outline:2px solid var(--accent-strong);outline-offset:3px}@media(max-width:600px){.chatBusinessPicker{align-items:stretch;flex-direction:column}.chatBusinessPicker select{width:100%;min-width:0}}
 
 #jumpToLatest{position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);z-index:5;min-height:44px;padding:10px 18px;border:1px solid var(--accent-strong);border-radius:999px;background:var(--accent);color:var(--ink);font:inherit;font-size:14px;font-weight:600;white-space:nowrap;cursor:pointer;box-shadow:0 4px 14px rgba(43,21,15,.12)}#jumpToLatest[hidden]{display:none}#jumpToLatest:focus-visible{outline:2px solid var(--accent-strong);outline-offset:3px}
+.chatRunBadge{display:block;color:var(--accent-strong);font-size:12px;font-weight:700;margin-top:4px}
 </style>
 </head>
 <body>
@@ -317,6 +318,10 @@ const workspaceNav = qs("#workspaceNav");
 const controlButton = qs("#controlBtn");
 const voiceCapture={generation:0,recorder:null,stream:null,busy:false,discard:false,timer:null,limit:null};
 const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], ecosystem:{businesses:[]}, businessId:"", activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
+const chatRuns=new Map();
+let chatSelectionRevision=0;
+function chatRunBadge(id){const run=chatRuns.get(id);return run?.running?'Working…':run?.unread?(run.error?'Needs attention':'Ready'):'';}
+
 
 const googleKeys=['gmail','google_calendar','google_drive'];
 
@@ -405,7 +410,7 @@ async function applyAuthSession(session){
   qs("#login").style.display="none"; qs("#app").style.display="grid";
   qs("#userEmail").textContent=session.user.email || "";
   if(authViewUserId===session.user.id)return;
-  if(authViewUserId&&authViewUserId!==session.user.id){state.savedChat=null;state.messages=[];state.imageReferenceId=null;state.conversationId="";state.pendingFiles=[];state.businessDirty=false;state.page=null;if(qs("#input"))qs("#input").value="";}
+  if(authViewUserId&&authViewUserId!==session.user.id){chatRuns.clear();chatSelectionRevision++;state.savedChat=null;state.messages=[];state.imageReferenceId=null;state.conversationId="";state.pendingFiles=[];state.businessDirty=false;state.page=null;if(qs("#input"))qs("#input").value="";}
   authViewUserId=session.user.id;
   const generation=++authViewGeneration;
   await loadConversations();
@@ -453,7 +458,7 @@ qs("#closeSidebar").addEventListener("click",closeSidebar);
 qs("#mobileOverlay").addEventListener("click",closeSidebar);
 qs("#homeBtn").addEventListener("click",async()=>{if(state.loading)return;state.workspaceSection=null;workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));closeSidebarIfMobile();await renderDashboard()});
 qs("#newChat").addEventListener("click",()=>{if(state.loading)return;state.workspaceSection=null;if(state.savedChat){Object.assign(state,state.savedChat);state.savedChat=null;}renderPending();setMode(state.mode);renderWelcome();renderThreads()});
-qs("#startNewChat").addEventListener("click",()=>{stopModVoice(true);if(state.loading)return;if(qs("#input").value&&!confirm("Discard your unsent draft and start a new chat?"))return;state.savedChat=null;state.messages=[];state.imageReferenceId=null;state.conversationId="";state.pendingFiles=[];state.selectedSkill=null;qs("#input").value="";setMode("coach");renderPending();renderWelcome();renderThreads();});
+qs("#startNewChat").addEventListener("click",()=>{stopModVoice(true);if(qs("#input").value&&!confirm("Discard your unsent draft and start a new chat?"))return;chatSelectionRevision++;stopModWorking();state.loading=false;state.savedChat=null;state.messages=[];state.imageReferenceId=null;state.conversationId="";state.pendingFiles=[];state.selectedSkill=null;qs("#input").value="";setMode("coach");renderPending();renderWelcome();renderThreads();});
 qs("#memoryBtn").addEventListener("click", async ()=>{
   if(state.loading)return;
   closeSidebarIfMobile();
@@ -1212,11 +1217,11 @@ function cleanFileName(name){
     .replace(/-+/g,"-")
     .slice(-120);
 }
-async function uploadPendingFiles(){
+async function uploadPendingFiles(files=state.pendingFiles,ownerId=state.session.user.id,onProgress=message=>{qs("#status").textContent=message}){
   const uploaded=[];
-  for(const file of state.pendingFiles){
-    const path=`${state.session.user.id}/${Date.now()}-${crypto.randomUUID()}-${cleanFileName(file.name)}`;
-    qs("#status").textContent=`Uploading ${file.name}...`;
+  for(const file of files){
+    const path=`${ownerId}/${Date.now()}-${crypto.randomUUID()}-${cleanFileName(file.name)}`;
+    onProgress(`Uploading ${file.name}...`);
     const {error}=await state.supabase.storage
       .from("marina-attachments")
       .upload(path,uploadFileBody(file),{contentType:uploadMimeType(file)||undefined,upsert:false});
@@ -2047,7 +2052,8 @@ function openProjectMenu(e,id){
 function renderThreads(){
   const root=qs("#threads");
   if(!root)return;
-  const chats=(state.conversations||[]).filter(c=>state.activeProjectId===null||c.project_id===state.activeProjectId);
+  const pendingChats=[...chatRuns.values()].filter(r=>!state.conversations.some(c=>c.id===r.id)).map(r=>({id:r.id,title:r.title,project_id:null}));
+  const chats=[...pendingChats,...(state.conversations||[])].filter(c=>state.activeProjectId===null||c.project_id===state.activeProjectId);
 
   if(!chats.length){
     root.innerHTML=`<div class="projectEmpty">No chats here yet.</div>`;
@@ -2056,8 +2062,8 @@ function renderThreads(){
 
   root.innerHTML=chats.map(c=>`
     <div class="chatRow">
-      <button class="thread ${c.id===state.conversationId?"active":""}" data-id="${esc(c.id)}">${esc(c.title||"Conversation")}${c.ecosystem_business_id?`<small style="display:block">${esc(state.ecosystem?.businesses?.find(b=>b.id===c.ecosystem_business_id)?.name||"Previous business context")}</small>`:""}</button>
-      <button class="chatMenuBtn" type="button" data-chat-menu="${esc(c.id)}" aria-label="Chat options">•••</button>
+      <button class="thread ${c.id===state.conversationId?"active":""}" data-id="${esc(c.id)}">${esc(c.title||"Conversation")}${chatRunBadge(c.id)?`<small class="chatRunBadge">${esc(chatRunBadge(c.id))}</small>`:""}${c.ecosystem_business_id?`<small style="display:block">${esc(state.ecosystem?.businesses?.find(b=>b.id===c.ecosystem_business_id)?.name||"Previous business context")}</small>`:""}</button>
+      ${!chatRuns.get(c.id)?.running&&!c.id.startsWith("pending-")?`<button class="chatMenuBtn" type="button" data-chat-menu="${esc(c.id)}" aria-label="Chat options">•••</button>`:""}
     </div>`).join("");
 
   root.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>selectConversation(b.dataset.id));
@@ -2131,19 +2137,31 @@ document.addEventListener("click",e=>{
 });
 
 async function selectConversation(id){
-  stopModVoice(true);
-  state.imageReferenceId=null;
-  setPage("chat");
-  state.workspaceSection=null;workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
-  closeSidebarIfMobile();
-  state.conversationId=id;
-  const j=await api(`/api/messages?conversationId=${encodeURIComponent(id)}`);
-  state.messages=j.messages||[];
-  state.businessId=j.businessId||"";
-  const lastSkill=[...state.messages].reverse().find(m=>m.skill_key)?.skill_key||null;
-  state.selectedSkill=lastSkill ? state.skills.find(s=>s.skill_key===lastSkill)||null : null;
-  renderMessages(); renderThreads();
+  stopModVoice(true);stopModWorking();
+  const revision=++chatSelectionRevision;
+  state.imageReferenceId=null;state.pendingFiles=[];qs("#input").value="";renderPending();
+  setPage("chat");state.workspaceSection=null;
+  workspaceNav.querySelectorAll("button").forEach(b=>b.classList.remove("active"));
+  closeSidebarIfMobile();state.conversationId=id;
+  const run=chatRuns.get(id);
+  if(run)run.unread=false;
+  if(run&&(run.running||run.error)){
+    run.unread=false;state.messages=run.messages;state.businessId=run.businessId;state.mode=run.mode;state.selectedSkill=run.skill;state.loading=run.running;
+    if(run.error){qs("#input").value=run.draft;state.pendingFiles=run.files;renderPending();}
+    qs("#status").textContent=run.error||"";renderMessages();renderThreads();if(run.running)startModWorking();return;
+  }
+  if(run)chatRuns.delete(id);
+  state.loading=true;qs("#messages").innerHTML='<p>Loading conversation...</p>';
+  try{
+    const j=await api(`/api/messages?conversationId=${encodeURIComponent(id)}`);
+    if(revision!==chatSelectionRevision)return;
+    state.messages=j.messages||[];state.businessId=j.businessId||"";
+    const lastSkill=[...state.messages].reverse().find(m=>m.skill_key)?.skill_key||null;
+    state.selectedSkill=lastSkill?state.skills.find(s=>s.skill_key===lastSkill)||null:null;
+    state.loading=false;qs("#status").textContent="";renderMessages();renderThreads();
+  }catch(e){if(revision===chatSelectionRevision){state.loading=false;qs("#messages").innerHTML='<p>Could not load this conversation. Select it again to retry.</p>';qs("#status").textContent=e.message;}}
 }
+
 function renderWelcome(){
   setPage("chat");
   if(state.messages.length){renderMessages();return}
@@ -2466,70 +2484,44 @@ function renderMessages(){
   qs("#messages").scrollTop=qs("#messages").scrollHeight;
 }
 async function send(prefill, forcedMode, forcedSkillKey){
-  const input=qs("#input");
-  if(forcedMode)setMode(forcedMode);
-  const activeSkillKey=forcedSkillKey || state.selectedSkill?.skill_key || null;
-  const value=String(prefill ?? input.value).trim();
+  const input=qs("#input"),value=String(prefill??input.value).trim();
   if(voiceCapture.busy){qs("#voiceNote").textContent="Finish dictation and review your words before sending.";return;}
   if((!value&&!state.pendingFiles.length)||state.loading)return;
-
-  const originalFiles=[...state.pendingFiles];
-  state.loading=true;
-  modWorkingIndex=0;
-  input.value="";
-  qs("#status").textContent="";
-
-  const localAttachments=state.pendingFiles.map(f=>({
-    file_name:f.name,
-    mime_type:f.type,
-    size_bytes:f.size,
-    signed_url:f.type.startsWith("image/") ? URL.createObjectURL(f) : null
-  }));
-
-  state.messages.push({
-    role:"user",
-    content:value||"[Attachment]",
-    attachments:localAttachments
-  });
-  renderMessages();
-  startModWorking();
-
+  if(forcedMode)setMode(forcedMode);
+  const serverId=state.conversationId&&!state.conversationId.startsWith('pending-')?state.conversationId:null;
+  const id=state.conversationId||'pending-'+crypto.randomUUID(),ownerId=state.session.user.id;
+  const run={id,ownerId,title:value.slice(0,70)||'Image conversation',messages:[...state.messages],businessId:state.businessId||'',mode:state.mode,skill:state.selectedSkill,skillKey:forcedSkillKey||state.selectedSkill?.skill_key||null,imageReferenceId:state.imageReferenceId||null,files:[...state.pendingFiles],draft:value,running:true,unread:false,error:''};
+  chatRuns.set(id,run);state.conversationId=id;state.messages=run.messages;state.loading=true;state.pendingFiles=[];input.value='';renderPending();
+  const active=()=>state.session?.user?.id===ownerId&&state.page==='chat'&&state.conversationId===run.id;
+  const localAttachments=run.files.map(f=>({file_name:f.name,mime_type:f.type,size_bytes:f.size,signed_url:f.type.startsWith('image/')?URL.createObjectURL(f):null}));
+  run.messages.push({role:'user',content:value||'[Attachment]',attachments:localAttachments});
+  qs('#status').textContent='';renderMessages();renderThreads();startModWorking();
   try{
-    const attachments=await uploadPendingFiles();
-    state.pendingFiles=[];
-    renderPending();
-    qs("#status").textContent="";
-
-    const j=await api("/api/chat",{
-      method:"POST",
-      body:JSON.stringify({
-        message:value,
-        conversationId:state.conversationId||undefined,
-        businessId:state.businessId||null,
-        attachments,
-        imageReferenceId:state.imageReferenceId||null,
-        mode:state.mode,
-        skillKey:activeSkillKey
-      })
-    });
-
-    state.imageReferenceId=null;
-    state.conversationId=j.conversationId;
-    state.businessId=j.businessId||"";
-    if(j.mode==="action")setMode("action");
-    if(j.skillKey){state.selectedSkill=state.skills.find(s=>s.skill_key===j.skillKey)||state.selectedSkill}
-    state.messages.push({imageJob:j.imageJob||null,id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null,skill_key:j.skillKey||null,web_sources:j.webSources||[]});
+    const attachments=await uploadPendingFiles(run.files,ownerId,message=>{if(active())qs('#status').textContent=message;});
+    if(state.session?.user?.id!==ownerId)return;
+    const j=await api('/api/chat',{method:'POST',body:JSON.stringify({message:value,conversationId:serverId||undefined,businessId:run.businessId||null,attachments,imageReferenceId:run.imageReferenceId,mode:run.mode,skillKey:run.skillKey})});
+    if(state.session?.user?.id!==ownerId)return;
+    const wasActive=active();chatRuns.delete(run.id);run.id=j.conversationId;chatRuns.set(run.id,run);
+    if(wasActive)state.conversationId=run.id;
+    run.businessId=j.businessId||'';run.mode=j.mode||run.mode;
+    if(j.skillKey)run.skill=state.skills.find(s=>s.skill_key===j.skillKey)||run.skill;
+    run.messages.push({imageJob:j.imageJob||null,id:j.messageId,role:'assistant',content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||run.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null,skill_key:j.skillKey||null,web_sources:j.webSources||[]});
+    run.files=[];run.draft='';run.unread=!wasActive;
     await loadConversations();
-    qs("#status").textContent="";
-  }catch(e){
-    input.value=value;state.pendingFiles=originalFiles;renderPending();
-    qs("#status").textContent=e.message+" Your draft is restored. Check the conversation before sending again.";
+  }catch(e){run.error=e.message+' Your draft is restored. Check this conversation before sending again.';run.unread=!active();}
+  finally{
+    run.running=false;
+    if(state.session?.user?.id===ownerId){
+      if(active()){
+        stopModWorking();state.loading=false;state.messages=run.messages;state.businessId=run.businessId;state.selectedSkill=run.skill;state.imageReferenceId=null;setMode(run.mode);
+        if(run.error){input.value=run.draft;state.pendingFiles=run.files;renderPending();}
+        qs('#status').textContent=run.error;renderMessages();
+      }
+      renderThreads();
+    }
   }
-
-  stopModWorking();
-  state.loading=false;
-  renderMessages();
 }
+
 qs("#dictateBtn").onclick=toggleDictation;
 window.addEventListener("pagehide",()=>{stopModVoice(true);stopModWorking();});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopModVoice(true);});
