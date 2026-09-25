@@ -22,3 +22,6 @@ Compensation and policy references are shown for network marketing and affiliate
 
 
 Network marketing setup: network-only businesses use named replicated-site, funnel, shopping, opportunity and team-resource URL fields instead of an offer ladder. Mixed-category businesses retain their own optional offer path. Optional coaching facts include company start date in user words, experience level, current rank, active customers/personally enrolled partners (including Not sure), customer/team/both focus, 90-day and long-term goals, strengths, challenges, weekly time and motivation. These are normalized, saved, and included in scoped AI context. Missing optional coaching answers do not block setup or saving.
+
+
+Offer scanning: each optional level starts with its landing URL. POST /api/ecosystem/offer/scan uses web research to propose name, description and visible price, without writing memory. The user previews and applies details, then saves the page. Goals are never inferred or overwritten by scanning; missing fields stay unchanged. Free lead magnets have no price field and normalization removes their price. Each level has a durable skipped flag for intentionally unoffered levels. Skipped draft data is retained for reversal but excluded from the overview and coaching recommendations. Public-page access is not guaranteed; scan failures offer manual entry.

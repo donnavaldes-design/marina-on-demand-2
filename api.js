@@ -1,4 +1,5 @@
 const ECOSYSTEM=require('./ecosystem');
+const OFFER_SCAN=require('./offer-scan');
 const ECOSYSTEM_UPDATE=require('./ecosystem-update');
 const { RESPONSE_QUALITY } = require("./response-quality");
 const { IMAGE_TOOL, createImageService } = require("./images/service");
@@ -4154,6 +4155,11 @@ async function executeApprovedBmodStep(userId,step){
       return json(res, 200, { ok: true });
     }
 
+    if(req.method === "POST" && path === "/api/ecosystem/offer/scan"){
+      const body=await readBody(req);
+      const result=await OFFER_SCAN.scan({url:body.url,level:body.level,apiKey:process.env.OPENAI_API_KEY,model:process.env.OPENAI_MODEL||"gpt-5.6-terra",parseText:parseOpenAIText,parseJson:parseJsonObject});
+      return json(res,200,result);
+    }
     if(req.method === "GET" && path === "/api/ecosystem/reference"){
       const memory=await getMemory(user.id);
       const business=memory?.brand_brain?.ecosystem?.businesses?.find(b=>b.id===url.searchParams.get('businessId'));
