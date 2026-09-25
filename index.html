@@ -1094,14 +1094,14 @@ async function api(url, options={}){
 }
 
 
-function modeLabel(mode){return mode==="action"?"Action Mode ⚡":"Chat with MOD"}
+function modeLabel(mode){return "Chat with MOD"}
 function routeLabel(route){
   return ({image_generation:"MOD Image Studio",framework:"MOD Method Library",identity:"Identity Mode",product:"Product Fit Logic",current:"Current Data Guardrail",operator:"Operator Mode"})[route]||"MOD Strategy";
 }
 function setMode(mode){
   state.mode=["coach","create","action"].includes(mode)?mode:"coach";
   const input=qs("#input");
-  input.placeholder=state.mode==="action"?"What do you want MOD to help execute?":"Ask MOD anything...";
+  input.placeholder="Ask MOD anything...";
 }
 function resetWorkspace(mode="coach"){
   setPage("chat");
@@ -1246,7 +1246,7 @@ async function updateGoogleMode(key,mode){try{await api(`/api/connections/${key}
 function canvaControlsMarkup(c){
   const connected=c?.status==="connected";
   const groups=[...new Set((c?.operations||[]).map(o=>o.family))];
-  return `<div class="connectionTools"><label>Connection permission <select data-canva-mode ${!c?'disabled':''}><option value="view_only" ${c?.permission_mode!=="view_and_take_action"?'selected':''}>View Only</option><option value="view_and_take_action" ${c?.permission_mode==="view_and_take_action"?'selected':''}>View + Take Action</option></select></label><p>New designs require individual approval in Action Mode. Publishing, exports and deletion are unavailable.</p>
+  return `<div class="connectionTools"><label>Connection permission <select data-canva-mode ${!c?'disabled':''}><option value="view_only" ${c?.permission_mode!=="view_and_take_action"?'selected':''}>View Only</option><option value="view_and_take_action" ${c?.permission_mode==="view_and_take_action"?'selected':''}>View + Take Action</option></select></label><p>New designs require individual approval in this chat. Publishing, exports and deletion are unavailable.</p>
   ${connected&&c.reauthorization_required?'<p>Additional permissions are needed. Your existing connection remains active.</p><button class="primaryConnect" data-connect="canva">Update Permissions</button>':''}
   ${connected?'<button data-canva-verify>Verify Canva reads</button>':''}<div data-canva-result role="status" aria-live="polite"></div>
   ${groups.map(f=>{const ops=c.operations.filter(o=>o.family===f);return `<p><strong>${esc(f)}</strong>: ${ops.map(o=>esc(o.name.replaceAll('_',' '))+': '+esc(o.status.replaceAll('_',' '))).join('; ')}</p>`;}).join('')}
@@ -1502,7 +1502,7 @@ function renderBriefLoops(loops,expanded=false){
   const chatButton=x=>x.conversation_id?`<button data-open-loop-chat="${esc(x.conversation_id)}">Continue</button>`:"";
   const meta=x=>`${esc(String(x.status||"planned").replace(/_/g," "))}${x.result?.due_at?` · Due ${esc(formatDate(x.result.due_at))}`:""}`;
   const taskCard=(x,snoozed=false)=>`<div class="loopItem" data-loop-task="${esc(x.id)}"><strong>${esc(x.title)}</strong><div class="loopMeta">${snoozed?`Snoozed until ${esc(formatDate(x.result.snoozed_until))}`:meta(x)}</div>${x.description?`<p>${esc(x.description)}</p>`:""}<div class="loopActions">${chatButton(x)}<button class="doneLoop" data-loop-task-action="done">Mark done</button><button data-loop-task-action="${snoozed?"resume":"snooze"}">${snoozed?"Bring back now":"Snooze 24 hours"}</button></div></div>`;
-  const cards=[...(loops.approvals||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(x.external_system||"External action")} · Awaiting approval</div>${x.description?`<p>${esc(x.description)}</p>`:""}<div class="loopActions">${x.conversation_id?`<button data-open-loop-chat="${esc(x.conversation_id)}">Review in Action Mode</button>`:`<span>Open the original Action Mode conversation to review this action.</span>`}</div></div>`),...(loops.tasks||[]).map(x=>taskCard(x)),...(loops.runs||[]).map(x=>`<div class="loopItem"><strong>${esc(x.objective||"Action Run")}</strong><div class="loopMeta">${meta(x)}</div>${x.summary?`<p>${esc(x.summary)}</p>`:""}<div class="loopActions">${chatButton(x)}</div></div>`)];
+  const cards=[...(loops.approvals||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(x.external_system||"External action")} · Awaiting approval</div>${x.description?`<p>${esc(x.description)}</p>`:""}<div class="loopActions">${x.conversation_id?`<button data-open-loop-chat="${esc(x.conversation_id)}">Review in this chat</button>`:`<span>Open the original Action Mode conversation to review this action.</span>`}</div></div>`),...(loops.tasks||[]).map(x=>taskCard(x)),...(loops.runs||[]).map(x=>`<div class="loopItem"><strong>${esc(x.objective||"Action Run")}</strong><div class="loopMeta">${meta(x)}</div>${x.summary?`<p>${esc(x.summary)}</p>`:""}<div class="loopActions">${chatButton(x)}</div></div>`)];
   const completed=(loops.recent_completed||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">Completed</div>${x.result?.note?`<p>${esc(x.result.note)}</p>`:""}</div>`).join("");
   const assets=(loops.ready_assets||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(workspaceLabel(x.section))} · ready to use</div><div class="loopActions"><button data-open-asset-section="${esc(x.section)}">Open workspace</button></div></div>`).join("");
   const recent=state.conversations?.[0];
@@ -1551,18 +1551,14 @@ async function renderDashboard(){
   return openDailyBrief();
 }
 function openMode(mode){
+  if(state.messages.length){setMode(mode);renderMessages();return;}
   resetWorkspace(mode);
   if(mode==="create")return renderCreateHub();
   if(mode==="action")return renderActionHub();
   renderWelcome();
 }
-function renderModeBar(){
-  const visibleMode=state.mode==="action"?"action":"coach";
-  return `<div class="modeBar">${["coach","action"].map(m=>`<button class="modeChip ${visibleMode===m?"active":""}" data-switch-mode="${m}">${modeLabel(m)}</button>`).join("")}</div>`;
-}
-function wireModeBar(){
-  qs("#messages").querySelectorAll("[data-switch-mode]").forEach(b=>b.onclick=()=>openMode(b.dataset.switchMode));
-}
+function renderModeBar(){return "";}
+function wireModeBar(){}
 
 async function loadSkills(){
   try{
