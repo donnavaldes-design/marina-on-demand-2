@@ -21,3 +21,8 @@ https://developers.google.com/identity/protocols/oauth2
 https://developers.google.com/workspace/gmail/api/auth/scopes
 https://developers.google.com/workspace/calendar/api/auth
 https://developers.google.com/workspace/drive/api/guides/api-specific-auth
+
+## Drive exports
+Add `https://www.googleapis.com/auth/drive.file` to Google Auth Platform Data Access. The existing Drive API supports multipart text-to-Docs conversion; no Docs API or new client credential is required. Users choose View + Take Action for Google Drive, then Update permissions. Keep current read scopes. Exports are new files in My Drive, with individual approval, up to 5 MB. No existing files are overwritten. Uploaded MOD attachments are resolved server-side using the authenticated owner.
+
+Gmail drafts may omit recipients. Send actions continue to require recipients and their own approval. Draft receipt opens the Gmail drafts folder, where the user can select the saved subject.

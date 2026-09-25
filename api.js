@@ -1943,7 +1943,20 @@ async function buildUserMcpTools(userId) {
 
 
 const GOOGLE_MANIFEST=require('./google/manifest');
-const GOOGLE=Object.fromEntries(Object.keys(GOOGLE_MANIFEST.providers).map(key=>[key,require('./google/service').createService(key,{sbRest,sbRpc,getSecret:getConnectionSecret,getRefreshSecret:getConnectionRefreshSecret})]));
+async function loadDriveExportAttachment(userId,attachmentId){
+  const rows=await sbRest(`message_attachments?id=eq.${encodeURIComponent(attachmentId)}&user_id=eq.${encodeURIComponent(userId)}&select=storage_path,storage_bucket,mime_type,size_bytes&limit=1`);
+  const a=rows?.[0];
+  const allowed=['image/png','image/jpeg','image/webp','application/pdf','text/plain','text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  if(!a||a.storage_bucket!=='marina-attachments'||!a.storage_path.startsWith(userId+'/')||a.storage_path.split('/').some(x=>x==='..')||!allowed.includes(a.mime_type))throw Error('This file is unavailable for Drive export.');
+  if(Number(a.size_bytes)>5*1024*1024)throw Error('Drive export supports files up to 5 MB.');
+  const url=await createAttachmentSignedUrl(a.storage_path,60);
+  const response=await fetch(url,{signal:AbortSignal.timeout(15000)});
+  if(!response.ok)throw Error('Could not read the saved file.');
+  const bytes=Buffer.from(await response.arrayBuffer());
+  if(bytes.length>5*1024*1024)throw Error('Drive export supports files up to 5 MB.');
+  return {bytes,mimeType:a.mime_type};
+}
+const GOOGLE=Object.fromEntries(Object.keys(GOOGLE_MANIFEST.providers).map(key=>[key,require('./google/service').createService(key,{sbRest,sbRpc,getSecret:getConnectionSecret,getRefreshSecret:getConnectionRefreshSecret,loadAttachment:loadDriveExportAttachment})]));
 async function executeGoogleOperation(user,args,context={}){
   if(!GOOGLE_MANIFEST.isProvider(args.provider))throw Error('Unsupported Google provider.');
   return GOOGLE[args.provider].execute(user,args,{
@@ -2204,7 +2217,7 @@ CONNECTED BUSINESS TOOLS:
 - Never claim a connection exists unless a connected tool is actually available in this request.
 - Reads may execute automatically when the connection has permission.
 - Supported BMOD Tools writes, Canva design creation, Gmail draft/send, and Google Calendar event creation must be prepared in this conversation, shown for individual approval, and executed only after approval.
-- Google Drive remains read-only in this release.
+- Google Drive can create a new Google Doc from text or save an existing MOD attachment in My Drive after approval. Discover operations and permissions first. Email content belongs in Gmail drafts when the user requests export; documents belong in Google Docs, images/files in Drive. Show content in chat before offering export.
 - Generic MCP connections remain READ-ONLY. Do not claim you changed, sent, published, deleted, or updated anything through a generic MCP connector.
 - Never claim an external write succeeded unless the tool returns a confirmed completion receipt.
 `;
@@ -4312,6 +4325,26 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
     if (req.method === "POST" && path === "/api/images/save") {
       const body=await readBody(req);
       return json(res,200,await MOD_IMAGES.save(user.id,String(body.messageId || "")));
+    }
+    if(req.method==='POST'&&path==='/api/export/drive'){
+      const body=await readBody(req);
+      const name=String(body.name||'MOD document').trim();
+      const messages=await sbRest(`messages?id=eq.${encodeURIComponent(body.messageId||'')}&user_id=eq.${encodeURIComponent(user.id)}&select=id,conversation_id,content&limit=1`);
+      const source=messages?.[0];if(!source)return json(res,404,{error:'Message not found.'});
+      const operation=body.attachmentId?'save_file':'create_document';
+      if(body.attachmentId){
+        const files=await sbRest(`message_attachments?id=eq.${encodeURIComponent(body.attachmentId)}&message_id=eq.${encodeURIComponent(source.id)}&user_id=eq.${encodeURIComponent(user.id)}&select=id&limit=1`);
+        if(!files?.length)return json(res,404,{error:'File not found in this message.'});
+      }
+      const run=await createActionRun(user.id,source.conversation_id,'Save '+name+' to Google Drive');
+      try{
+        const result=await executeGoogleOperation(user.id,{provider:'google_drive',operation,parameters_json:JSON.stringify(body.attachmentId?{name,attachmentId:body.attachmentId}:{name,content:source.content})},{runId:run.id});
+        if(result.status!=='approval_required')throw Error(result.message||'Could not prepare the export.');
+        const answer='Ready for your approval. This will save '+name+' in My Drive.';
+        await finalizeActionRun(user.id,run.id,answer);
+        const message=await saveMessage(user.id,source.conversation_id,'assistant',answer,{action_run_id:run.id,experience_mode:'coach'});
+        return json(res,200,{message:{...message,role:'assistant',content:answer,action_run:await getActionRun(user.id,run.id)}});
+      }catch(e){await finalizeActionRun(user.id,run.id,'Export could not be prepared.',true);throw e;}
     }
     if (req.method === "POST" && path === "/api/chat") {
       const body = await readBody(req);
