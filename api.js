@@ -1935,7 +1935,7 @@ async function getConnectionsForUser(userId) {
   const rows = await sbRest(
     `user_connections?user_id=eq.${encodeURIComponent(userId)}&select=id,integration_key,transport,server_url,tunnel_id,status,oauth_scope,permission_mode,oauth_requested_scope,bmod_manifest_version,allowed_tools,discovered_tools,read_only,last_error,last_checked_at,updated_at`
   );
-  return (Array.isArray(rows) ? rows : []).map(c => c.integration_key === "bmod_tools" ? bmodConnectionSummary(c) : c.integration_key === "canva" ? {...c,...CANVA_MANIFEST.capabilities(c)} : GOOGLE_MANIFEST.isProvider(c.integration_key)?{...c,...GOOGLE_MANIFEST.capabilities(c)}:c);
+  return (Array.isArray(rows) ? rows : []).filter(c=>c.integration_key!=="bmod_membership").map(c => c.integration_key === "bmod_tools" ? bmodConnectionSummary(c) : c.integration_key === "canva" ? {...c,...CANVA_MANIFEST.capabilities(c)} : GOOGLE_MANIFEST.isProvider(c.integration_key)?{...c,...GOOGLE_MANIFEST.capabilities(c)}:c);
 }
 
 async function getConnectionSecret(userId, integrationKey) {
@@ -2002,7 +2002,7 @@ async function executeGoogleOperation(user,args,context={}){
   });
 }
 const CANVA_MANIFEST = require("./canva/manifest");
-const MEMBERSHIP = require("./access/membership").createMembershipService({sbRest,connection:getBmodConnection,call:highLevelApi});
+const MEMBERSHIP = require("./access/membership").createMembershipService({sbRest,connection:async id=>{const c=await readBmodRow(id,"bmod_membership");return bmodMayRead(c)?c:null;},call:(id,path,options)=>highLevelApi(id,path,{...options,integrationKey:"bmod_membership"})});
 const VOICE = require("./voice/service").createVoiceService({sbRest,storageHeaders:supabaseHeaders});
 const MOD_IMAGES = createImageService({sbRest,saveMessage,sign:createAttachmentSignedUrl,hydrate:hydrateAttachments,storageHeaders:supabaseHeaders});
 const CANVA = require("./canva/service").createService({sbRest,sbRpc,getSecret:getConnectionSecret,getRefreshSecret:getConnectionRefreshSecret,insertActionStep,nextActionStepOrder});
@@ -2046,12 +2046,12 @@ function bmodConnectionSummary(c) {
 }
 const BMOD_RECONNECT_ERROR = "HighLevel authorization is no longer valid. Please reconnect.";
 
-async function bmodTransition(userId, action, lease=null, data={}) {
-  return sbRpc("bmod_token_transition", {p_user_id:userId,p_action:action,p_lease:lease,p_data:data});
+async function bmodTransition(userId, action, lease=null, data={}, integrationKey="bmod_tools") {
+  return sbRpc(integrationKey==="bmod_membership"?"membership_token_transition":"bmod_token_transition", {p_user_id:userId,p_action:action,p_lease:lease,p_data:data});
 }
 
-async function readBmodRow(userId) {
-  const rows = await sbRest(`user_connections?user_id=eq.${encodeURIComponent(userId)}&integration_key=eq.bmod_tools&select=*&limit=1`);
+async function readBmodRow(userId, integrationKey="bmod_tools") {
+  const rows = await sbRest(`user_connections?user_id=eq.${encodeURIComponent(userId)}&integration_key=eq.${encodeURIComponent(integrationKey)}&select=*&limit=1`);
   return Array.isArray(rows) ? rows[0] || null : null;
 }
 
@@ -2062,7 +2062,7 @@ function bmodMayRead(c) {
      !!c.oauth_connected_at && !!c.provider_account_id && !!c.vault_secret_id && !!c.refresh_vault_secret_id));
 }
 
-async function saveBmodTokens(userId, lease, data) {
+async function saveBmodTokens(userId, lease, data, integrationKey="bmod_tools") {
   if (!data.access_token || !data.refresh_token || !(Number(data.expires_in)>0))
     throw new Error("HighLevel returned an incomplete token response. Please retry later.");
   // Retry the SAME returned pair on a storage failure, never reuse the old refresh token.
@@ -2070,12 +2070,12 @@ async function saveBmodTokens(userId, lease, data) {
   for (let attempt=0; attempt<3; attempt++) {
     try {
       if(!payload) {
-        const current=await readBmodRow(userId);
+        const current=await readBmodRow(userId,integrationKey);
         const scopes=Object.prototype.hasOwnProperty.call(data,"scope")?data.scope:current?.oauth_scope;
-        const metadata=bmodGrantedTools({...current,status:"connected",oauth_scope:scopes});
+        const metadata=integrationKey==="bmod_membership"?[]:bmodGrantedTools({...current,status:"connected",oauth_scope:scopes});
         payload={...data,allowed_tools:metadata,discovered_tools:metadata.map(name=>({name})),manifest_version:BMOD_MANIFEST.VERSION};
       }
-      if (!await bmodTransition(userId,"save",lease,payload))
+      if (!await bmodTransition(userId,"save",lease,payload,integrationKey))
         throw new Error("Connection changed while saving authorization. Please retry.");
       return;
     } catch(e) {
@@ -2085,27 +2085,27 @@ async function saveBmodTokens(userId, lease, data) {
   }
 }
 
-async function refreshHighLevelAccessToken(userId, rejectedToken=null) {
+async function refreshHighLevelAccessToken(userId, rejectedToken=null, integrationKey="bmod_tools") {
   const lease = require("crypto").randomUUID();
   let acquired=false;
   for(let attempt=0;attempt<30;attempt++) {
-    const current=await readBmodRow(userId);
+    const current=await readBmodRow(userId,integrationKey);
     if (!bmodMayRead(current)) throw new Error("BMOD Tools needs to be reconnected.");
-    const currentToken=await getConnectionSecret(userId,"bmod_tools");
+    const currentToken=await getConnectionSecret(userId,integrationKey);
     const expiry=Date.parse(current.token_expires_at || "");
     if (currentToken && expiry>Date.now()+5*60*1000 && (!rejectedToken || currentToken!==rejectedToken)) return currentToken;
-    acquired=await bmodTransition(userId,"claim",lease);
+    acquired=await bmodTransition(userId,"claim",lease,{},integrationKey);
     if(acquired) break;
     await new Promise(resolve=>setTimeout(resolve,200));
   }
   if(!acquired) throw new Error("BMOD Tools is refreshing authorization. Please retry shortly.");
   try {
     // Re-read after acquiring the database lease. Another instance may have rotated it.
-    const current=await readBmodRow(userId);
+    const current=await readBmodRow(userId,integrationKey);
     if (!bmodMayRead(current)) throw new Error("BMOD Tools needs to be reconnected.");
-    const currentToken=await getConnectionSecret(userId,"bmod_tools");
+    const currentToken=await getConnectionSecret(userId,integrationKey);
     if(currentToken && Date.parse(current.token_expires_at || "")>Date.now()+5*60*1000 && (!rejectedToken || currentToken!==rejectedToken)) return currentToken;
-    const refreshToken=await getConnectionRefreshSecret(userId,"bmod_tools");
+    const refreshToken=await getConnectionRefreshSecret(userId,integrationKey);
     if(!refreshToken) throw new Error("HighLevel refresh credential is unavailable. Please retry later.");
     const clientId=String(process.env.HIGHLEVEL_CLIENT_ID || "").trim();
     const clientSecret=String(process.env.HIGHLEVEL_CLIENT_SECRET || "").trim();
@@ -2117,34 +2117,34 @@ async function refreshHighLevelAccessToken(userId, rejectedToken=null) {
     });
     if(!response.ok) {
       if((response.status===400 || response.status===401) && data?.error==="invalid_grant") {
-        await bmodTransition(userId,"revoke",lease);
+        await bmodTransition(userId,"revoke",lease,{},integrationKey);
         throw new Error(BMOD_RECONNECT_ERROR);
       }
       console.warn("bmod_oauth_refresh_unavailable",{status:response.status});
       throw new Error(`HighLevel token refresh temporarily unavailable (${response.status}). Please retry later.`);
     }
-    await saveBmodTokens(userId,lease,{...data,mode:"refresh"});
+    await saveBmodTokens(userId,lease,{...data,mode:"refresh"},integrationKey);
     console.info("bmod_oauth_refresh_succeeded");
     return String(data.access_token);
   } finally {
-    await bmodTransition(userId,"release",lease).catch(()=>{});
+    await bmodTransition(userId,"release",lease,{},integrationKey).catch(()=>{});
   }
 }
 
-async function getHighLevelAccessToken(userId) {
-  const c=await readBmodRow(userId);
+async function getHighLevelAccessToken(userId, integrationKey="bmod_tools") {
+  const c=await readBmodRow(userId,integrationKey);
   if(!bmodMayRead(c)) throw new Error("BMOD Tools needs to be reconnected.");
   const expires=Date.parse(c.token_expires_at || "");
-  if(!Number.isFinite(expires) || expires<Date.now()+5*60*1000) return refreshHighLevelAccessToken(userId);
-  const token=await getConnectionSecret(userId,"bmod_tools");
-  return token || refreshHighLevelAccessToken(userId);
+  if(!Number.isFinite(expires) || expires<Date.now()+5*60*1000) return refreshHighLevelAccessToken(userId,null,integrationKey);
+  const token=await getConnectionSecret(userId,integrationKey);
+  return token || refreshHighLevelAccessToken(userId,null,integrationKey);
 }
 
-async function highLevelApi(userId, path, {method="GET",body=null,requiredScopes=[]}={}) {
-  let token=await getHighLevelAccessToken(userId);
+async function highLevelApi(userId, path, {method="GET",body=null,requiredScopes=[],integrationKey="bmod_tools"}={}) {
+  let token=await getHighLevelAccessToken(userId,integrationKey);
   for(let attempt=0;attempt<2;attempt++) {
     if(requiredScopes.length) {
-      const current=await readBmodRow(userId);
+      const current=await readBmodRow(userId,integrationKey);
       if(!bmodMayRead(current)) throw new Error("BMOD Tools is not connected.");
       const granted=BMOD_MANIFEST.parseScopes(current.oauth_scope);
       if(requiredScopes.some(scope=>!granted.has(scope))) throw new Error("BMOD permissions changed. Update permissions in Connections; your account remains connected.");
@@ -2155,7 +2155,7 @@ async function highLevelApi(userId, path, {method="GET",body=null,requiredScopes
     });
     if(r.status===401 && attempt===0) {
       await r.text();
-      token=await refreshHighLevelAccessToken(userId,token);
+      token=await refreshHighLevelAccessToken(userId,token,integrationKey);
       continue;
     }
     const text=await r.text();
@@ -2179,6 +2179,42 @@ async function testBmodConnection(userId) {
   const latest=await readBmodRow(userId);
   if(latest?.status!=="connected") throw new Error("Connection changed during verification. Please retry.");
   return {ok:true,status:"connected",allowedTools:bmodGrantedTools(latest),discoveredTools:bmodGrantedTools(latest).map(name=>({name}))};
+}
+
+async function membershipConfig(){
+  const rows=await sbRest('runtime_settings?key=eq.membership_access&select=value&limit=1');
+  const config=rows?.[0]?.value;
+  if(!config?.connection_user_id||!config?.location_id)throw Error('Corporate membership settings are missing.');
+  return config;
+}
+async function membershipConnectionStatus(){
+  const config=await membershipConfig(),c=await readBmodRow(config.connection_user_id,'bmod_membership');
+  return {connected:bmodMayRead(c)&&c.provider_account_id===config.location_id,status:c?.status||'not_connected',locationId:config.location_id};
+}
+async function startMembershipOAuth(userId,siteUrl){
+  if(!siteUrl)throw Error('Site URL is not configured.');
+  const config=await membershipConfig();
+  if(userId!==config.connection_user_id)throw Error('The designated corporate connection administrator must connect this account.');
+  const clientId=String(process.env.HIGHLEVEL_CLIENT_ID||'').trim(),clientSecret=String(process.env.HIGHLEVEL_CLIENT_SECRET||'').trim();
+  if(!clientId||!clientSecret)throw Error('HighLevel OAuth credentials are missing.');
+  await sbRest('user_connections?on_conflict=user_id,integration_key',{method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify([{user_id:userId,integration_key:'bmod_membership',transport:'http',status:'auth_required',read_only:true,permission_mode:'view_only'}])});
+  const state=randomUrlSafe(32),redirectUri=siteUrl+'/api/connections/oauth/callback';
+  await sbRest('connection_oauth_states',{method:'POST',body:JSON.stringify([{state,user_id:userId,integration_key:'bmod_membership',redirect_uri:redirectUri,return_url:siteUrl+'/',client_id:clientId,client_secret:clientSecret,scopes:'contacts.readonly',token_auth_method:'client_secret_post',expires_at:new Date(Date.now()+600000).toISOString()}])});
+  const authUrl=new URL('https://marketplace.gohighlevel.com/oauth/chooselocation');
+  for(const [k,v] of Object.entries({response_type:'code',client_id:clientId,redirect_uri:redirectUri,state,user_type:'Location',scope:'contacts.readonly'}))authUrl.searchParams.set(k,v);
+  return {authorizeUrl:authUrl.toString()};
+}
+async function completeMembershipOAuth(st,code){
+  const config=await membershipConfig();
+  if(st.user_id!==config.connection_user_id||!(Date.parse(st.expires_at)>Date.now()))throw Error('Corporate authorization session expired.');
+  const lease=require('crypto').randomUUID();
+  if(!await bmodTransition(st.user_id,'claim',lease,{},'bmod_membership'))throw Error('Corporate connection is busy. Retry shortly.');
+  try{
+    const token=await exchangeOAuthCode(st,code),locationId=String(token.locationId||token.location_id||'');
+    if(locationId!==config.location_id)throw Error('Select the corporate BMOD account. Personal accounts cannot verify memberships.');
+    if(!String(token.scope||'').split(/\s+/).includes('contacts.readonly'))throw Error('Corporate contact read permission is required.');
+    await saveBmodTokens(st.user_id,lease,{...token,mode:'callback',location_id:locationId,client_id:st.client_id,client_secret:st.client_secret,requested_scope:'contacts.readonly'},'bmod_membership');
+  }finally{await bmodTransition(st.user_id,'release',lease,{},'bmod_membership').catch(()=>{});}
 }
 
 async function completeBmodOAuth(st,code) {
@@ -2776,7 +2812,7 @@ async function registerDynamicMcpClient(oauth, redirectUri) {
 
 async function exchangeOAuthCode(stateRow, code) {
   // HighLevel has a strict v3 token contract. Match it exactly.
-  if (stateRow.integration_key === "bmod_tools") {
+  if (["bmod_tools","bmod_membership"].includes(stateRow.integration_key)) {
     const params = new URLSearchParams({
       client_id:String(stateRow.client_id || ""),
       client_secret:String(stateRow.client_secret || ""),
@@ -2943,14 +2979,14 @@ module.exports = async function handler(req, res) {
         await sbRest(`connection_oauth_states?state=eq.${encodeURIComponent(state)}&integration_key=eq.canva`,{method:"DELETE"});
         res.statusCode=302;res.setHeader("Location",`${returnUrl.split("?")[0]}?oauth=error&connection=canva`);return res.end();
       }
-      if(st.integration_key==="bmod_tools") {
+      if(["bmod_tools","bmod_membership"].includes(st.integration_key)) {
         const claimed=await sbRest(`connection_oauth_states?state=eq.${encodeURIComponent(state)}`,{method:"DELETE",headers:{Prefer:"return=representation"}});
         let ok=false;
         if(Array.isArray(claimed) && claimed.length && !oauthError && code) {
-          try {await completeBmodOAuth(st,code);ok=true;} catch {console.warn("bmod_oauth_callback_failed");}
+          try {if(st.integration_key==="bmod_membership")await completeMembershipOAuth(st,code);else await completeBmodOAuth(st,code);ok=true;} catch {console.warn("bmod_oauth_callback_failed");}
         }
         res.statusCode=302;
-        res.setHeader("Location",`${returnUrl.split("?")[0]}?oauth=${ok?"success":"error"}&connection=bmod_tools`);
+        res.setHeader("Location",`${returnUrl.split("?")[0]}?oauth=${ok?"success":"error"}&connection=${st.integration_key}`);
         return res.end();
       }
 
@@ -3112,6 +3148,7 @@ module.exports = async function handler(req, res) {
     if (req.method === "POST" && path === "/api/connections/oauth/start") {
       const body = await readBody(req);
       const integrationKey = String(body.integrationKey || "").trim();
+      if(integrationKey==="bmod_membership")return json(res,403,{error:"Use the admin membership connection controls."});
       const siteUrl = absoluteSiteUrl(req);
       if (!siteUrl) return json(res,500,{error:"Site URL is not configured."});
 
@@ -3299,6 +3336,7 @@ module.exports = async function handler(req, res) {
     if (req.method === "POST" && path === "/api/connections") {
       const body = await readBody(req);
       const integrationKey = String(body.integrationKey || "").trim();
+      if(integrationKey==="bmod_membership")return json(res,403,{error:"Use the admin membership connection controls."});
 
       const cat = await sbRest(
         `integration_catalog?integration_key=eq.${encodeURIComponent(integrationKey)}&customer_visible=eq.true&select=integration_key,status,read_only_default,default_server_url,auth_type,setup_note&limit=1`
@@ -3341,6 +3379,7 @@ module.exports = async function handler(req, res) {
     if (req.method === "POST" && path === "/api/connections/discover") {
       const body = await readBody(req);
       const integrationKey = String(body.integrationKey || "").trim();
+      if(integrationKey==="bmod_membership")return json(res,403,{error:"Use the admin membership connection controls."});
       if(GOOGLE_MANIFEST.isProvider(integrationKey))return json(res,200,{...await GOOGLE[integrationKey].verify(user.id),allowedTools:[]});
       if(integrationKey==="canva")return json(res,200,{...await CANVA.verify(user.id),allowedTools:[]});
       if(integrationKey==="bmod_tools") {
@@ -3408,6 +3447,7 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "DELETE" && path === "/api/connections") {
       const integrationKey = String(url.searchParams.get("integrationKey") || "").trim();
+      if(integrationKey==="bmod_membership")return json(res,403,{error:"Use the admin membership connection controls."});
       if (!integrationKey) return json(res,400,{error:"integrationKey required"});
       if(GOOGLE_MANIFEST.isProvider(integrationKey))return json(res,200,await GOOGLE[integrationKey].disconnect(user.id));
       if(integrationKey==="canva")return json(res,200,await CANVA.disconnect(user.id));
@@ -3421,6 +3461,21 @@ module.exports = async function handler(req, res) {
         body:JSON.stringify({status:"disabled",allowed_tools:[],updated_at:new Date().toISOString()})
       });
       return json(res,200,{ok:true});
+    }
+
+    if (path === "/api/control-room/membership" || path === "/api/control-room/membership/connect" || path === "/api/control-room/membership/test") {
+      if (!isControlRoomAdmin(email)) return json(res,403,{error:"Control Room access denied"});
+      if(req.method==="GET" && path==="/api/control-room/membership")return json(res,200,await membershipConnectionStatus());
+      if(req.method==="POST" && path.endsWith("/connect"))return json(res,200,await startMembershipOAuth(user.id,absoluteSiteUrl(req)));
+      if(req.method==="POST" && path.endsWith("/test")){
+        const config=await membershipConfig();
+        const c=await readBmodRow(config.connection_user_id,"bmod_membership");
+        if(!bmodMayRead(c)||c.provider_account_id!==config.location_id)throw Error("Connect the corporate BMOD account first.");
+        const result=await highLevelApi(config.connection_user_id,"/contacts/search",{method:"POST",requiredScopes:["contacts.readonly"],integrationKey:"bmod_membership",body:{locationId:config.location_id,pageLimit:1,page:1}});
+        if(!Array.isArray(result?.contacts))throw Error("Corporate membership lookup could not be verified.");
+        return json(res,200,{ok:true});
+      }
+      return json(res,405,{error:"Method not allowed"});
     }
 
     if (req.method === "GET" && path === "/api/control-room") {

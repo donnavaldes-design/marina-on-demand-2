@@ -416,7 +416,7 @@ async function applyAuthSession(session){
     const ok=qp.get("oauth")==="success";
     qs("#status").textContent=ok?"Account connected successfully.":(qp.get("message")||"Account connection was not completed.");
     history.replaceState({},document.title,window.location.pathname);
-    await openConnectionsPage();
+    if(qp.get("connection")==="bmod_membership"){await openControlRoom();const status=qs("#membershipStatus");if(status)status.textContent=ok?"Corporate account authorized. Click Test membership connection to verify.":"Corporate authorization was not completed. Retry and select the corporate BMOD account.";}else await openConnectionsPage();
   }else{
     await renderDashboard();
   }
@@ -650,6 +650,7 @@ async function openControlRoom(){
   qs("#messages").innerHTML=`<div class="controlRoom"><div class="controlHero"><div><div class="eyebrow">MOD Control Room</div><h2>The live brain behind the product.</h2><p>Update current business facts and operating preferences without redeploying MOD.</p></div><div class="controlBadge">Admin only</div></div><div class="controlSection">Loading live brain...</div></div>`;
   try{
     const j=await api("/api/control-room");
+    j.membership=await api("/api/control-room/membership");
     renderControlRoom(j);
   }catch(e){
     qs("#messages").innerHTML=`<div class="welcome"><h2 class="brand">Control Room unavailable.</h2><p>${esc(e.message)}</p></div>`;
@@ -663,6 +664,7 @@ function renderControlRoom(j){
   const depth=voice.default_depth||"concise";
   qs("#messages").innerHTML=`<div class="controlRoom">
     <div class="controlHero"><div><div class="eyebrow">MOD Control Room</div><h2>The live brain behind the product.</h2><p>Current facts update instantly. Canonical framework changes stay versioned and controlled.</p></div><div class="controlBadge">Admin only</div></div>
+    <div class="controlSection"><h3>Corporate membership connection</h3><p class="controlHelp">Checks active BMOD and MOD memberships. Connect the corporate BMOD account here. Your personal BMOD Tools connection stays separate.</p><p><strong>${j.membership?.connected?'Corporate account connected':'Corporate account needs authorization'}</strong></p><div class="briefToolbar"><button id="connectMembership" class="modPrimary">Connect corporate BMOD account</button><button id="testMembership">Test membership connection</button></div><p id="membershipStatus" class="controlStatus" role="status"></p></div>
     <div class="controlSection"><h3>Voice + operating preferences</h3><div class="controlHelp">These live overrides sit above the imported MOD OS. Use them for small changes without rewriting the core brain.</div>
       <div class="settingGrid">
         <div class="settingCard"><label>Emoji style</label><select id="crEmoji"><option value="none" ${emoji==="none"?"selected":""}>None</option><option value="occasional" ${emoji==="occasional"?"selected":""}>Occasional</option><option value="frequent" ${emoji==="frequent"?"selected":""}>Frequent</option></select><label style="margin-top:10px">Default answer depth</label><select id="crDepth"><option value="concise" ${depth==="concise"?"selected":""}>Concise</option><option value="balanced" ${depth==="balanced"?"selected":""}>Balanced</option><option value="deep" ${depth==="deep"?"selected":""}>Deep</option></select></div>
@@ -678,6 +680,8 @@ function renderControlRoom(j){
     </div>
     <div class="controlSection"><h3>Recent Control Room changes</h3><div class="changeList">${(j.recentChanges||[]).length?(j.recentChanges||[]).map(c=>`<div class="changeItem"><strong>${esc(c.change_type)}</strong> · ${esc(c.target_key)}<br>${esc(formatDate(c.created_at))}</div>`).join(""):"No live changes yet."}</div></div>
   </div>`;
+  qs("#connectMembership").onclick=async()=>{const btn=qs('#connectMembership');btn.disabled=true;try{qs('#membershipStatus').textContent='Select the corporate BMOD account on the next screen.';const result=await api('/api/control-room/membership/connect',{method:'POST'});window.location.assign(result.authorizeUrl);}catch(e){qs('#membershipStatus').textContent=e.message;btn.disabled=false;}};
+  qs("#testMembership").onclick=async()=>{const btn=qs('#testMembership');btn.disabled=true;try{qs('#membershipStatus').textContent='Checking corporate membership access...';await api('/api/control-room/membership/test',{method:'POST'});qs('#membershipStatus').textContent='Corporate membership lookup is working.';}catch(e){qs('#membershipStatus').textContent=e.message;}finally{btn.disabled=false;}};
   qs("#saveVoiceSettings").onclick=saveControlRoomSettings;
   qs("#messages").querySelectorAll("[data-save-business]").forEach(b=>b.onclick=()=>saveBusinessRecord(b.dataset.saveBusiness));
 }
