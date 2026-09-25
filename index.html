@@ -1430,6 +1430,18 @@ function renderModGreeting(brief,data){
   return `<section class="modWelcome" aria-label="A welcome from MOD"><img class="modWelcomePortrait" src="https://assets.cdn.filesafe.space/wx7yTd9haziGCOtSvT4f/media/6ab3d77f25d854bb65f55171.png" alt="Marina On Demand"><div class="modWelcomeBubble"><div class="eyebrow">A little nudge from MOD</div><h2>${esc(headline)}</h2><p>${esc(copy)}</p>${remembered?`<div class="modRemember"><strong>MOD remembers</strong><span>Your saved goal: ${esc(remembered)}</span><button id="welcomeBusiness" type="button">Update my goal</button></div>`:""}${!hasHistory?`<div class="modFirstSteps"><p><strong>Start here:</strong> Add your business basics so I have something real to work with. Chat with me when you’re ready. Home keeps track of what needs your attention.</p><div class="briefToolbar"><button id="welcomeBusiness" class="modPrimary" type="button">Introduce my business</button><button id="welcomeChat" type="button">Chat with MOD</button></div><small>You’ll review and approve actions before MOD sends or changes anything outside this app.</small></div>`:""}</div></section>`;
 }
 
+function progressCoach(goal,counts,days){
+  const conversations=Number(counts.conversations||0),followups=Number(counts.follow_up||0),conversions=Number(counts.conversion||0);
+  const total=Object.values(counts).reduce((sum,n)=>sum+Number(n||0),0);
+  if(!goal)return {text:"Queen, give this effort a direction. Tell me the goal you want to work toward, and we’ll choose a useful next step.",action:"Set my goal"};
+  const salesGoal=/sales?|sell|revenue|income|customers?|clients?|network marketing|relationship.based|business|leads?|convers/i.test(goal);
+  if(!salesGoal)return {text:total?"You’ve logged activity. Let’s check which of those actions actually supports your goal and choose the next step that fits.":`Nothing is logged in the last ${days} days. Have you made progress I haven’t heard about? Log it, or let’s pick one manageable step toward your goal.`,action:"Plan my next step"};
+  if(conversions>0)return {text:`You logged ${conversions} conversion${conversions===1?'':'s'} in the last ${days} days. That deserves a moment, Queen. What helped those people say yes? Let’s look at what’s worth repeating.`,action:"Build on what worked"};
+  if(followups>0)return {text:`You’ve logged ${followups} follow-up${followups===1?'':'s'}, with no conversions recorded in this period. That alone doesn’t tell us what’s happening. Bring me a real conversation and the offer so we can find a useful next move.`,action:"Review my follow-ups"};
+  if(conversations>0)return {text:`You’ve logged ${conversations} conversation${conversations===1?'':'s'}. Who’s waiting to hear back from you? If you already followed up, log it. Otherwise, let’s write a reply that moves one real conversation forward.`,action:"Help me follow up"};
+  return {text:`Queen, we’ve got a business goal and no conversations logged in the last ${days} days. Have you been talking to people and keeping it a secret from me? 😏 Log those if you have. Otherwise, could three genuine check-ins be a useful starting point today?`,action:"Help me start conversations"};
+}
+
 async function openDailyBrief(options={}){
   setPage("home");
   state.messages=[];state.imageReferenceId=null;state.conversationId="";renderThreads();
@@ -1469,11 +1481,14 @@ async function openDailyBrief(options={}){
       </section>
       ${business.last_assignment?`<div class="accountabilityCard"><small>Your last commitment</small><strong>${esc(business.last_assignment)}</strong><div class="checkinBtns"><button class="done" data-checkin="done">Done</button><button data-checkin="partial">Partly done</button><button data-checkin="not_done">Not yet</button></div></div>`:""}
       ${renderBriefLoops(loops,options.expandLoops===true)}
-      <section class="momentumSection"><div class="momentumHeader"><div><div class="eyebrow">Your Progress</div><h3>See how far you’ve come.</h3></div></div>
-        <div class="momentumGrid">${[["Conversations",m.last_7_days?.conversations||0],["Follow-ups",m.last_7_days?.follow_up||0],["Conversions",m.last_7_days?.conversion||0]].map(([label,value])=>`<div class="momentumCard"><small>${label}</small><strong>${esc(niceMetric(value))}</strong><span>logged in the last 7 days</span></div>`).join("")}</div>
+      <section class="momentumSection" id="homeProgress"><div class="momentumHeader"><div><div class="eyebrow">Your Progress</div><h3>Let’s move your goal forward.</h3></div></div>
+        <p><strong>Your goal:</strong> ${esc(j.current_goal||'Add your goal so MOD can help you work toward it.')}</p>
+        <label for="progressPeriod">Time period</label> <select id="progressPeriod"><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select>
+        <div class="modRemember" style="padding:16px;border:1px solid #bce9e7;border-radius:16px;background:#effbfa;margin:16px 0"><strong>A nudge from MOD</strong><p id="progressCoachText"></p><button id="progressCoachAction" class="modPrimary"></button></div>
+        <div id="periodMetrics" class="momentumGrid"></div>
+        <p class="loopMeta">Based on activity logged in MOD. Zero logged doesn’t mean nothing happened. Automatic CRM activity, revenue, and social views are not included.</p>
         <h4>Recent wins</h4><div class="briefList">${winsHtml}</div>
         <div class="briefToolbar"><button id="homeLogWin" class="modPrimary">Add a win</button><button id="homeLogActivity" class="secondary">Log activity</button></div>
-        <details id="homeProgress"><summary>See all progress and wins</summary><div id="homeProgressDetails"></div></details>
       </section>
     </div>`;
 
@@ -1485,8 +1500,23 @@ async function openDailyBrief(options={}){
     qs("#messages").querySelectorAll("[data-home-connect]").forEach(button=>button.onclick=openConnectionsPage);
     qs("#homeLogWin").onclick=logWinQuick;
     qs("#homeLogActivity").onclick=logActivityQuick;
-    qs("#homeProgress").ontoggle=()=>{if(qs("#homeProgress").open)openMomentumPage();};
-    if(options.progress){qs("#homeProgress").open=true;}
+    const drawProgress=()=>{
+      const days=Number(qs('#progressPeriod').value),counts=(days===30?m.last_30_days:m.last_7_days)||{};
+      const coach=progressCoach(j.current_goal,counts,days);
+      qs('#progressCoachText').textContent=coach.text;qs('#progressCoachAction').textContent=coach.action;
+      qs('#periodMetrics').innerHTML=[['Conversations','conversations'],['Follow-ups','follow_up'],['Conversions','conversion'],['Completed actions','execution'],['Offer activity','offer_activity']].map(([label,key])=>`<div class="momentumCard"><small>${label}</small><strong>${esc(niceMetric(counts[key]||0))}</strong><span>logged in the last ${days} days</span></div>`).join('');
+      qs('#progressCoachAction').onclick=async()=>{
+        if(!j.current_goal){openMemoryPanel();return;}
+        const prompt=`Help me with this next step: ${coach.action}. My saved goal: ${j.current_goal}. Activity logged in MOD for the last ${days} days: ${JSON.stringify(counts)}. These are incomplete self-reported logs, not verified totals; ask about missing activity before diagnosing. Your dashboard nudge: ${coach.text}. Give me one practical next move tied to my goal, and help me do it. Do not send messages or change connected apps without the required approval.`;
+        try{
+          const latest=state.conversations?.[0];
+          if(latest?.id)await selectConversation(latest.id);else resetWorkspace('coach');
+          await send(prompt);
+        }catch(e){qs('#status').textContent=e.message;}
+      };
+    };
+    qs('#progressPeriod').onchange=drawProgress;drawProgress();
+    if(options.progress)qs('#homeProgress').scrollIntoView({block:'start'});
     bindBriefLoops();
     if(options.focusLoops)qs("#briefOpenLoops").scrollIntoView({block:"start"});
     qs("#briefRefresh").onclick=()=>openDailyBrief(options);
@@ -1533,16 +1563,7 @@ async function openOpenLoopsPage(){
   await openDailyBrief({expandLoops:true,focusLoops:true});
 }
 
-async function openMomentumPage(){
-  const target=qs("#homeProgressDetails");if(!target)return openDailyBrief({progress:true});
-  target.innerHTML='<p>Loading activity…</p>';
-  try{
-    const j=await api("/api/momentum"),m=j.momentum||{};
-    target.innerHTML=`<h3>Your logged activity</h3><label for="progressPeriod">Time period</label> <select id="progressPeriod"><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select><p>These are your activity logs. Automatic CRM activity, sales revenue, and social views are not included.</p><div id="periodMetrics" class="momentumGrid"></div><button id="pageLogWin" class="modPrimary">Add a win</button><button id="pageLogActivity">Log activity</button>`;
-    const draw=()=>{const days=qs("#progressPeriod").value||"7",counts=days==="30"?m.counts30:m.counts7;qs("#periodMetrics").innerHTML=[["Conversations","conversations"],["Follow-ups","follow_up"],["Conversions","conversion"],["Execution","execution"],["Offer activity","offer_activity"]].map(([label,key])=>`<div class="momentumCard"><small>${label}</small><strong>${esc(niceMetric(counts?.[key]||0))}</strong><span>logged in the last ${days} days</span></div>`).join("");};
-    qs("#progressPeriod").onchange=draw;draw();qs("#pageLogWin").onclick=logWinQuick;qs("#pageLogActivity").onclick=logActivityQuick;
-  }catch(e){target.innerHTML=`<p>${esc(e.message)}</p><button id="retryProgress">Try again</button>`;qs("#retryProgress").onclick=openMomentumPage;}
-}
+async function openMomentumPage(){return openDailyBrief({progress:true});}
 
 async function renderDashboard(){
   return openDailyBrief();

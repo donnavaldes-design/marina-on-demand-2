@@ -1413,6 +1413,7 @@ async function getDailyBrief(userId){
     open_loops:openLoops,
     momentum:{
       last_7_days:momentum.counts7||{},
+      last_30_days:momentum.counts30||{},
       active_days_last_30:momentum.activeDays30||0,
       recent_wins:recentWins
     },
