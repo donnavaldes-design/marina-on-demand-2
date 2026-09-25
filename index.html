@@ -2171,6 +2171,30 @@ function wireVoicePlayback(){
   });
 }
 
+const MOD_WORKING_MESSAGES = [
+  "Okay, let me look at this...",
+  "Give me a sec. This deserves more than a basic answer.",
+  "Messy makes you millions. Bring me the messy.",
+  "Taking this a little deeper, Queen...",
+  "You can unclench your shoulders while I work. 😏",
+  "Still here, still working on your request."
+];
+let modWorkingTimer=null;
+let modWorkingIndex=0;
+function stopModWorking(){
+  if(modWorkingTimer!==null)clearInterval(modWorkingTimer);
+  modWorkingTimer=null;
+}
+function startModWorking(){
+  stopModWorking();
+  modWorkingIndex=0;
+  modWorkingTimer=setInterval(()=>{
+    const label=qs("#modWorkingMessage");
+    if(!state.loading||!label){stopModWorking();return;}
+    modWorkingIndex=(modWorkingIndex+1)%MOD_WORKING_MESSAGES.length;
+    label.textContent=MOD_WORKING_MESSAGES[modWorkingIndex];
+  },6000);
+}
 function renderMessages(){
   setPage("chat");
   if(!state.messages.length){renderWelcome();return}
@@ -2195,7 +2219,7 @@ function renderMessages(){
       <div class="avatar">${m.role==="assistant"?"M":"YOU"}</div>
       <div class="bubble">${body}${m.imageJob?renderImageJob(m):""}${atts?`<div class="attachmentList">${atts}</div>`:""}${webSources}${actionRun}${receipt}${feedback}${m.role==="assistant"&&m.id&&!m.imageJob?voiceControls(m):""}</div>
     </div>`;
-  }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble">Working...</div></div>`:"");
+  }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble" role="status" aria-live="polite" aria-atomic="true"><span id="modWorkingMessage">${esc(MOD_WORKING_MESSAGES[modWorkingIndex])}</span></div></div>`:"");
   wireModeBar();
   wireActiveSkillBar();
   qs("#messages").querySelectorAll("[data-feedback-for]").forEach(box=>{
@@ -2251,6 +2275,7 @@ async function send(prefill, forcedMode, forcedSkillKey){
 
   const originalFiles=[...state.pendingFiles];
   state.loading=true;
+  modWorkingIndex=0;
   input.value="";
   qs("#status").textContent="";
 
@@ -2267,12 +2292,13 @@ async function send(prefill, forcedMode, forcedSkillKey){
     attachments:localAttachments
   });
   renderMessages();
+  startModWorking();
 
   try{
     const attachments=await uploadPendingFiles();
     state.pendingFiles=[];
     renderPending();
-    qs("#status").textContent="MOD is looking at it...";
+    qs("#status").textContent="";
 
     const j=await api("/api/chat",{
       method:"POST",
@@ -2298,11 +2324,12 @@ async function send(prefill, forcedMode, forcedSkillKey){
     qs("#status").textContent=e.message+" Your draft is restored. Check the conversation before sending again.";
   }
 
+  stopModWorking();
   state.loading=false;
   renderMessages();
 }
 qs("#dictateBtn").onclick=toggleDictation;
-window.addEventListener("pagehide",()=>stopModVoice(true));
+window.addEventListener("pagehide",()=>{stopModVoice(true);stopModWorking();});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopModVoice(true);});
 </script>
 </body>
