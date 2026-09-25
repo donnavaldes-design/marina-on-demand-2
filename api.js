@@ -2197,9 +2197,9 @@ async function startMembershipOAuth(userId,siteUrl){
   if(userId!==config.connection_user_id)throw Error('The designated corporate connection administrator must connect this account.');
   const clientId=String(process.env.HIGHLEVEL_CLIENT_ID||'').trim(),clientSecret=String(process.env.HIGHLEVEL_CLIENT_SECRET||'').trim();
   if(!clientId||!clientSecret)throw Error('HighLevel OAuth credentials are missing.');
-  await sbRest('user_connections?on_conflict=user_id,integration_key',{method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify([{user_id:userId,integration_key:'bmod_membership',transport:'http',status:'auth_required',read_only:true,permission_mode:'view_only'}])});
+  await sbRest('user_connections?on_conflict=user_id,integration_key',{method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify([{user_id:userId,integration_key:'bmod_membership',transport:'http',server_url:'https://services.leadconnectorhq.com',status:'auth_required',read_only:true,permission_mode:'view_only'}])});
   const state=randomUrlSafe(32),redirectUri=siteUrl+'/api/connections/oauth/callback';
-  await sbRest('connection_oauth_states',{method:'POST',body:JSON.stringify([{state,user_id:userId,integration_key:'bmod_membership',redirect_uri:redirectUri,return_url:siteUrl+'/',client_id:clientId,client_secret:clientSecret,scopes:'contacts.readonly',token_auth_method:'client_secret_post',expires_at:new Date(Date.now()+600000).toISOString()}])});
+  await sbRest('connection_oauth_states',{method:'POST',body:JSON.stringify([{state,user_id:userId,integration_key:'bmod_membership',code_verifier:randomUrlSafe(48),redirect_uri:redirectUri,return_url:siteUrl+'/',client_id:clientId,client_secret:clientSecret,scopes:'contacts.readonly',token_auth_method:'client_secret_post',expires_at:new Date(Date.now()+600000).toISOString()}])});
   const authUrl=new URL('https://marketplace.gohighlevel.com/oauth/chooselocation');
   for(const [k,v] of Object.entries({response_type:'code',client_id:clientId,redirect_uri:redirectUri,state,user_type:'Location',scope:'contacts.readonly'}))authUrl.searchParams.set(k,v);
   return {authorizeUrl:authUrl.toString()};
