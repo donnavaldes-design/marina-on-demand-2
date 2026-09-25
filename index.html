@@ -198,6 +198,7 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
  #login .primary{min-height:48px;color:var(--ink)}
  #loginStatus:empty{display:none}
 }
+.ecosystemSectionHeading{margin:32px 0 16px;font-family:Arial,sans-serif;font-size:18px;font-weight:700;}
 </style>
 </head>
 <body>
@@ -761,8 +762,9 @@ async function openMemoryPanel(){
   qs("#messages").innerHTML=`
     <div class="memoryPanel">
       <h2>My Ecosystem</h2>
+      <details class="brandBrainSection" id="previousBusinessDetails"><summary>Your Summary</summary><p>Your core business notes from earlier conversations and setup. Review these alongside the details for each business below. Save My Ecosystem saves every section on this page.</p><div id="memoryForm" class="memoryGrid"></div><h4>Previously saved links</h4><div id="businessLinks"></div><p>Add new website, booking, and funnel links inside the matching business below.</p></details>
 
-      <h3>My Brand</h3>
+      <h3 class="ecosystemSectionHeading">My Brand</h3>
       <details class="brandBrainSection"><summary>Saved Work</summary><p>Find the content, offers, and plans you have saved.</p><div id="businessWorkspaces"></div></details>
       <div class="memoryIntro">
         Teach MOD how your brand actually sounds, who it is for, what it stands for, and what makes it different. This stays with you across chats.
@@ -783,11 +785,10 @@ async function openMemoryPanel(){
         <p>Edit anything here. These fields are used as persistent brand context when MOD writes, coaches, audits, or creates with you.</p>
         <div id="brandBrainForm" class="memoryGrid"></div></details>
 
-      <details class="brandBrainSection"><summary>Social Profile Links</summary><p>Add the social profiles that support your brand. Keep business websites, funnels, and follow-up details inside the matching business below.</p><label for="socialProfiles">Public profile URLs, one per line</label><textarea id="socialProfiles"></textarea><button id="auditProfiles" class="modPrimary" type="button">Ask MOD to audit my profiles</button><p>Public profiles only. Private analytics require a connected source.</p></details>
-      <details class="brandBrainSection"><summary>About Me</summary><label for="preferredName">What should MOD call you? (optional)</label><input id="preferredName" maxlength="60" autocomplete="given-name" placeholder="Your first name"><p>Save a name here to let MOD use it in your Home greeting.</p><label for="publicAbout">Stories, interests, and values MOD may use in public content</label><textarea id="publicAbout"></textarea><label for="privateAbout">Background notes for your reference only</label><textarea id="privateAbout"></textarea><p>Reference-only notes are stored here and excluded from MOD’s AI context.</p></details>
 
-      <section class="brandBrainSection"><h3>My Businesses</h3><p>Your brand can support several businesses. Give each business its own offer and goal, then choose which one you want to focus on now.</p><label for="ecosystemPriority">My current priority</label><select id="ecosystemPriority"></select><div id="ecosystemOverview" class="loopList"></div><div id="ecosystemBusinesses"></div><button id="addIncomeSource" class="modPrimary" type="button">Add a business</button><input id="ecosystemDocument" type="file" accept=".pdf,.docx,.txt,.md,.vtt,image/*" hidden></section>
-      <details class="brandBrainSection" id="previousBusinessDetails"><summary>Previously saved details</summary><p>These details came from your earlier My Business setup. Keep any useful information in the matching business above. Your original entries remain available here for reference.</p><div id="memoryForm" class="memoryGrid"></div><h4>Previously saved links</h4><div id="businessLinks"></div><p>Add new website, booking, and funnel links inside the matching business above.</p></details>
+      <h3 class="ecosystemSectionHeading">My Businesses</h3><section><p>Your brand can support several businesses. Give each business its own offer and goal, then choose which one you want to focus on now.</p><label for="ecosystemPriority">My current priority</label><select id="ecosystemPriority"></select><div id="ecosystemOverview" class="loopList"></div><div id="ecosystemBusinesses"></div><button id="addIncomeSource" class="modPrimary" type="button">Add a business</button><input id="ecosystemDocument" type="file" accept=".pdf,.docx,.txt,.md,.vtt,image/*" hidden></section>
+      <h3 class="ecosystemSectionHeading">About Me</h3><div class="brandBrainSection"><label for="preferredName">What should MOD call you? (optional)</label><input id="preferredName" maxlength="60" autocomplete="given-name" placeholder="Your first name"><p>Save a name here to let MOD use it in your Home greeting.</p><label for="publicAbout">Stories, interests, and values MOD may use in public content</label><textarea id="publicAbout"></textarea><label for="privateAbout">Background notes for your reference only</label><textarea id="privateAbout"></textarea><p>Reference-only notes are stored here and excluded from MOD’s AI context.</p></div>
+      <details class="brandBrainSection"><summary>Social Profile Links</summary><p>Add the social profiles that support your brand. Keep business websites, funnels, and follow-up details inside the matching business above.</p><label for="socialProfiles">Public profile URLs, one per line</label><textarea id="socialProfiles"></textarea><button id="auditProfiles" class="modPrimary" type="button">Ask MOD to audit my profiles</button><p>Public profiles only. Private analytics require a connected source.</p></details>
       <div class="memoryActions">
         <button id="saveMemory" class="primary" type="button">Save My Ecosystem</button>
         <button id="reloadMemory" class="secondaryBtn" type="button">Reload</button>
