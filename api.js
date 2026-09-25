@@ -1210,6 +1210,19 @@ async function getOpenLoopsSummary(userId){
   const snoozedTasks=allTasks.filter(x=>Date.parse(x.result?.snoozed_until)>Date.now());
   const taskRows=allTasks.filter(x=>!snoozedTasks.includes(x));
   const runRows=Array.isArray(runs)?runs:[];
+  // Repair legacy runs whose completed steps were never reflected on the parent.
+  // Never infer completion from a title or another run's receipt.
+  const staleCandidates=runRows.filter(r=>r.status==='needs_approval');
+  if(staleCandidates.length){
+    const steps=await sbRest(`action_steps?user_id=eq.${encodeURIComponent(userId)}&run_id=in.(${staleCandidates.map(r=>encodeURIComponent(r.id)).join(',')})&select=run_id,status,approval_status`);
+    for(const run of staleCandidates){
+      const ownSteps=(Array.isArray(steps)?steps:[]).filter(step=>step.run_id===run.id);
+      if(ownSteps.length&&ownSteps.every(step=>step.status==='completed'&&step.approval_status!=='pending')){
+        await refreshActionRunStatus(userId,run.id);
+        runRows.splice(runRows.indexOf(run),1);
+      }
+    }
+  }
   const completedRows=Array.isArray(recentCompleted)?recentCompleted:[];
   const assetRows=Array.isArray(recentAssets)?recentAssets:[];
 

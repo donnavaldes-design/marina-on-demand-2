@@ -1498,16 +1498,13 @@ async function openDailyBrief(options={}){
 }
 
 function renderBriefLoops(loops,expanded=false){
-  const counts=loops.counts||{};
-  const chatButton=x=>x.conversation_id?`<button data-open-loop-chat="${esc(x.conversation_id)}">Continue</button>`:"";
-  const meta=x=>`${esc(String(x.status||"planned").replace(/_/g," "))}${x.result?.due_at?` · Due ${esc(formatDate(x.result.due_at))}`:""}`;
-  const taskCard=(x,snoozed=false)=>`<div class="loopItem" data-loop-task="${esc(x.id)}"><strong>${esc(x.title)}</strong><div class="loopMeta">${snoozed?`Snoozed until ${esc(formatDate(x.result.snoozed_until))}`:meta(x)}</div>${x.description?`<p>${esc(x.description)}</p>`:""}<div class="loopActions">${chatButton(x)}<button class="doneLoop" data-loop-task-action="done">Mark done</button><button data-loop-task-action="${snoozed?"resume":"snooze"}">${snoozed?"Bring back now":"Snooze 24 hours"}</button></div></div>`;
-  const cards=[...(loops.approvals||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(x.external_system||"External action")} · Awaiting approval</div>${x.description?`<p>${esc(x.description)}</p>`:""}<div class="loopActions">${x.conversation_id?`<button data-open-loop-chat="${esc(x.conversation_id)}">Review in this chat</button>`:`<span>Open the original Action Mode conversation to review this action.</span>`}</div></div>`),...(loops.tasks||[]).map(x=>taskCard(x)),...(loops.runs||[]).map(x=>`<div class="loopItem"><strong>${esc(x.objective||"Action Run")}</strong><div class="loopMeta">${meta(x)}</div>${x.summary?`<p>${esc(x.summary)}</p>`:""}<div class="loopActions">${chatButton(x)}</div></div>`)];
-  const completed=(loops.recent_completed||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">Completed</div>${x.result?.note?`<p>${esc(x.result.note)}</p>`:""}</div>`).join("");
-  const assets=(loops.ready_assets||[]).map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(workspaceLabel(x.section))} · ready to use</div><div class="loopActions"><button data-open-asset-section="${esc(x.section)}">Open workspace</button></div></div>`).join("");
-  const recent=state.conversations?.[0];
-  return `<section id="briefOpenLoops" class="loopSection" aria-labelledby="briefLoopsHeading"><div class="loopSectionHead"><div><div class="eyebrow">Needs Your Attention</div><h3 id="briefLoopsHeading">Your next steps, in one place.</h3></div></div><p class="loopMeta">${esc(counts.needs_approval||0)} awaiting approval · ${esc(counts.your_tasks||0)} tasks · ${esc(counts.open_runs||0)} open runs</p><div class="loopList">${cards.slice(0,3).join("")||'<div class="workspaceEmpty">Nothing needs your attention here right now.</div>'}</div><details id="briefAllLoops" ${expanded?"open":""}><summary>View all ${cards.length} items and saved work</summary><div class="loopList">${cards.slice(3).join("")}</div>${loops.snoozed_tasks?.length?`<h4>Snoozed tasks</h4><div class="loopList">${loops.snoozed_tasks.map(x=>taskCard(x,true)).join("")}</div>`:""}<h4>Recently completed</h4><div class="loopList">${completed||'<p>No completed actions yet.</p>'}</div><h4>Ready to use</h4><div class="loopList">${assets||'<p>No recent saved assets.</p>'}</div></details>${recent?`<div class="briefToolbar"><button data-open-loop-chat="${esc(recent.id)}">Continue where you left off</button></div>`:""}<div id="briefLoopStatus" role="status" aria-live="polite"></div></section>`;
+  const approvals=loops.approvals||[],tasks=loops.tasks||[],snoozed=loops.snoozed_tasks||[];
+  const chatButton=x=>x.conversation_id?`<button data-open-loop-chat="${esc(x.conversation_id)}">Open chat</button>`:"";
+  const taskCard=(x,isSnoozed=false)=>`<div class="loopItem" data-loop-task="${esc(x.id)}"><strong>${esc(x.title)}</strong>${isSnoozed?`<div class="loopMeta">Snoozed until ${esc(formatDate(x.result.snoozed_until))}</div>`:x.result?.due_at?`<div class="loopMeta">Due ${esc(formatDate(x.result.due_at))}</div>`:""}${x.description?`<p>${esc(x.description)}</p>`:""}<div class="loopActions"><button class="doneLoop" data-loop-task-action="done">Mark complete</button>${chatButton(x)}<button data-loop-task-action="${isSnoozed?"resume":"snooze"}">${isSnoozed?"Bring back now":"Snooze 24 hours"}</button></div></div>`;
+  const approvalCards=approvals.map(x=>`<div class="loopItem"><strong>${esc(x.title)}</strong><div class="loopMeta">${esc(x.external_system||"Connected app")}</div>${x.description?`<p>${esc(x.description)}</p>`:""}<div class="loopActions">${x.conversation_id?`<button data-open-loop-chat="${esc(x.conversation_id)}">Review</button>`:'<span>Open the original chat to review this action.</span>'}</div></div>`).join('');
+  return `<section id="briefOpenLoops" class="loopSection" aria-labelledby="briefLoopsHeading"><div class="loopSectionHead"><div><div class="eyebrow">Needs Your Attention</div><h3 id="briefLoopsHeading">Your next steps, in one place.</h3></div></div>${!approvals.length&&!tasks.length?'<div class="workspaceEmpty">You’re all caught up, Queen.</div>':''}${approvals.length?`<h4>Waiting for your approval</h4><div class="loopList">${approvalCards}</div>`:''}${tasks.length?`<h4>Your tasks</h4><div class="loopList">${tasks.map(x=>taskCard(x)).join('')}</div>`:''}${snoozed.length?`<details id="briefAllLoops" ${expanded?'open':''}><summary>Snoozed tasks (${snoozed.length})</summary><div class="loopList">${snoozed.map(x=>taskCard(x,true)).join('')}</div></details>`:''}<div id="briefLoopStatus" role="status" aria-live="polite"></div></section>`;
 }
+
 function bindBriefLoops(){
   const root=qs("#briefOpenLoops");
   root.querySelectorAll("[data-loop-task-action]").forEach(b=>b.onclick=async()=>{
@@ -1517,7 +1514,7 @@ function bindBriefLoops(){
     try{
       await api("/api/open-loops/task",{method:"PATCH",body:JSON.stringify({stepId:item.dataset.loopTask,...(action==="done"?{done:true}:{snooze:action==="snooze"})})});
       const loops=await api("/api/open-loops");
-      const expanded=qs("#briefAllLoops").open;
+      const expanded=qs("#briefAllLoops")?.open||false;
       root.outerHTML=renderBriefLoops(loops,expanded);bindBriefLoops();
       if(action==="done"){
         const undo=document.createElement("button");undo.textContent="Undo completion";
