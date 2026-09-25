@@ -235,7 +235,7 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
     <nav class="primaryNav" aria-label="Main menu">
     <button id="homeBtn" class="homeBtn" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></svg> Home</button>
     <button id="newChat" class="new" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 11a8 8 0 0 1-8 8H7l-4 3V5a2 2 0 0 1 2-2h8a8 8 0 0 1 8 8Z"/></svg> Chat with MOD</button>
-    <button id="memoryBtn" class="memoryBtn" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V3h8v4M3 12h18M10 12v3h4v-3"/></svg> My Business</button>
+    <button id="memoryBtn" class="memoryBtn" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V3h8v4M3 12h18M10 12v3h4v-3"/></svg> My Ecosystem</button>
     <button id="connectionsBtn" class="connectionsBtn" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m9 3-1 3-3 1v3l-2 2 2 2v3l3 1 1 3h6l1-3 3-1v-3l2-2-2-2V7l-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/></svg> My MOD Settings</button>
     </nav>
     <div hidden id="navStorage">
@@ -302,7 +302,7 @@ const qs = s => document.querySelector(s);
 const workspaceNav = qs("#workspaceNav");
 const controlButton = qs("#controlBtn");
 const voiceCapture={generation:0,recorder:null,stream:null,busy:false,discard:false,timer:null,limit:null};
-const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
+const state = { supabase:null, session:null, conversationId:"", messages:[], conversations:[], chatProjects:[], ecosystem:{businesses:[]}, businessId:"", activeProjectId:null, loading:false, pendingFiles:[], mode:"coach", dashboard:null, workspaceSection:null, saveCandidate:null, saveSection:"assets", skills:[], selectedSkill:null };
 
 const googleKeys=['gmail','google_calendar','google_drive'];
 
@@ -519,7 +519,7 @@ async function renderWorkspace(section){
       ? `<div class="workspaceItems">${items.map(item=>`
           <article class="workspaceItem" data-workspace-id="${esc(item.id)}">
             <div class="workspaceItemHead">
-              <div><h3 class="workspaceItemTitle">${esc(item.title)}</h3><div class="workspaceMeta">${item.pinned?"Pinned · ":""}Updated ${esc(formatDate(item.updated_at))}</div></div>
+              <div><h3 class="workspaceItemTitle">${esc(item.title)}</h3><div class="workspaceMeta">${item.metadata?.ecosystem_business_id?esc(state.ecosystem?.businesses?.find(b=>b.id===item.metadata.ecosystem_business_id)?.name||"Previous business context")+" · ":""}${item.pinned?"Pinned · ":""}Updated ${esc(formatDate(item.updated_at))}</div></div>
             </div>
             <div class="workspacePreview markdown">${item.image_url?`<img class="savedModImage" src="${esc(item.image_url)}" alt="${esc(item.title)}">`:""}${renderMarkdown(item.content)}</div>
             <div class="workspaceActions">
@@ -531,7 +531,7 @@ async function renderWorkspace(section){
           </article>`).join("")}</div>`
       : `<div class="workspaceEmpty">Nothing saved here yet. When MOD creates something worth keeping, tap <strong>Save to Workspace</strong> under her answer. Or start by building this section with MOD.</div>`;
     qs("#messages").innerHTML=`<div class="workspaceView"><div class="workspaceHero"><div><div class="eyebrow">${esc(meta.icon)} Workspace</div><h2>${esc(meta.label)}</h2><p>${esc(meta.description)}</p></div><button id="workspaceBuildBtn" class="workspaceBuildBtn">Build with MOD →</button></div>${content}</div>`;
-    qs("#messages").insertAdjacentHTML("afterbegin",'<div class="briefToolbar"><button id="backToBusiness" class="secondary">← My Business</button></div>');
+    qs("#messages").insertAdjacentHTML("afterbegin",'<div class="briefToolbar"><button id="backToBusiness" class="secondary">← My Ecosystem</button></div>');
     qs("#backToBusiness").onclick=openMemoryPanel;
     qs("#workspaceBuildBtn").onclick=()=>{state.workspaceSection=null;resetWorkspace("create");send(workspaceBuildPrompt(section),"create")};
     qs("#messages").querySelectorAll(".workspaceItem").forEach(card=>{
@@ -728,6 +728,31 @@ function addBusinessLinkRow(link={}){
   qs('#businessLinks').append(row);
 }
 
+const ECOSYSTEM_TYPES=[['products_services','Products, services or coaching'],['network_marketing','Network marketing'],['affiliate','Affiliate income'],['retail','Retail or ecommerce'],['other','Other income source']];
+function ecosystemCard(b={}){
+ const id=b.id||crypto.randomUUID();
+ const field=(key,label,large=false)=>`<label class="memoryField">${label}${large?`<textarea data-eco-field="${key}">${esc(b[key]||'')}</textarea>`:`<input data-eco-field="${key}" value="${esc(b[key]||'')}">`}</label>`;
+ return `<details class="brandBrainSection ecosystemCard" data-business-id="${esc(id)}" open><summary>${esc(b.name||'New income source')}</summary><div class="memoryGrid">${field('name','Income source name')}<label class="memoryField">Type<select data-eco-field="type">${ECOSYSTEM_TYPES.map(([v,l])=>`<option value="${v}" ${(b.type||'products_services')===v?'selected':''}>${l}</option>`).join('')}</select></label>${field('company','Company or business name')}${field('audience','Who buys from you?')}${field('offers','Offers, products and prices',true)}${field('goal','Goal for this income source',true)}${field('deadline','Target date or timeframe')}<div data-network-fields style="display:${b.type==='network_marketing'?'contents':'none'}">${field('current_rank','Current rank and qualification progress')}${field('customer_goal','Customer goal')}${field('team_goal','Team-building or rank goal')}</div>${field('links','Offer, website and purchase links',true)}${field('channels','Social channels and blogs supporting this business',true)}${field('follow_up','Email, SMS, newsletters and follow-up process',true)}${field('notes','Reference notes, plan details and guidelines',true)}</div><div class="briefToolbar"><button type="button" data-business-chat="${esc(id)}">Work on this business</button><button type="button" data-business-upload="${esc(id)}">Upload a plan or reference</button><button type="button" data-business-remove>Remove income source</button></div><p class="loopMeta">Upload a compensation plan or other reference to review it with MOD in a business-specific chat. Save approved takeaways in Reference notes above.</p></details>`;
+}
+function readEcosystemForm(){return {version:1,priorityId:qs('#ecosystemPriority').value,businesses:[...qs('#ecosystemBusinesses').querySelectorAll('.ecosystemCard')].map(card=>({id:card.dataset.businessId,...Object.fromEntries([...card.querySelectorAll('[data-eco-field]')].map(el=>[el.dataset.ecoField,el.value.trim()]))}))};}
+function updateEcosystemOverview(){
+ const eco=readEcosystemForm(),select=qs('#ecosystemPriority');
+ select.innerHTML='<option value="">Whole ecosystem, no single priority</option>'+eco.businesses.map(b=>`<option value="${esc(b.id)}">${esc(b.name||'New income source')}</option>`).join('');select.value=eco.priorityId;
+ qs('#ecosystemOverview').innerHTML=eco.businesses.length?eco.businesses.map(b=>{
+ const missing=[!b.goal?'Set a goal':null,!b.offers?'Describe the offer':null,!b.links?'Add the destination link':null,!b.channels?'Choose a discovery channel':null,!b.follow_up?'Define follow-up':null].filter(Boolean);
+ return `<div class="loopItem"><strong>${esc(b.name||'New income source')}${eco.priorityId===b.id?' · Current priority':''}</strong><p>${esc(b.channels||'Discovery channel not recorded')} → ${esc(b.offers||'Offer not recorded')} → ${esc(b.follow_up||'Follow-up not recorded')}</p><small>${missing.length?'Setup to finish: '+esc(missing.join(' · ')):'Core setup recorded.'} Results not assessed.</small></div>`;
+ }).join(''):'<p>Add your first income source. Your existing brand information is preserved below.</p>';
+}
+function wireEcosystemCards(){
+ qs('#ecosystemBusinesses').querySelectorAll('.ecosystemCard').forEach(card=>{
+  card.querySelector('[data-eco-field="type"]').onchange=e=>{card.querySelector('[data-network-fields]').style.display=e.target.value==='network_marketing'?'contents':'none';state.businessDirty=true;};
+  card.querySelector('[data-business-remove]').onclick=()=>{if(!confirm('Remove this income source from your ecosystem? Existing chats and saved work will remain.'))return;card.remove();state.businessDirty=true;updateEcosystemOverview();};
+  card.querySelector('[data-business-chat]').onclick=async()=>{await saveMemoryForm();if(state.businessDirty)return;resetWorkspace('coach');state.businessId=card.dataset.businessId;renderWelcome();qs('#input').focus();};
+  card.querySelector('[data-business-upload]').onclick=async()=>{await saveMemoryForm();if(state.businessDirty)return;state.ecosystemUploadBusiness=card.dataset.businessId;qs('#ecosystemDocument').click();};
+  card.oninput=()=>{state.businessDirty=true;updateEcosystemOverview();};
+ });
+}
+
 async function openMemoryPanel(){
   setPage("business");
   state.messages=[];state.imageReferenceId=null;
@@ -735,7 +760,9 @@ async function openMemoryPanel(){
   qs("#status").textContent="";
   qs("#messages").innerHTML=`
     <div class="memoryPanel">
-      <h2>My Business</h2>
+      <h2>My Ecosystem</h2>
+      <section class="brandBrainSection"><h3>My Businesses &amp; Income Sources</h3><p>Your brand can support several businesses. Give each income source its own offer and goal.</p><label for="ecosystemPriority">My current priority</label><select id="ecosystemPriority"></select><div id="ecosystemOverview" class="loopList"></div><div id="ecosystemBusinesses"></div><button id="addIncomeSource" class="modPrimary" type="button">Add an income source</button><input id="ecosystemDocument" type="file" accept=".pdf,.docx,.txt,.md,.vtt,image/*" hidden></section>
+      <h3>My Brand</h3>
       <details class="brandBrainSection"><summary>Saved Work</summary><p>Find the content, offers, and plans you have saved.</p><div id="businessWorkspaces"></div></details>
       <div class="memoryIntro">
         Teach MOD how your brand actually sounds, who it is for, what it stands for, and what makes it different. This stays with you across chats.
@@ -756,15 +783,15 @@ async function openMemoryPanel(){
         <p>Edit anything here. These fields are used as persistent brand context when MOD writes, coaches, audits, or creates with you.</p>
         <div id="brandBrainForm" class="memoryGrid"></div></details>
 
-      <details class="brandBrainSection" open><summary>Business Basics</summary>
-        <p>Your current offer, goal, platform, and other operational context still live here too.</p>
+      <details class="brandBrainSection" open><summary>Existing business context</summary>
+        <p>Your original information is preserved here. Once you add income sources, enter their offers and goals in the matching business above.</p>
         <div id="memoryForm" class="memoryGrid"></div></details>
       <details class="brandBrainSection"><summary>Business Links</summary><p>Add your website, booking page, or funnel.</p><div id="businessLinks"></div><button id="addBusinessLink" type="button">Add a link</button></details>
-      <details class="brandBrainSection"><summary>Social Profiles</summary><label for="socialProfiles">Public profile URLs, one per line</label><textarea id="socialProfiles"></textarea><button id="auditProfiles" class="modPrimary" type="button">Ask MOD to audit my profiles</button><p>Public profiles only. Private analytics require a connected source.</p></details>
+      <details class="brandBrainSection"><summary>My Marketing &amp; Follow-Up</summary><p>These are your shared public profiles. In each income source above, record which channels and follow-up systems support it.</p><label for="socialProfiles">Public profile URLs, one per line</label><textarea id="socialProfiles"></textarea><button id="auditProfiles" class="modPrimary" type="button">Ask MOD to audit my profiles</button><p>Public profiles only. Private analytics require a connected source.</p></details>
       <details class="brandBrainSection"><summary>About Me</summary><label for="preferredName">What should MOD call you? (optional)</label><input id="preferredName" maxlength="60" autocomplete="given-name" placeholder="Your first name"><p>Save a name here to let MOD use it in your Home greeting.</p><label for="publicAbout">Stories, interests, and values MOD may use in public content</label><textarea id="publicAbout"></textarea><label for="privateAbout">Background notes for your reference only</label><textarea id="privateAbout"></textarea><p>Reference-only notes are stored here and excluded from MOD’s AI context.</p></details>
 
       <div class="memoryActions">
-        <button id="saveMemory" class="primary" type="button">Save My Business</button>
+        <button id="saveMemory" class="primary" type="button">Save My Ecosystem</button>
         <button id="reloadMemory" class="secondaryBtn" type="button">Reload</button>
         <button id="clearMemory" class="dangerBtn" type="button">Clear memory</button>
       </div>
@@ -775,6 +802,9 @@ async function openMemoryPanel(){
   qs(".memoryPanel").addEventListener("input",()=>{state.businessDirty=true;qs("#memoryStatus").textContent="Unsaved changes";});
   qs("#addBusinessLink").onclick=()=>{addBusinessLinkRow({});state.businessDirty=true;qs("#memoryStatus").textContent="Unsaved changes";};
   qs("#auditProfiles").onclick=async()=>{await saveMemoryForm();if(state.businessDirty)return;const profiles=qs("#socialProfiles").value;resetWorkspace("coach");send("Audit these public social profiles if accessible. Explain any access limitations: "+profiles,"coach");};
+  qs('#addIncomeSource').onclick=()=>{if(qs('#ecosystemBusinesses').children.length>=12){qs('#memoryStatus').textContent='Use up to 12 income sources.';return;}qs('#ecosystemBusinesses').insertAdjacentHTML('beforeend',ecosystemCard());wireEcosystemCards();updateEcosystemOverview();state.businessDirty=true;};
+  qs('#ecosystemPriority').onchange=()=>{state.businessDirty=true;updateEcosystemOverview();};
+  qs('#ecosystemDocument').onchange=e=>{const file=e.target.files?.[0];if(!file)return;const id=state.ecosystemUploadBusiness;resetWorkspace('coach');state.businessId=id;state.pendingFiles=[file];renderPending();renderWelcome();qs('#input').value='Review this reference for the selected business. Identify its version/date, key requirements and how it relates to my goal. Flag missing information. For a compensation plan, do not promise earnings. Give me a concise reference summary I can save in this business’s notes.';qs('#input').focus();};
   qs("#saveMemory").onclick=saveMemoryForm;
   qs("#reloadMemory").onclick=loadMemoryIntoForm;
   qs("#clearMemory").onclick=clearMemory;
@@ -789,6 +819,10 @@ async function loadMemoryIntoForm(){
     const j=await api("/api/memory");
     const memory=j.memory||{};
     const brand=j.brandBrain||{};
+    state.ecosystem=brand.ecosystem||{businesses:[],priorityId:''};
+    qs('#ecosystemBusinesses').innerHTML=(state.ecosystem.businesses||[]).map(ecosystemCard).join('');
+    qs('#ecosystemPriority').innerHTML='<option value="">Whole ecosystem, no single priority</option>'+(state.ecosystem.businesses||[]).map(b=>`<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('');
+    qs('#ecosystemPriority').value=state.ecosystem.priorityId||'';wireEcosystemCards();updateEcosystemOverview();
     qs("#businessLinks").innerHTML="";
     const links=Array.isArray(brand.business_links)?brand.business_links:[];
     (links.length?links:[{}]).forEach(addBusinessLinkRow);
@@ -850,10 +884,12 @@ async function saveMemoryForm(){
   if(brand_brain.brand_positioning)patch.brand_positioning=brand_brain.brand_positioning;
   Object.assign(brand_brain,{preferred_name:qs("#preferredName").value.trim().slice(0,60),business_links:[...qs("#businessLinks").querySelectorAll(".businessLinkRow")].map(row=>Object.fromEntries([...row.querySelectorAll("input")].map(input=>[input.dataset.linkField,input.value.trim().slice(0,2000)]))).filter(row=>row.name||row.url||row.purpose),social_profiles:qs("#socialProfiles").value.slice(0,10000),public_about:qs("#publicAbout").value.slice(0,10000),private_about:qs("#privateAbout").value.slice(0,10000)});
   if(brand_brain.business_links.some(link=>{try{return !["http:","https:"].includes(new URL(link.url).protocol);}catch{return true;}})){status.textContent="Enter a full https:// URL for each link, or remove the empty row.";return;}
+  brand_brain.ecosystem=readEcosystemForm();
   patch.brand_brain=brand_brain;
 
   try{
     await api("/api/memory",{method:"PATCH",body:JSON.stringify(patch)});
+    state.ecosystem=brand_brain.ecosystem;
     state.businessDirty=false;
     status.textContent="Saved. MOD now carries this Brand Brain into future chats.";
   }catch(e){
@@ -1104,7 +1140,7 @@ function setMode(mode){
 }
 function resetWorkspace(mode="coach"){
   setPage("chat");
-  state.conversationId="";state.messages=[];state.imageReferenceId=null;state.pendingFiles=[];setMode(mode);renderPending();renderThreads();
+  state.businessId="";state.conversationId="";state.messages=[];state.imageReferenceId=null;state.pendingFiles=[];setMode(mode);renderPending();renderThreads();
 }
 
 function niceMetric(n){
@@ -1305,7 +1341,7 @@ document.addEventListener("click",event=>{
   if(!state.businessDirty)return;
   const button=event.target.closest("button,a");
   if(button && (!button.closest(".memoryPanel") || button.closest("#businessWorkspaces") || ["reloadMemory","clearMemory","brandDocBtn"].includes(button.id))){
-    if(!confirm("You have unsaved My Business changes. Leave without saving?")){event.preventDefault();event.stopImmediatePropagation();}else state.businessDirty=false;
+    if(!confirm("You have unsaved My Ecosystem changes. Leave without saving?")){event.preventDefault();event.stopImmediatePropagation();}else state.businessDirty=false;
   }
 },true);
 window.addEventListener("beforeunload",event=>{if(state.businessDirty||qs("#input")?.value){event.preventDefault();event.returnValue="";}});
@@ -1425,7 +1461,7 @@ function renderModGreeting(brief,data){
   else if(win){headline=hey+", let’s give that win a moment.";copy="You logged a win: “"+win.title+".” Give yourself some credit before you move the goalpost. Ready to build on it?";}
   else if(returningAfterBreak){headline=hey+", ready to pick things back up?";copy="How are you doing? You don’t have to catch up on everything today. Bring me what’s on your mind and we’ll find your next move.";}
   else{headline=hey+", welcome back. Ready to get to work?";copy="I know what it’s like to have 37 tabs open in your brain. Your business is right here in one place. Take a breath, then let’s give today some direction.";}
-  const remembered=memory.primary_goal||brief.current_goal;
+  const remembered=brief.current_goal||memory.primary_goal;
   return `<section class="modWelcome" aria-label="A welcome from MOD"><img class="modWelcomePortrait" src="https://assets.cdn.filesafe.space/wx7yTd9haziGCOtSvT4f/media/6ab3d77f25d854bb65f55171.png" alt="Marina On Demand"><div class="modWelcomeBubble"><div class="eyebrow">A little nudge from MOD</div><h2>${esc(headline)}</h2><p>${esc(copy)}</p>${remembered?`<div class="modRemember"><strong>MOD remembers</strong><span>Your saved goal: ${esc(remembered)}</span><button id="welcomeBusiness" type="button">Update my goal</button></div>`:""}${!hasHistory?`<div class="modFirstSteps"><p><strong>Start here:</strong> Add your business basics so I have something real to work with. Chat with me when you’re ready. Home keeps track of what needs your attention.</p><div class="briefToolbar"><button id="welcomeBusiness" class="modPrimary" type="button">Introduce my business</button><button id="welcomeChat" type="button">Chat with MOD</button></div><small>You’ll review and approve actions before MOD sends or changes anything outside this app.</small></div>`:""}</div></section>`;
 }
 
@@ -1465,7 +1501,7 @@ async function openDailyBrief(options={}){
       <section class="homeToday"><div class="briefHero">
         <div class="eyebrow">Today’s Brief</div>
         <strong>${esc(j.today_move||"Ask MOD for today's move.")}</strong>
-        <span>${j.current_goal?`Current goal: ${esc(j.current_goal)}`:"Add your goal in My Business to help MOD guide you."}</span>
+        <span>${j.current_goal?`Current goal: ${esc(j.current_goal)}`:"Add your goal in My Ecosystem to help MOD guide you."}</span>
       </div>
 
       <div class="briefToolbar">
@@ -1478,14 +1514,14 @@ async function openDailyBrief(options={}){
       <details class="connectionSummary"><summary>${cal.error?"Calendar unavailable":cal.connected?events.length+" events in the next 24 hours":"Calendar not connected"}</summary><div class="briefList">${eventHtml}</div><button type="button" data-open-service="calendar">Open Calendar</button>${!cal.connected?'<button data-home-connect>Connect Calendar</button>':''}${cal.error?`<p>${esc(cal.error)}</p><button data-home-connect>Check connection</button>`:''}</details>
       <details class="connectionSummary"><summary>${gmail.error?"Gmail unavailable":gmail.connected?"About "+(gmail.total_estimate??emails.length)+" unread Gmail messages from the last 7 days":"Gmail not connected"}</summary><p>Showing up to 5 recent unread messages.</p><div class="briefList">${emailHtml}</div><div class="briefToolbar"><button id="reviewInbox" class="modPrimary">Ask MOD to review my inbox</button><button type="button" data-open-service="gmail">Open Gmail</button>${!gmail.connected?'<button data-home-connect>Connect Gmail</button>':''}</div>${gmail.error?`<p>${esc(gmail.error)}</p><button data-home-connect>Check connection</button>`:''}</details>
       </section>
-      ${business.last_assignment?`<div class="accountabilityCard"><small>Your last commitment</small><strong>${esc(business.last_assignment)}</strong><div class="checkinBtns"><button class="done" data-checkin="done">Done</button><button data-checkin="partial">Partly done</button><button data-checkin="not_done">Not yet</button></div></div>`:""}
+      ${!state.ecosystem?.businesses?.length&&business.last_assignment?`<div class="accountabilityCard"><small>Your last commitment</small><strong>${esc(business.last_assignment)}</strong><div class="checkinBtns"><button class="done" data-checkin="done">Done</button><button data-checkin="partial">Partly done</button><button data-checkin="not_done">Not yet</button></div></div>`:""}
       ${renderBriefLoops(loops,options.expandLoops===true)}
       <section class="momentumSection" id="homeProgress"><div class="momentumHeader"><div><div class="eyebrow">Your Progress</div><h3>Let’s move your goal forward.</h3></div></div>
-        <p><strong>Your goal:</strong> ${esc(j.current_goal||'Add your goal so MOD can help you work toward it.')}</p>
+        <p>${j.priority_business?`<strong>Current priority:</strong> ${esc(j.priority_business.name)}<br>`:""}<strong>Your goal:</strong> ${esc(j.current_goal||'Add your goal so MOD can help you work toward it.')}</p>
         <label for="progressPeriod">Time period</label> <select id="progressPeriod"><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select>
         <div class="modRemember" style="padding:16px;border:1px solid #bce9e7;border-radius:16px;background:#effbfa;margin:16px 0"><strong>A nudge from MOD</strong><p id="progressCoachText"></p><button id="progressCoachAction" class="modPrimary"></button></div>
         <div id="periodMetrics" class="momentumGrid"></div>
-        <p class="loopMeta">Based on activity logged in MOD. Zero logged doesn’t mean nothing happened. Automatic CRM activity, revenue, and social views are not included.</p>
+        <p class="loopMeta">Activity across your ecosystem, not filtered by business. Zero logged doesn’t mean nothing happened. Automatic CRM activity, revenue, and social views are not included.</p>
         <h4>Recent wins</h4><div class="briefList">${winsHtml}</div>
         <div class="briefToolbar"><button id="homeLogWin" class="modPrimary">Add a win</button><button id="homeLogActivity" class="secondary">Log activity</button></div>
       </section>
@@ -1501,15 +1537,16 @@ async function openDailyBrief(options={}){
     qs("#homeLogActivity").onclick=logActivityQuick;
     const drawProgress=()=>{
       const days=Number(qs('#progressPeriod').value),counts=(days===30?m.last_30_days:m.last_7_days)||{};
-      const coach=progressCoach(j.current_goal,counts,days);
+      const coach=j.priority_business?{text:`Your current focus is ${j.priority_business.name}. These numbers cover your whole ecosystem. Let’s identify what moved this business toward its goal and choose one next step.`,action:"Plan my priority’s next step"}:progressCoach(j.current_goal,counts,days);
       qs('#progressCoachText').textContent=coach.text;qs('#progressCoachAction').textContent=coach.action;
       qs('#periodMetrics').innerHTML=[['Conversations','conversations'],['Follow-ups','follow_up'],['Conversions','conversion'],['Completed actions','execution'],['Offer activity','offer_activity']].map(([label,key])=>`<div class="momentumCard"><small>${label}</small><strong>${esc(niceMetric(counts[key]||0))}</strong><span>logged in the last ${days} days</span></div>`).join('');
       qs('#progressCoachAction').onclick=async()=>{
         if(!j.current_goal){openMemoryPanel();return;}
-        const prompt=`Help me with this next step: ${coach.action}. My saved goal: ${j.current_goal}. Activity logged in MOD for the last ${days} days: ${JSON.stringify(counts)}. These are incomplete self-reported logs, not verified totals; ask about missing activity before diagnosing. Your dashboard nudge: ${coach.text}. Give me one practical next move tied to my goal, and help me do it. Do not send messages or change connected apps without the required approval.`;
+        const prompt=`Help me with this next step: ${coach.action}. My saved goal: ${j.current_goal}. Activity logged in MOD for the last ${days} days: ${JSON.stringify(counts)}. These are incomplete self-reported logs across ALL income sources, not verified totals for the selected business. Ask which activity belongs to this business and about missing activity before diagnosing. Your dashboard nudge: ${coach.text}. Give me one practical next move tied to my goal, and help me do it. Do not send messages or change connected apps without the required approval.`;
         try{
           const latest=state.conversations?.[0];
           if(latest?.id)await selectConversation(latest.id);else resetWorkspace('coach');
+          state.businessId=j.priority_business?.id||"";
           await send(prompt);
         }catch(e){qs('#status').textContent=e.message;}
       };
@@ -1574,8 +1611,11 @@ function openMode(mode){
   if(mode==="action")return renderActionHub();
   renderWelcome();
 }
-function renderModeBar(){return "";}
-function wireModeBar(){}
+function renderModeBar(){
+  const businesses=state.ecosystem?.businesses||[];if(!businesses.length)return '';
+  return `<div class="modeBar"><label>Business context <select id="chatBusinessContext"><option value="">Whole ecosystem / ask me</option>${businesses.map(b=>`<option value="${esc(b.id)}" ${state.businessId===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label></div>`;
+}
+function wireModeBar(){const select=qs('#chatBusinessContext');if(select)select.onchange=()=>{state.businessId=select.value;};}
 
 async function loadSkills(){
   try{
@@ -1784,12 +1824,14 @@ function renderActionHub(){
 
 async function loadConversations(){
   try{
-    const [chats,projects]=await Promise.all([
+    const [chats,projects,context]=await Promise.all([
       api("/api/conversations"),
-      api("/api/chat-projects")
+      api("/api/chat-projects"),
+      api("/api/memory")
     ]);
     state.conversations=chats.conversations||[];
     state.chatProjects=projects.projects||[];
+    state.ecosystem=context.brandBrain?.ecosystem||{businesses:[]};
     renderProjects();
     renderThreads();
   }catch(e){qs("#status").textContent=e.message}
@@ -1883,7 +1925,7 @@ function renderThreads(){
 
   root.innerHTML=chats.map(c=>`
     <div class="chatRow">
-      <button class="thread ${c.id===state.conversationId?"active":""}" data-id="${esc(c.id)}">${esc(c.title||"Conversation")}</button>
+      <button class="thread ${c.id===state.conversationId?"active":""}" data-id="${esc(c.id)}">${esc(c.title||"Conversation")}${c.ecosystem_business_id?`<small style="display:block">${esc(state.ecosystem?.businesses?.find(b=>b.id===c.ecosystem_business_id)?.name||"Previous business context")}</small>`:""}</button>
       <button class="chatMenuBtn" type="button" data-chat-menu="${esc(c.id)}" aria-label="Chat options">•••</button>
     </div>`).join("");
 
@@ -1966,6 +2008,7 @@ async function selectConversation(id){
   state.conversationId=id;
   const j=await api(`/api/messages?conversationId=${encodeURIComponent(id)}`);
   state.messages=j.messages||[];
+  state.businessId=j.businessId||"";
   const lastSkill=[...state.messages].reverse().find(m=>m.skill_key)?.skill_key||null;
   state.selectedSkill=lastSkill ? state.skills.find(s=>s.skill_key===lastSkill)||null : null;
   renderMessages(); renderThreads();
@@ -2095,7 +2138,7 @@ function wireImageJobs(){
     const save=root.querySelector('[data-image-save]');
     if(save)save.onclick=async()=>{
       save.disabled=true;
-      try{await api('/api/images/save',{method:'POST',body:JSON.stringify({messageId:m.id})});save.textContent='Saved ✓';notice.textContent='Saved in My Business → My Assets.';}
+      try{await api('/api/images/save',{method:'POST',body:JSON.stringify({messageId:m.id})});save.textContent='Saved ✓';notice.textContent='Saved in My Ecosystem → My Assets.';}
       catch(e){notice.textContent=e.message;save.disabled=false;}
     };
     const download=root.querySelector('[data-image-download]');
@@ -2331,6 +2374,7 @@ async function send(prefill, forcedMode, forcedSkillKey){
       body:JSON.stringify({
         message:value,
         conversationId:state.conversationId||undefined,
+        businessId:state.businessId||null,
         attachments,
         imageReferenceId:state.imageReferenceId||null,
         mode:state.mode,
@@ -2340,6 +2384,7 @@ async function send(prefill, forcedMode, forcedSkillKey){
 
     state.imageReferenceId=null;
     state.conversationId=j.conversationId;
+    state.businessId=j.businessId||"";
     if(j.mode==="action")setMode("action");
     if(j.skillKey){state.selectedSkill=state.skills.find(s=>s.skill_key===j.skillKey)||state.selectedSkill}
     state.messages.push({imageJob:j.imageJob||null,id:j.messageId,role:"assistant",content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||state.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null,skill_key:j.skillKey||null,web_sources:j.webSources||[]});

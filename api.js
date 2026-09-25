@@ -1,3 +1,4 @@
+const ECOSYSTEM=require('./ecosystem');
 const { RESPONSE_QUALITY } = require("./response-quality");
 const { IMAGE_TOOL, createImageService } = require("./images/service");
 const crypto = require("crypto");
@@ -1081,6 +1082,7 @@ async function executeActionTool({ name, args, userId, conversationId, runId }) 
     const content = String(args.content || "").trim().slice(0,30000);
     if (!content) throw new Error("Workspace asset content required");
 
+    const businessContext=await sbRest(`conversations?id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(userId)}&select=ecosystem_business_id&limit=1`);
     const items = await sbRest("workspace_items?select=id,section,title,created_at,updated_at", {
       method: "POST",
       headers: { Prefer: "return=representation" },
@@ -1094,6 +1096,7 @@ async function executeActionTool({ name, args, userId, conversationId, runId }) 
         source_conversation_id: conversationId,
         source_message_id: null,
         metadata: {
+          ecosystem_business_id:businessContext?.[0]?.ecosystem_business_id||null,
           created_by: "action_mode",
           action_run_id: runId,
         },
@@ -1399,6 +1402,9 @@ async function getDailyBrief(userId){
   ]);
 
   const m=memorySnapshot(memory);
+  const eco=memory?.brand_brain?.ecosystem;
+  const priority=eco?.businesses?.find(b=>b.id===eco.priorityId);
+  if(priority){m.primary_goal=priority.goal||null;m.last_assignment=null;m.current_constraint=null;}
   const recentWins=(momentum.wins||[]).slice(0,3);
   const todayMove=m.last_assignment
     || (m.current_constraint ? `Make one concrete move on: ${m.current_constraint}` : null)
@@ -1409,6 +1415,7 @@ async function getDailyBrief(userId){
     generated_at:now.toISOString(),
     window_end:next24.toISOString(),
     current_goal:m.primary_goal||null,
+    priority_business:priority?{id:priority.id,name:priority.name}:null,
     today_move:todayMove,
     open_loops:openLoops,
     momentum:{
@@ -2584,11 +2591,12 @@ function workspaceAutoTitle(content, fallback = "Saved from Marina") {
 
 async function getWorkspaceContext(userId) {
   const rows = await sbRest(
-    `workspace_items?user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=section,title,content,pinned,updated_at&order=pinned.desc,updated_at.desc&limit=16`
+    `workspace_items?user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=section,title,content,pinned,updated_at,metadata&order=pinned.desc,updated_at.desc&limit=16`
   );
 
   return (Array.isArray(rows) ? rows : []).map(item => ({
     section: item.section,
+    metadata:item.metadata||{},
     title: item.title,
     content: String(item.content || "").slice(0, 1400),
     pinned: Boolean(item.pinned),
@@ -3464,7 +3472,7 @@ module.exports = async function handler(req, res) {
 
     if (req.method === "GET" && path === "/api/conversations") {
       const rows = await sbRest(
-        `conversations?user_id=eq.${encodeURIComponent(user.id)}&select=id,title,project_id,created_at,updated_at&order=updated_at.desc&limit=40`
+        `conversations?user_id=eq.${encodeURIComponent(user.id)}&select=id,title,project_id,ecosystem_business_id,created_at,updated_at&order=updated_at.desc&limit=40`
       );
       return json(res, 200, { conversations: rows || [] });
     }
@@ -3474,7 +3482,7 @@ module.exports = async function handler(req, res) {
       if (!cid) return json(res, 400, { error: "conversationId required" });
 
       const conv = await sbRest(
-        `conversations?id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id&limit=1`
+        `conversations?id=eq.${encodeURIComponent(cid)}&user_id=eq.${encodeURIComponent(user.id)}&select=id,ecosystem_business_id&limit=1`
       );
       if (!Array.isArray(conv) || !conv.length) return json(res, 404, { error: "Not found" });
 
@@ -3508,7 +3516,7 @@ module.exports = async function handler(req, res) {
         action_run: m.action_run_id ? (runMap[m.action_run_id] || null) : null,
       }));
 
-      return json(res, 200, { messages });
+      return json(res, 200, { messages, businessId:conv[0].ecosystem_business_id||null });
     }
 
 
@@ -4067,6 +4075,7 @@ async function executeApprovedBmodStep(userId,step){
       const title = String(body.title || "").trim().slice(0, 120)
         || workspaceAutoTitle(content);
 
+      const sourceContext=sourceConversationId?await sbRest(`conversations?id=eq.${encodeURIComponent(sourceConversationId)}&user_id=eq.${encodeURIComponent(user.id)}&select=ecosystem_business_id&limit=1`):[];
       const rows = await sbRest("workspace_items?select=id,section,title,content,status,pinned,created_at,updated_at", {
         method: "POST",
         headers: { Prefer: "return=representation" },
@@ -4080,6 +4089,7 @@ async function executeApprovedBmodStep(userId,step){
           source_conversation_id: sourceConversationId || null,
           source_message_id: sourceMessageId || null,
           metadata: {
+            ecosystem_business_id:sourceContext?.[0]?.ecosystem_business_id||null,
             experience_mode: body.experienceMode || null,
             route: body.route || null,
           },
@@ -4193,6 +4203,7 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
       const brandBrainPatch = body && body.brand_brain && typeof body.brand_brain === "object" && !Array.isArray(body.brand_brain)
         ? body.brand_brain
         : null;
+      if(brandBrainPatch && Object.prototype.hasOwnProperty.call(brandBrainPatch,'ecosystem'))brandBrainPatch.ecosystem=ECOSYSTEM.normalize(brandBrainPatch.ecosystem);
       const currentBrandBrain = current?.brand_brain && typeof current.brand_brain === "object" && !Array.isArray(current.brand_brain)
         ? current.brand_brain
         : {};
@@ -4446,13 +4457,18 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
         buildNativeBusinessTools(user.id),
       ]);
 
+      const conversationRows=await sbRest(`conversations?id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(user.id)}&select=ecosystem_business_id&limit=1`);
+      const businessId=Object.prototype.hasOwnProperty.call(body,'businessId')?String(body.businessId||''):conversationRows?.[0]?.ecosystem_business_id||'';
+      const scopedMemory=ECOSYSTEM.scopeMemory(memory,businessId);
+      await sbRest(`conversations?id=eq.${encodeURIComponent(conversationId)}&user_id=eq.${encodeURIComponent(user.id)}`,{method:'PATCH',body:JSON.stringify({ecosystem_business_id:businessId||null})});
+      const scopedWorkspace=businessId?workspaceContext.filter(item=>!item.metadata?.ecosystem_business_id||item.metadata.ecosystem_business_id===businessId):workspaceContext;
       const skillRun = skillDefinition
         ? await startSkillRun(user.id, conversationId, skillDefinition.skill_key, experienceMode, message)
         : null;
 
       let ai;
       try {
-        ai = await askOpenAI(message, history, memory, attachments, experienceMode, workspaceContext, skillDefinition, coachingContext, mcpTools, nativeTools, user.id, conversationId, {referenceMessageId:body.imageReferenceId || null});
+        ai = await askOpenAI(message, history, scopedMemory, attachments, experienceMode, scopedWorkspace, skillDefinition, coachingContext, mcpTools, nativeTools, user.id, conversationId, {referenceMessageId:body.imageReferenceId || null});
         if (skillRun?.id) await finishSkillRun(user.id, skillRun.id, ai.answer, false);
       } catch (e) {
         if (skillRun?.id) await finishSkillRun(user.id, skillRun.id, e instanceof Error ? e.message : String(e), true);
@@ -4474,7 +4490,7 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
         web_sources: Array.isArray(ai.webSources) ? ai.webSources : [],
       });
 
-      if (!ai.imageJob) await applyMemoryChanges(
+      if (!ai.imageJob && !memory?.brand_brain?.ecosystem?.businesses?.length) await applyMemoryChanges(
         user.id,
         conversationId,
         message,
@@ -4497,6 +4513,7 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
       return json(res, 200, {
         answer: ai.answer,
         conversationId,
+        businessId:businessId||null,
         route: ai.route,
         mode: experienceMode,
         messageId: assistantMessage.id,
