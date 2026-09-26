@@ -214,6 +214,7 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
 .chatRunBadge{display:block;color:var(--accent-strong);font-size:12px;font-weight:700;margin-top:4px}
 .funnelCard{margin:18px 0;padding:16px;border:1px solid #b7e7e4;border-radius:16px;min-width:0}.funnelActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.funnelCard p{font-size:12px;color:#706763}.funnelCard iframe{display:block;width:100%;max-width:100%;height:580px;border:1px solid #ddd;border-radius:8px;background:white;margin:12px auto}.funnelCard select{padding:8px;border:1px solid #ddd;border-radius:8px}.funnelCard [hidden]{display:none}
 .app>main,.messages,.msg,.bubble,.markdown{min-width:0}.bubble{overflow-wrap:anywhere;max-width:100%}.markdown pre{max-width:100%;max-height:420px;overflow:auto;overflow-wrap:normal;white-space:pre}.markdown img{max-width:100%;height:auto}.funnelSource{margin:12px 0;min-width:0}.funnelSource summary{cursor:pointer;font-weight:600;padding:10px 0}.funnelCard{max-width:100%}.funnelActions button{max-width:100%}.composer textarea{min-width:0}
+.compactReceipt{border:0;background:transparent;padding:0}.actionCompletion{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;font-size:13px;padding:8px 0;overflow-wrap:anywhere}.actionCompletion>span:first-child{color:var(--accent-strong);font-weight:700}.actionCompletion a{color:var(--accent-strong);text-decoration:underline}
 </style>
 </head>
 <body>
@@ -2198,16 +2199,25 @@ function actionStepStatusLabel(step){
   return String(step.status||"").replace(/_/g," ");
 }
 
+function renderCompletedAction(step){
+  const result=step.result||{};let url='',label='Open result';
+  if(step.external_system==='Canva'&&result.verified&&/^https:\/\/(www\.)?canva\.com\//.test(result.edit_url||'')){url=result.edit_url;label='Open design';}
+  if(step.external_system==='BMOD Tools'&&/^https:\/\//.test(result.receipt?.url||''))url=result.receipt.url;
+  if(['Google Drive','Gmail'].includes(step.external_system)&&/^https:\/\/(docs.google.com|drive.google.com|mail.google.com)\//.test(result.receipt?.url||'')){url=result.receipt.url;label=step.external_system==='Gmail'?'Open Gmail drafts':'Open document';}
+  if(step.external_system==='Google Calendar'&&/^https:\/\//.test(result.receipt?.htmlLink||'')){url=result.receipt.htmlLink;label='Open event';}
+  return `<div class="actionCompletion" data-step-id="${esc(step.id)}"><span aria-label="Completed">✓</span> <span>${esc(result.note||step.title||'Action completed')}${!result.note?' · Completed':''}</span>${url?` <a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>`:''}</div>`;
+}
+
 function renderActionRun(run){
   if(!run)return"";
   const steps=run.steps||[];
+  const needsAttention=['failed','unknown','blocked','executing','running','pending','awaiting_approval','needs_approval'].includes(run.status);
+  if(!steps.length&&!needsAttention)return '';
+  const allCompleted=steps.length>0&&steps.every(step=>step.status==='completed');
   const status=String(run.status||"").replace(/_/g," ");
-  return `<div class="actionRunCard" data-run-id="${esc(run.id)}">
-    <div class="actionRunHead">
-      <div><strong>⚡ MOD Action Run</strong><div class="actionStepMeta">${esc(run.objective||"")}</div></div>
-      <span class="actionRunStatus ${esc(run.status||"")}">${esc(status)}</span>
-    </div>
-    <div class="actionSteps">${steps.map(step=>`
+  return `<div class="actionRunCard ${allCompleted?"compactReceipt":""}" data-run-id="${esc(run.id)}">
+    ${allCompleted?'':`<div class="actionRunHead"><strong>${steps.some(step=>step.approval_status==='pending')?'Your approval needed':needsAttention?'Action status':'Action details'}</strong><span class="actionRunStatus ${esc(run.status||'')}">${esc(status)}</span></div>`}
+    <div class="actionSteps">${steps.map(step=>step.status==="completed"?renderCompletedAction(step):`
       <div class="actionStep" data-step-id="${esc(step.id)}">
         <div class="actionStepTop"><div><div class="actionStepTitle">${esc(step.title)}</div><div class="actionStepMeta">${esc(actionStepStatusLabel(step))}${step.workspace_section?` · ${esc(workspaceLabel(step.workspace_section))}`:""}${step.external_system?` · ${esc(step.external_system)}`:""}</div></div></div>
         ${step.description?`<div class="actionStepDesc">${esc(step.description)}</div>`:""}
@@ -2458,13 +2468,13 @@ function renderMessages(){
     const body = m.role==="assistant"
       ? `<div class="markdown">${renderAssistantContent(m.content)}</div>`
       : `<div>${esc(m.content)}</div>`;
-    const receipt=m.role==="assistant"?`<div class="receipt"><span>${esc(modeLabel(m.experience_mode||state.mode))}</span><span>${esc(routeLabel(m.route))}</span></div>`:"";
+
     const feedback=m.role==="assistant"&&m.id?`<div class="feedback" data-feedback-for="${esc(m.id)}"><button data-copy-message="${esc(m.id)}" title="Copy response">📋 Copy</button><button data-rating="1" title="Helpful">👍</button><button data-rating="-1" title="Needs improvement">👎</button>${m.imageJob?"":`<button class="saveWorkspaceBtn" data-save-workspace="${esc(m.id)}">☆ Save to Workspace</button>`}</div>`:"";
     const actionRun=m.role==="assistant"&&m.action_run?renderActionRun(m.action_run):"";
     const webSources=m.role==="assistant"?renderWebSources(m.web_sources||m.webSources||[]):"";
     return `<div class="msg ${m.role}">
       <div class="avatar">${m.role==="assistant"?"M":"YOU"}</div>
-      <div class="bubble">${funnelCards(m,messageIndex)}${body}${m.imageJob?renderImageJob(m):""}${atts?`<div class="attachmentList">${atts}</div>`:""}${webSources}${actionRun}${receipt}${feedback}${m.role==="assistant"&&m.id&&!m.imageJob?`<details class="exportOptions"><summary>Export this response</summary><button data-export-doc="${esc(m.id)}">Create Google Doc</button><button data-export-draft="${esc(m.id)}">Create Gmail draft</button></details>`:""}${m.role==="assistant"&&m.id&&!m.imageJob?voiceControls(m):""}</div>
+      <div class="bubble">${funnelCards(m,messageIndex)}${body}${m.imageJob?renderImageJob(m):""}${atts?`<div class="attachmentList">${atts}</div>`:""}${webSources}${actionRun}${feedback}${m.role==="assistant"&&m.id&&!m.imageJob?`<details class="exportOptions"><summary>Export this response</summary><button data-export-doc="${esc(m.id)}">Create Google Doc</button><button data-export-draft="${esc(m.id)}">Create Gmail draft</button></details>`:""}${m.role==="assistant"&&m.id&&!m.imageJob?voiceControls(m):""}</div>
     </div>`;
   }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble" role="status" aria-live="polite" aria-atomic="true"><span id="modWorkingMessage">${esc(formatWorkingMessage(MOD_WORKING_MESSAGES[modWorkingIndex]))}</span></div></div>`:"");
   wireModeBar();
