@@ -1,0 +1,30 @@
+{
+  "name": "marina-on-demand-2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "api.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test:pdf": "node --test tests/pdf-export.test.cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/donnavaldes-design/marina-on-demand-2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/donnavaldes-design/marina-on-demand-2/issues"
+  },
+  "homepage": "https://github.com/donnavaldes-design/marina-on-demand-2#readme",
+  "dependencies": {
+    "marked": "18.0.14",
+    "pdfkit": "0.20.2"
+  },
+  "private": true
+}

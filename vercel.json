@@ -3,7 +3,12 @@
   "builds": [
     {
       "src": "api.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "pdf/fonts/**"
+        ]
+      }
     },
     {
       "src": "index.html",

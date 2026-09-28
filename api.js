@@ -1525,7 +1525,7 @@ Use this specialized operating method for this request. It is subordinate to Mar
 ${skillDefinition.operating_prompt}`
     : "";
 
-  const actionInstructions = `${liveCore}${IMAGE_RULES}${MARINA_VOICE_LAYER}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}
+  const actionInstructions = `${liveCore}${PDF_RULES}${IMAGE_RULES}${MARINA_VOICE_LAYER}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}
 
 ROUTED CANONICAL CONTEXT:
 ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext}
@@ -2004,6 +2004,7 @@ async function executeGoogleOperation(user,args,context={}){
 const CANVA_MANIFEST = require("./canva/manifest");
 const MEMBERSHIP = require("./access/membership").createMembershipService({sbRest,connection:async id=>{const c=await readBmodRow(id,"bmod_membership");return bmodMayRead(c)?c:null;},call:(id,path,options)=>highLevelApi(id,path,{...options,integrationKey:"bmod_membership"})});
 const VOICE = require("./voice/service").createVoiceService({sbRest,storageHeaders:supabaseHeaders});
+const MOD_PDFS = require('./pdf/service.cjs').createPdfService({sbRest,sign:createAttachmentSignedUrl,storageHeaders:supabaseHeaders});
 const MOD_IMAGES = createImageService({sbRest,saveMessage,sign:createAttachmentSignedUrl,hydrate:hydrateAttachments,storageHeaders:supabaseHeaders});
 const CANVA = require("./canva/service").createService({sbRest,sbRpc,getSecret:getConnectionSecret,getRefreshSecret:getConnectionRefreshSecret,insertActionStep,nextActionStepOrder});
 const BMOD_MANIFEST = require("./bmod/manifest");
@@ -2274,6 +2275,11 @@ async function buildNativeBusinessTools(userId) {
   return [...(googleRows.some(c=>c?.status==="connected")?[GOOGLE_MANIFEST.tool]:[]),...(bmod ? [BMOD_READ_TOOL] : []),...(canva?.status==="connected" ? [CANVA_MANIFEST.tool] : [])];
 }
 
+const PDF_RULES = `
+PDF EXPORT
+For PDF requests, deliver the full finished text in your chat response. The member can choose Export this response > Download PDF beneath it. That button renders a text PDF and saves it privately in My Assets without another AI call. Images are not embedded. Do not claim a PDF has already been generated or supply an invented download link: export occurs only when they click the button. This native export is available even when an imported skill describes PDF creation as unavailable.
+`;
+
 const IMAGE_RULES = `
 IMAGE CREATION:
 - When the user explicitly asks you to create or edit an actual image, use create_mod_image. It creates one image and returns a background job. Never claim the image is finished before the job completes.
@@ -2348,7 +2354,7 @@ Apply this specialized operating workflow when relevant. Do not expose internal 
 ${skillDefinition.operating_prompt}`
     : "";
 
-  const instructions = `${liveCore}${IMAGE_RULES}${MARINA_VOICE_LAYER}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}${WEB_RESEARCH_RULES}${CONNECTION_RULES}
+  const instructions = `${liveCore}${PDF_RULES}${IMAGE_RULES}${MARINA_VOICE_LAYER}${liveRouteSource}${liveBusiness}${liveBrain.liveOverrideText}${skillContext}${WEB_RESEARCH_RULES}${CONNECTION_RULES}
 
 ROUTED CANONICAL CONTEXT:
 ${routed.context}${memoryText}${workspaceText}${coachingText}${attachmentContext}${modeContext}
@@ -4107,6 +4113,14 @@ async function executeApprovedBmodStep(userId,step){
       return json(res, 200, { ok:true, rating });
     }
 
+
+    if (req.method === "POST" && path === "/api/pdf/export") {
+      const body=await readBody(req);
+      return json(res,200,await MOD_PDFS.exportMessage(user.id,body.messageId));
+    }
+    if (req.method === "GET" && path === "/api/pdf/download") {
+      return json(res,200,await MOD_PDFS.download(user.id,url.searchParams.get('assetId')));
+    }
 
     if (req.method === "GET" && path === "/api/workspace") {
       const section = validWorkspaceSection(url.searchParams.get("section"));
