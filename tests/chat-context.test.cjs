@@ -30,6 +30,14 @@ test('follow-up includes the saved transcript on its original message with a fre
  assert.equal(result[0].content[0].text,'draft 2');assert.equal(result[0].content.at(-1).type,'input_file');
  assert.equal(result[0].content.at(-1).file_url,'https://storage.test/fresh/owner/transcript2.txt');assert.equal(result[1].content,'draft 3');
 });
+test('pasted transcript survives beyond the recent window without replacing the latest draft',async()=>{
+ const messages=Array.from({length:52},(_,i)=>msg(i));messages[2].content='PASTED TRANSCRIPT '+ 'source '.repeat(400);
+ const result=await fixture(messages).run();assert.match(result[0].content[0].text,/PASTED TRANSCRIPT/);assert.match(result[0].content[0].text,/not a new request/);assert.equal(result.at(-1).content,'draft 51');
+});
+test('old pasted references are bounded and truncation is explicit',async()=>{
+ const messages=Array.from({length:52},(_,i)=>msg(i));for(const i of [0,2,4,6])messages[i].content='x'.repeat(61000);
+ const result=await fixture(messages).run();assert.equal(result.length,27);assert.match(result[0].content[0].text,/excerpt truncated/);
+});
 test('source remains available after its upload message leaves the history window',async()=>{
  const f=fixture(Array.from({length:52},(_,i)=>msg(i)),[file(2)]);const result=await f.run();
  assert.equal(result[0].content.at(-1).type,'input_file');assert.equal(result.at(-1).content,'draft 51');assert.match(result[0].content[0].text,/not a new request/);

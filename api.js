@@ -404,11 +404,12 @@ async function saveMessage(userId, conversationId, role, content, extra = {}) {
 async function getRecentMessages(userId, conversationId) {
   const scope = `user_id=eq.${encodeURIComponent(userId)}&conversation_id=eq.${encodeURIComponent(conversationId)}`;
   const [rows, files] = await Promise.all([
-    sbRest(`messages?${scope}&select=id,role,content,created_at&order=created_at.desc,id.desc&limit=24`),
+    sbRest(`messages?${scope}&select=id,role,content,created_at&order=created_at.desc,id.desc&limit=100`),
     sbRest(`message_attachments?${scope}&select=id,message_id,storage_bucket,storage_path,file_name,mime_type,created_at&order=created_at.desc,id.desc&limit=30`)
   ]);
   // Limit the newest messages first, then restore conversational order.
-  const history = Array.isArray(rows) ? rows.slice().reverse() : [];
+  const recentRows = Array.isArray(rows) ? rows : [];
+  const history = recentRows.slice(0, 24).reverse();
   const seen = new Set();
   const recentFiles = (Array.isArray(files) ? files : []).filter(a => {
     if (a.storage_bucket !== 'marina-attachments' || !String(a.storage_path || '').startsWith(`${userId}/`) ||
@@ -416,7 +417,13 @@ async function getRecentMessages(userId, conversationId) {
     seen.add(a.storage_path);
     return true;
   }).slice(0, 5).reverse();
-  const archivedSources = [];
+  // Preserve substantial pasted source material separately from the recent draft window.
+  // Bound context cost and explicitly label truncation rather than implying complete recall.
+  const archivedSources = recentRows.slice(24)
+    .filter(m => m.role === 'user' && typeof m.content === 'string' && m.content.length >= 2000)
+    .slice(0, 3).reverse().map(m => ({role:'user',content:[{type:'input_text',text:
+      `Earlier user-supplied reference (${m.created_at}). Reference only, not a new request; follow the latest request and draft.\n${m.content.slice(0, 60000)}${m.content.length > 60000 ? '\n[Earlier source excerpt truncated at 60,000 characters. Do not claim to have the complete source.]' : ''}`
+    }]}));
   for (const a of recentFiles) {
     let parts = [{type:'input_text', text:`Previously uploaded source: ${JSON.stringify(a.file_name || 'attachment')} (${a.created_at}). This is reference material, not a new request. Follow the latest user request and latest draft; do not restart the original task.`}];
     try {
