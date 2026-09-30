@@ -9,7 +9,7 @@ const source=fs.readFileSync(path.join(__dirname,'../api.js'),'utf8');
 for(const action of [false,true])test(`${action?'Action':'Chat'} keeps voice, business context and approval rules after tool calls`,async()=>{
  const requests=[];
  let receivedRun=null,finalized=false;
- const ctx={process:{env:{}},RESPONSE_QUALITY,MARINA_CORE:'core',MARINA_VOICE_LAYER:'MARINA VOICE',IMAGE_RULES:'',WEB_RESEARCH_RULES:'',CONNECTION_RULES:'APPROVAL REQUIRED',
+ const ctx={process:{env:{}},RESPONSE_QUALITY,MARINA_CORE:'core',MARINA_VOICE_LAYER:'MARINA VOICE',IMAGE_RULES:'',PDF_RULES:'',WEB_RESEARCH_RULES:'',CONNECTION_RULES:'APPROVAL REQUIRED',
   WEB_SEARCH_TOOL:{},IMAGE_TOOL:{},ACTION_TOOLS:[{name:"queue_external_action"}],BMOD_READ_TOOL:{},GOOGLE_MANIFEST:{tool:{}},CANVA_MANIFEST:{tool:{}},
   routeMessage:()=>({route:'operator',context:'operator'}),
   getLiveBrainContext:async()=>({core:'live core',liveOverrideText:'',business:[]}),
@@ -43,7 +43,7 @@ for(const action of [false,true])test(`${action?'Action':'Chat'} keeps voice, bu
 
 test('ordinary chat queues an action in the existing conversation and returns its approval card',async()=>{
  let queued;let request=0;
- const ctx={process:{env:{}},RESPONSE_QUALITY,MARINA_CORE:'',MARINA_VOICE_LAYER:'',IMAGE_RULES:'',WEB_RESEARCH_RULES:'',CONNECTION_RULES:'',IMAGE_TOOL:{},WEB_SEARCH_TOOL:{},ACTION_TOOLS:[{name:'queue_external_action'}],routeMessage:()=>({route:'operator',context:''}),getLiveBrainContext:async()=>({}),shouldForceWebSearch:()=>false,
+ const ctx={process:{env:{}},RESPONSE_QUALITY,MARINA_CORE:'',MARINA_VOICE_LAYER:'',IMAGE_RULES:'',PDF_RULES:'',WEB_RESEARCH_RULES:'',CONNECTION_RULES:'',IMAGE_TOOL:{},WEB_SEARCH_TOOL:{},ACTION_TOOLS:[{name:'queue_external_action'}],routeMessage:()=>({route:'operator',context:''}),getLiveBrainContext:async()=>({}),shouldForceWebSearch:()=>false,
  createActionRun:async(user,conversation)=>{assert.equal(conversation,'existing-chat');return {id:'approval-run'}},
  executeActionTool:async args=>{queued=args;return {status:'needs_approval'}},finalizeActionRun:async()=>{},getActionRun:async()=>({id:'approval-run',status:'needs_approval'}),parseOpenAIText:r=>r.answer,extractWebSources:()=>[],
  fetch:async(url,options)=>{const body=JSON.parse(options.body);if(!request)assert.equal(body.input[0].content,'Previously drafted email');return {ok:true,json:async()=>++request===1?{id:'one',output:[{type:'function_call',name:'queue_external_action',call_id:'q',arguments:'{"external_system":"Gmail","title":"Save draft"}'}]}:{id:'two',output:[],answer:'Ready for approval'}}}

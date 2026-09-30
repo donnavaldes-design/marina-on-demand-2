@@ -402,10 +402,42 @@ async function saveMessage(userId, conversationId, role, content, extra = {}) {
 }
 
 async function getRecentMessages(userId, conversationId) {
-  const rows = await sbRest(
-    `messages?user_id=eq.${encodeURIComponent(userId)}&conversation_id=eq.${encodeURIComponent(conversationId)}&select=role,content,created_at&order=created_at.asc&limit=24`
-  );
-  return Array.isArray(rows) ? rows : [];
+  const scope = `user_id=eq.${encodeURIComponent(userId)}&conversation_id=eq.${encodeURIComponent(conversationId)}`;
+  const [rows, files] = await Promise.all([
+    sbRest(`messages?${scope}&select=id,role,content,created_at&order=created_at.desc,id.desc&limit=24`),
+    sbRest(`message_attachments?${scope}&select=id,message_id,storage_bucket,storage_path,file_name,mime_type,created_at&order=created_at.desc,id.desc&limit=30`)
+  ]);
+  // Limit the newest messages first, then restore conversational order.
+  const history = Array.isArray(rows) ? rows.slice().reverse() : [];
+  const seen = new Set();
+  const recentFiles = (Array.isArray(files) ? files : []).filter(a => {
+    if (a.storage_bucket !== 'marina-attachments' || !String(a.storage_path || '').startsWith(`${userId}/`) ||
+        String(a.storage_path).split('/').some(part => part === '..') || seen.has(a.storage_path)) return false;
+    seen.add(a.storage_path);
+    return true;
+  }).slice(0, 5).reverse();
+  const archivedSources = [];
+  for (const a of recentFiles) {
+    let parts = [{type:'input_text', text:`Previously uploaded source: ${JSON.stringify(a.file_name || 'attachment')} (${a.created_at}). This is reference material, not a new request. Follow the latest user request and latest draft; do not restart the original task.`}];
+    try {
+      // Re-sign persisted paths on every turn; never reuse expired browser URLs.
+      const signedUrl = await createAttachmentSignedUrl(a.storage_path, 900);
+      parts.push(isImageMime(a.mime_type)
+        ? {type:'input_image', image_url:signedUrl, detail:'auto'}
+        : {type:'input_file', file_url:signedUrl});
+    } catch {
+      parts.push({type:'input_text', text:'This saved source could not be reopened. Explain that limitation if the requested work needs it; do not substitute a different source or claim to have read it.'});
+    }
+    const original = history.find(m => m.id === a.message_id && m.role === 'user');
+    if (original) {
+      if (!Array.isArray(original.content)) original.content = [{type:'input_text',text:original.content || '[Attachment]'}];
+      original.content.push(...parts);
+    } else {
+      // Keep sources available even when their upload message falls outside the recent window.
+      archivedSources.push({role:'user',content:parts});
+    }
+  }
+  return [...archivedSources, ...history];
 }
 
 async function getMemory(userId) {
