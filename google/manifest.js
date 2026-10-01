@@ -22,7 +22,7 @@ const providers={
   google_drive:{
     name:'Google Drive',
     base:'https://www.googleapis.com/drive/v3',
-    readScopes:[scope('drive.readonly')],
+    readScopes:[scope('drive.metadata.readonly')],
     writeScopes:[scope('drive.file')],
     checks:['list_files']
   }
@@ -71,12 +71,12 @@ addWrite('create_event','google_calendar','calendar.events',{
   timeZone:str(true,100)
 });
 
-addRead('list_files','google_drive','drive.readonly','/files',{
+addRead('list_files','google_drive','drive.metadata.readonly','/files',{
   q:str(),
   pageToken:page.pageToken,
   pageSize:{type:'integer',min:1,max:50,default:20}
 },{fields:'nextPageToken,files(id,name,mimeType,modifiedTime,webViewLink,description)',spaces:'drive'});
-addRead('get_file','google_drive','drive.readonly','/files/:fileId',{
+addRead('get_file','google_drive','drive.metadata.readonly','/files/:fileId',{
   fileId:id
 },{fields:'id,name,mimeType,description,modifiedTime,size,webViewLink,capabilities(canDownload)'});
 
@@ -88,7 +88,12 @@ addWrite('save_file','google_drive','drive.file',{
 });
 
 const isProvider=k=>Object.prototype.hasOwnProperty.call(providers,k);
-const parseScopes=s=>new Set(String(s||'').split(/\s+/).filter(Boolean));
+// Existing read-only grants cover metadata reads, but new consent requests stay narrow.
+function parseScopes(s){
+  const granted=new Set(String(s||'').split(/\s+/).filter(Boolean));
+  if(granted.has(scope('drive.readonly')))granted.add(scope('drive.metadata.readonly'));
+  return granted;
+}
 const modeOf=c=>c?.permission_mode==='view_and_take_action'?'view_and_take_action':'view_only';
 function scopesForMode(key,mode){
   const p=providers[key];

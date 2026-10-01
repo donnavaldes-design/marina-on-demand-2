@@ -26,7 +26,7 @@ All scope names below have prefix https://www.googleapis.com/auth/.
 | calendar.calendarlist.readonly | List calendars so members can identify the calendar for their request. | Demonstrate calendar list. |
 | calendar.events.readonly | Read events in View Only mode. | Needed separately while read-only mode remains supported. |
 | calendar.events | Create approved events in action mode. | Broader API scope also allows changes/deletion; MOD currently exposes creation only. |
-| drive.readonly | Search/list files and retrieve metadata across Drive. | Restricted and broader than current reader needs. Before final submission, evaluate drive.metadata.readonly for existing metadata search, or a Picker-based drive.file design for selected files. Neither redesign is applied by this preparation. |
+| drive.metadata.readonly | Search/list files and retrieve metadata across Drive. | Restricted. The prepared change requests metadata access only. Existing drive.readonly connections remain compatible. Validate consent in staging before production rollout. |
 | drive.file | Create a new Google Doc from supplied text and save supported uploaded files. | Narrow file-level scope. Existing document export uses the Drive API, not the Docs API. |
 
 Keep console declarations aligned with actual runtime scopes. Do not claim drive.readonly is the minimum available permission for metadata-only operations. A scope redesign needs code and consent-flow updates, not just removal from the console.
@@ -70,3 +70,9 @@ Official references:
 - https://developers.google.com/terms/api-services-user-data-policy
 - https://developers.google.com/workspace/gmail/api/auth/scopes
 - https://developers.google.com/workspace/drive/api/guides/api-specific-auth
+
+## Drive scope change, prepared September 30, 2026
+Runtime changes are prepared on a separate branch, not deployed to production. Replace drive.readonly with drive.metadata.readonly in the verification scope list after staging validation. Keep drive.file for approved document creation and attachment export. Record the matching consent flow before submitting.
+
+Final Drive justification after rollout:
+Marina on Demand uses drive.metadata.readonly to let users search their connected Google Drive and view file names, descriptions, types, modification dates, and links. It does not download or read existing file contents. drive.file alone cannot search metadata across existing files that have not been opened with the app. The separate drive.file scope supports creating Google Docs and exporting user-approved attachments.
