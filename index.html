@@ -19,6 +19,7 @@ h1,h2,p{margin-top:0}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font
 .main{display:flex;flex-direction:column;min-width:0;background:var(--paper)}.top{height:74px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:rgba(255,255,240,.94);backdrop-filter:blur(14px);position:sticky;top:0;z-index:20}.topLeft{display:flex;align-items:center;gap:12px;min-width:0}.menuBtn{display:none;width:42px;height:42px;border:1px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;color:var(--ink);font-size:19px;place-items:center;flex:0 0 auto}.topBrand{display:flex;align-items:center;gap:10px;min-width:0}.topAvatar{width:38px;height:38px;border-radius:12px;object-fit:cover;border:1px solid rgba(10,186,181,.18)}.topBrand strong{display:block;font-size:15px;white-space:nowrap}.topBrand small{display:block;color:var(--muted);font-size:11px;margin-top:1px}.top span{font-size:12px;color:var(--muted);text-align:right}
 .messages{flex:1;overflow:auto;padding:32px max(22px,calc((100vw - 1180px)/2));}.welcome{max-width:820px;margin:5vh auto 0}.welcome h2{font-size:46px;margin-bottom:12px}.welcome p{font-size:18px;color:var(--muted);line-height:1.65}.quick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}.quick button{padding:15px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:16px;cursor:pointer}.quick button:hover{border-color:rgba(10,186,181,.35)}
 .msg{max-width:860px;margin:0 auto 22px;display:grid;grid-template-columns:42px minmax(0,1fr);gap:12px}.avatar{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--dark);color:#fff;font-size:11px;font-weight:800;overflow:hidden}.msg.assistant .avatar{background-image:var(--marina-image);background-size:cover;background-position:center;color:transparent;font-size:0;border:2px solid rgba(10,186,181,.2)}.msg.user .avatar{background:#ead8cf;color:var(--dark)}.bubble{line-height:1.65;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 18px;box-shadow:0 8px 24px rgba(43,21,15,.03)}.msg.user .bubble{background:#fbf6f1;white-space:pre-wrap}.msg.assistant .bubble{white-space:normal}
+#stopMessageBtn[hidden],#sendMessageBtn[hidden]{display:none}
 .composerWrap{border-top:1px solid var(--line);padding:16px 22px 18px;background:rgba(255,255,240,.96);backdrop-filter:blur(12px);position:sticky;bottom:0;z-index:15}.composer{max-width:900px;margin:auto;display:flex;gap:10px;border:1px solid var(--line);border-radius:20px;padding:10px;background:#fff;box-shadow:0 12px 34px rgba(43,21,15,.05)}.composer textarea{flex:1;border:0;outline:0;resize:none;min-height:54px;padding:7px;background:transparent}.send{width:46px;height:46px;border-radius:14px;border:0;background:var(--accent);color:#fff;font-size:22px;cursor:pointer}.send:hover{background:var(--accent-strong)}.attach{width:46px;height:46px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--accent-strong);font-size:21px;cursor:pointer;display:grid;place-items:center}.status{max-width:900px;margin:8px auto 0;font-size:12px;color:var(--muted)}.pending{max-width:900px;margin:0 auto 9px;display:flex;gap:8px;flex-wrap:wrap}.filechip{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:7px 9px;font-size:12px}.filechip img{width:44px;height:44px;border-radius:8px;object-fit:cover}.filechip button{border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:16px}.attachmentList{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.attachmentCard{border:1px solid var(--line);background:#faf7f2;border-radius:11px;padding:8px;font-size:12px;max-width:220px}.attachmentCard img{display:block;width:180px;max-height:150px;object-fit:cover;border-radius:8px;margin-bottom:7px}
 .markdown{line-height:1.5;font-size:1rem;white-space:normal}.markdown>*:first-child{margin-top:0!important}.markdown>*:last-child{margin-bottom:0!important}.markdown p{margin:.38em 0;white-space:normal}.markdown h1,.markdown h2,.markdown h3,.markdown h4{font-family:Georgia,serif;line-height:1.16;margin:.9em 0 .32em}.markdown h1{font-size:1.55rem}.markdown h2{font-size:1.3rem}.markdown h3{font-size:1.12rem}.markdown h4{font-size:1.02rem}.markdown ul,.markdown ol{margin:.42em 0 .55em;padding-left:1.35rem}.markdown li{white-space:normal;margin:.12em 0;padding-left:.08rem}.markdown li>p{margin:.12em 0}.markdown li+li{margin-top:.14em}.markdown strong{font-weight:750;color:#201b17}.markdown em{font-style:italic}.markdown blockquote{margin:.7em 0;padding:.55em .85em;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 9px 9px 0;color:#4b433d}.markdown blockquote p{margin:.2em 0}.markdown hr{border:0;border-top:1px solid var(--line);margin:.85em 0}.markdown table{width:100%;border-collapse:collapse;margin:.7em 0;font-size:.94rem}.markdown th,.markdown td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}.markdown th{background:#f5fbfa}.markdown code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f4eee7;padding:.1em .3em;border-radius:5px;font-size:.92em}.markdown pre{overflow:auto;background:#2a241f;color:#fff;padding:12px;border-radius:10px;margin:.65em 0}.markdown pre code{background:transparent;color:inherit;padding:0}.markdown a{color:#8f3150;text-decoration:underline;text-underline-offset:2px}
 .dashboard{max-width:1040px;margin:1vh auto 0}.dashboardHero{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:20px;align-items:center;padding:8px 0 22px}.dashboardHero .eyebrow{margin-bottom:8px;color:var(--accent-strong)}.dashboardHero h2{font-family:Georgia,serif;font-size:44px;line-height:1.02;margin:0 0 10px;letter-spacing:-.035em}.dashboardHero p{color:var(--muted);font-size:16px;line-height:1.6;max-width:700px}.dashboardPortraitWrap{display:flex;justify-content:flex-end}.dashboardPortrait{width:210px;height:250px;border-radius:28px;object-fit:cover;border:1px solid rgba(10,186,181,.18);box-shadow:var(--shadow)}
@@ -291,7 +292,8 @@ body{font-size:16px}button,input,select,textarea{font-size:inherit}button,select
         <button id="attachBtn" class="attach" type="button" title="Attach screenshot, image, PDF or document">＋</button>
         <button id="dictateBtn" class="attach" type="button" aria-label="Dictate your prompt" aria-pressed="false" title="Dictate your prompt, up to 2 minutes">🎤</button>
         <textarea id="input" placeholder="Ask MOD..."></textarea>
-        <button class="send" type="submit">↑</button>
+        <button id="sendMessageBtn" class="send" type="submit" aria-label="Send message">↑</button>
+        <button id="stopMessageBtn" class="send" type="button" hidden aria-label="Stop MOD response" title="Stop response">■</button>
       </form>
       <div id="voiceNote" class="status" role="status">Tap the microphone to dictate. Review your text before sending. Maximum 2 minutes.</div>
       <div id="status" class="status"></div>
@@ -486,7 +488,7 @@ qs("#cancelSave").addEventListener("click",closeSaveModal);
 qs("#saveModal").addEventListener("click",e=>{if(e.target===qs("#saveModal"))closeSaveModal()});
 qs("#confirmSave").addEventListener("click",saveCandidateToWorkspace);
 qs("#composer").addEventListener("submit",e=>{e.preventDefault();send()});
-qs("#input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
+qs("#input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();send()}});
 qs("#attachBtn").addEventListener("click",()=>qs("#fileInput").click());
 function queueChatFiles(files){
   if(state.loading){qs("#status").textContent="Wait for MOD to finish before adding attachments.";return;}
@@ -2152,9 +2154,9 @@ async function selectConversation(id){
   closeSidebarIfMobile();state.conversationId=id;
   const run=chatRuns.get(id);
   if(run)run.unread=false;
-  if(run&&(run.running||run.error)){
+  if(run&&(run.running||run.error||run.stopped)){
     run.unread=false;state.messages=run.messages;state.businessId=run.businessId;state.mode=run.mode;state.selectedSkill=run.skill;state.loading=run.running;
-    if(run.error){qs("#input").value=run.draft;state.pendingFiles=run.files;renderPending();}
+    if(run.error||run.stopped){qs("#input").value=run.draft;state.pendingFiles=run.files;renderPending();}
     qs("#status").textContent=run.error||"";renderMessages();renderThreads();if(run.running)startModWorking();return;
   }
   if(run)chatRuns.delete(id);
@@ -2170,6 +2172,7 @@ async function selectConversation(id){
 }
 
 function renderWelcome(){
+  updateChatStopButton();
   setPage("chat");
   if(state.messages.length){renderMessages();return}
   if(state.mode==="create")return renderCreateHub();
@@ -2470,6 +2473,7 @@ async function downloadModPdf(button,{messageId,assetId}){
 }
 
 function renderMessages(){
+  updateChatStopButton();
   setPage("chat");
   if(!state.messages.length){renderWelcome();return}
   qs("#messages").innerHTML=renderModeBar()+renderActiveSkillBar()+state.messages.map((m,messageIndex)=>{
@@ -2496,6 +2500,10 @@ function renderMessages(){
   }).join("") + (state.loading?`<div class="msg assistant"><div class="avatar">M</div><div class="bubble" role="status" aria-live="polite" aria-atomic="true"><span id="modWorkingMessage">${esc(formatWorkingMessage(MOD_WORKING_MESSAGES[modWorkingIndex]))}</span></div></div>`:"");
   const failedRun=chatRuns.get(state.conversationId);
   if(failedRun?.error&&!state.loading)qs('#messages').insertAdjacentHTML('beforeend',`<div class="chatFailure" role="alert"><strong>MOD couldn’t finish this request</strong><p>${esc(failedRun.error)}</p></div>`);
+  if(failedRun?.stopped&&!state.loading){
+    qs('#messages').insertAdjacentHTML('beforeend','<div class="chatFailure" role="status"><strong>Response stopped</strong><p>You can edit and resend your prompt.</p><button id="restoreStoppedPrompt" type="button">Edit sent prompt</button></div>');
+    qs('#restoreStoppedPrompt').onclick=()=>restoreStoppedPrompt(failedRun);
+  }
   wireModeBar();
   wireActiveSkillBar();
   wireFunnelCards();
@@ -2555,6 +2563,25 @@ function renderMessages(){
   wireVoicePlayback();
   qs("#messages").scrollTop=qs("#messages").scrollHeight;
 }
+function updateChatStopButton(){
+  const running=!!chatRuns.get(state.conversationId)?.running;
+  qs('#stopMessageBtn').hidden=!running;
+  qs('#sendMessageBtn').hidden=running;
+}
+function restoreStoppedPrompt(run){
+  if(!run||run.ownerId!==state.session?.user?.id)return;
+  if((qs('#input').value||state.pendingFiles.length)&&!confirm('Replace your current unsent draft with the stopped prompt?'))return;
+  qs('#input').value=run.draft;state.pendingFiles=[...run.files];renderPending();qs('#input').focus();
+}
+function stopChatResponse(){
+  const run=chatRuns.get(state.conversationId);
+  if(!run?.running||run.ownerId!==state.session?.user?.id)return;
+  run.stopped=true;run.running=false;run.controller.abort();
+  stopModWorking();state.loading=false;
+  if(!qs('#input').value&&!state.pendingFiles.length){qs('#input').value=run.draft;state.pendingFiles=[...run.files];renderPending();}
+  qs('#status').textContent='Response stopped. Edit your prompt and send again. Work already completed may still appear in chat history.';
+  renderMessages();renderThreads();qs('#input').focus();
+}
 function chatFailureMessage(error){
   const message=String(error?.message||error||'');
   if(/OPENAI|insufficient_quota|credits remaining|billing|rate.limit|429/i.test(message))return 'MOD is temporarily unavailable. Your message and attachments are back in the message box. Please try again later. If this continues, contact support.';
@@ -2568,17 +2595,17 @@ async function send(prefill, forcedMode, forcedSkillKey){
   if(forcedMode)setMode(forcedMode);
   const serverId=state.conversationId&&!state.conversationId.startsWith('pending-')?state.conversationId:null;
   const id=state.conversationId||'pending-'+crypto.randomUUID(),ownerId=state.session.user.id;
-  const run={id,ownerId,title:value.slice(0,70)||'Image conversation',messages:[...state.messages],businessId:state.businessId||'',mode:state.mode,skill:state.selectedSkill,skillKey:forcedSkillKey||state.selectedSkill?.skill_key||null,imageReferenceId:state.imageReferenceId||null,files:[...state.pendingFiles],draft:value,running:true,unread:false,error:''};
+  const run={id,ownerId,title:value.slice(0,70)||'Image conversation',messages:[...state.messages],businessId:state.businessId||'',mode:state.mode,skill:state.selectedSkill,skillKey:forcedSkillKey||state.selectedSkill?.skill_key||null,imageReferenceId:state.imageReferenceId||null,files:[...state.pendingFiles],draft:value,running:true,unread:false,error:'',stopped:false,controller:new AbortController()};
   chatRuns.set(id,run);state.conversationId=id;state.messages=run.messages;state.loading=true;state.pendingFiles=[];input.value='';renderPending();
   const active=()=>state.session?.user?.id===ownerId&&state.page==='chat'&&state.conversationId===run.id;
   const localAttachments=run.files.map(f=>({file_name:f.name,mime_type:f.type,size_bytes:f.size,signed_url:f.type.startsWith('image/')?URL.createObjectURL(f):null}));
   run.messages.push({role:'user',content:value||'[Attachment]',attachments:localAttachments});
   qs('#status').textContent='';renderMessages();renderThreads();startModWorking();
   try{
-    const attachments=await uploadPendingFiles(run.files,ownerId,message=>{if(active())qs('#status').textContent=message;});
-    if(state.session?.user?.id!==ownerId)return;
-    const j=await api('/api/chat',{method:'POST',body:JSON.stringify({message:value,conversationId:serverId||undefined,businessId:run.businessId||null,attachments,imageReferenceId:run.imageReferenceId,mode:run.mode,skillKey:run.skillKey})});
-    if(state.session?.user?.id!==ownerId)return;
+    const attachments=await uploadPendingFiles(run.files,ownerId,message=>{if(active()&&!run.stopped)qs('#status').textContent=message;});
+    if(state.session?.user?.id!==ownerId||run.stopped)return;
+    const j=await api('/api/chat',{method:'POST',signal:run.controller.signal,body:JSON.stringify({message:value,conversationId:serverId||undefined,businessId:run.businessId||null,attachments,imageReferenceId:run.imageReferenceId,mode:run.mode,skillKey:run.skillKey})});
+    if(state.session?.user?.id!==ownerId||run.stopped)return;
     const wasActive=active();chatRuns.delete(run.id);run.id=j.conversationId;chatRuns.set(run.id,run);
     if(wasActive)state.conversationId=run.id;
     run.businessId=j.businessId||'';run.mode=j.mode||run.mode;
@@ -2586,10 +2613,10 @@ async function send(prefill, forcedMode, forcedSkillKey){
     run.messages.push({imageJob:j.imageJob||null,id:j.messageId,role:'assistant',content:j.answer,attachments:[],route:j.route,experience_mode:j.mode||run.mode,action_run_id:j.actionRun?.id||null,action_run:j.actionRun||null,skill_key:j.skillKey||null,web_sources:j.webSources||[]});
     run.files=[];run.draft='';run.unread=!wasActive;
     await loadConversations();
-  }catch(e){run.error=chatFailureMessage(e);run.unread=!active();}
+  }catch(e){if(!run.stopped){run.error=chatFailureMessage(e);run.unread=!active();}}
   finally{
     run.running=false;
-    if(state.session?.user?.id===ownerId){
+    if(state.session?.user?.id===ownerId&&!run.stopped&&chatRuns.get(run.id)===run){
       if(active()){
         stopModWorking();state.loading=false;state.messages=run.messages;state.businessId=run.businessId;state.selectedSkill=run.skill;state.imageReferenceId=null;setMode(run.mode);
         if(run.error){input.value=run.draft;state.pendingFiles=run.files;renderPending();}
@@ -2600,6 +2627,7 @@ async function send(prefill, forcedMode, forcedSkillKey){
   }
 }
 
+qs("#stopMessageBtn").onclick=stopChatResponse;
 qs("#dictateBtn").onclick=toggleDictation;
 window.addEventListener("pagehide",()=>{stopModVoice(true);stopModWorking();});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopModVoice(true);});

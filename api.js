@@ -1,3 +1,5 @@
+const CHAT_CANCELLATION=require('./chat-cancellation');
+const fetch=CHAT_CANCELLATION.fetch;
 const ECOSYSTEM=require('./ecosystem');
 const OFFER_SCAN=require('./offer-scan');
 const ECOSYSTEM_UPDATE=require('./ecosystem-update');
@@ -1642,6 +1644,7 @@ You are not merely planning. You are operating inside Marina's controlled execut
 
       const outputs = [];
       for (const call of calls) {
+      CHAT_CANCELLATION.checkpoint();
         let args = {};
         try {
           args = JSON.parse(call.arguments || "{}");
@@ -2457,6 +2460,7 @@ ${RESPONSE_QUALITY}`;
     const outputs = [];
 
     for (const call of calls) {
+      CHAT_CANCELLATION.checkpoint();
       let args = {};
       try { args = JSON.parse(call.arguments || "{}"); } catch {}
       if (call.name === "create_mod_image" && userId && conversationId) {
@@ -2979,7 +2983,7 @@ function getHighLevelScopes(connection) {
   return BMOD_MANIFEST.scopesForMode(BMOD_MANIFEST.modeOf(connection)).join(" ");
 }
 
-module.exports = async function handler(req, res) {
+module.exports = CHAT_CANCELLATION.wrap(async function handler(req, res) {
   try {
     const url = new URL(req.url, "https://local.invalid");
     const path = url.pathname;
@@ -4676,9 +4680,11 @@ Use arrays for pain points, desires, buyer language, tone traits, signature phra
 
     return json(res, 404, { error: "Not found" });
   } catch (e) {
+    if(res.destroyed)return;
+    if(e?.name==='AbortError'){res.end();return;}
     const message = e instanceof Error ? e.message : String(e);
     if(message === "ACCESS_CHECK_UNAVAILABLE") return json(res,503,{error:"We couldn’t check your membership right now. Please try again shortly.",code:message});
     const status = message === "UNAUTHORIZED" ? 401 : message === "NOT_ALLOWED" ? 403 : 500;
     return json(res, status, { error: message });
   }
-};
+});
